@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>五行齒輪模擬｜證型選單＋五行強度</title>
+<title>五行齒輪模擬｜常見症案例版</title>
 <style>
   body{margin:0;display:flex;height:100vh;overflow:hidden;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
   canvas{flex:1;display:block;background:#ffffff}
@@ -30,29 +30,27 @@
   .b-water{background:#3498db}
   .line{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
   .line .name{min-width:2em}
+  #caseNote{margin-top:8px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:13px;line-height:1.5}
 </style>
 </head>
 <body>
 <canvas id="canvas"></canvas>
 
 <div id="controls">
-  <h2>常見證型</h2>
+  <h2>常見症案例</h2>
   <div class="section">
     <select id="caseSelect">
       <option value="">（選一個案例）</option>
-      <option value="ganYu">肝鬱氣滯</option>
-      <option value="xinHuo">心火亢盛</option>
-      <option value="piXuShi">脾虛濕困</option>
-      <option value="feiZao">肺燥傷津</option>
-      <option value="shenYangXu">腎陽虛</option>
-      <option value="tanShi">痰濕內阻</option>
-      <option value="ganHuoFanFei">肝火犯肺</option>
-      <option value="xinShenBuJiao">心腎不交</option>
+      <option value="insomnia">失眠</option>
+      <option value="headache">頭痛</option>
+      <option value="obesity">肥胖</option>
+      <option value="piShi">脾濕</option>
+      <option value="yangWei">陽痿</option>
     </select>
     <div class="row" style="margin-top:8px">
       <button id="applyCase">套用案例</button>
     </div>
-    <div class="muted">提示：套用後仍可用下方滑桿微調。</div>
+    <div id="caseNote" class="muted">選擇後按「套用案例」，可再用下方滑桿微調。</div>
   </div>
 
   <h2>五行入/實（速度）</h2>
@@ -118,29 +116,38 @@ const HK = { enabled:true, K_HK_FIRE_GAIN:0.60, K_HK_WOOD_BACK:0.40, K_HK_EARTH_
 
 const cap = v => Math.max(-180, Math.min(180, v));
 
-/* ====== 證型庫（入/實：-180~180）====== */
+/* ====== 常見症案例（入/實：-180~180）====== */
 const CASES = {
-  ganYu:          { wood:-40, fire:-10, earth:0,   metal:-10, water:0   }, // 肝鬱：木入為主
-  xinHuo:         { wood: 20, fire: 80, earth:10,  metal:-40, water:-20 }, // 心火亢盛：火旺克金、耗水
-  piXuShi:        { wood: 15, fire:-10, earth:-60, metal:-10, water: 20 }, // 脾虛濕困：土虛水濕偏盛
-  feiZao:         { wood:  0, fire: 10, earth: 0,  metal:-50, water:-30 }, // 肺燥傷津：金水虧
-  shenYangXu:     { wood:  0, fire:-20, earth:-10, metal:  0, water:-70 }, // 腎陽虛：水虛火衰
-  tanShi:         { wood:-10, fire:-10, earth:-30, metal:-10, water: 40 }, // 痰濕內阻：水濕偏盛、土運差
-  ganHuoFanFei:   { wood: 40, fire: 60, earth:10,  metal:-40, water:-20 }, // 肝火犯肺：木火旺，金水受制
-  xinShenBuJiao:  { wood:-20, fire: 60, earth:20,  metal:-20, water:-60 }  // 心腎不交：水逆→火旺
+  // 失眠：多因心火擾神 / 陰虛火旺，常見「火旺、水虧，木稍亢，土稍助，金受克」
+  insomnia: { wood: 10, fire: 60, earth: 10, metal: -10, water: -40 },
+  // 頭痛：常見肝陽上亢（木亢）、火上擾，金水略受抑
+  headache: { wood: 50, fire: 20, earth: 0,  metal: -10, water: -10 },
+  // 肥胖：多屬痰濕內盛、脾運失健 → 水濕偏盛、土虛、其餘偏低
+  obesity:  { wood:-10, fire:-10, earth:-40, metal:-10, water: 40 },
+  // 脾濕：重點在「土運差、水濕偏盛」
+  piShi:    { wood:-10, fire:-10, earth:-50, metal:-10, water: 30 },
+  // 陽痿：多見腎陽不足 → 水虛明顯，火不足、土稍虛，其餘平
+  yangWei:  { wood:  0, fire:-20, earth:-10, metal:  0, water:-70 }
+};
+const CASE_DESC = {
+  insomnia: "失眠：火旺擾神，水不足制火；木稍亢助火，土略助運化，金受火剋。",
+  headache: "頭痛：多見肝陽上亢（木亢）兼火上擾，金水略被抑制。",
+  obesity:  "肥胖：痰濕內盛，水濕偏多；脾土虛，運化失職，其餘偏低。",
+  piShi:    "脾濕：土虛為主，運化不及；水濕偏盛，木火金皆略受抑。",
+  yangWei:  "陽痿：腎陽不足，水虛明顯；心火不足，脾土亦虛。"
 };
 
 /* ====== 計算關係 ====== */
 function applyRelations(){
   for(const k in speed) speed[k] = input[k];
 
-  // 相生（按入值）
+  // 相生
   for(const a in generateOf){ const b = generateOf[a]; speed[b] += input[a]*K_GEN; }
 
-  // 相剋（按入值方向）
+  // 相剋
   for(const a in controlTo){ const b = controlTo[a]; speed[b] -= Math.sign(input[a]) * Math.abs(input[a]) * K_CTRL; }
 
-  // 反剋（被剋者更強→回壓剋者）
+  // 反剋
   for(const a in controlTo){
     const b = controlTo[a];
     const diff = Math.abs(speed[b]) - Math.abs(speed[a]);
@@ -299,10 +306,11 @@ document.getElementById('autoScale').addEventListener('change', e=>{
 });
 document.getElementById('bgColor').addEventListener('input', e=>{ bgColor = e.target.value; });
 
-/* ====== 套用證型 ====== */
+/* ====== 套用案例 ====== */
+const caseNote = document.getElementById('caseNote');
 document.getElementById('applyCase').addEventListener('click', ()=>{
   const key = document.getElementById('caseSelect').value;
-  if(!key || !CASES[key]) return;
+  if(!key || !CASES[key]){ caseNote.textContent = "請先選擇一個案例。"; return; }
   const preset = CASES[key];
   for(const k of ['wood','fire','earth','metal','water']){
     const v = preset[k] ?? 0;
@@ -310,8 +318,7 @@ document.getElementById('applyCase').addEventListener('click', ()=>{
     document.getElementById(k).value = v;
     document.getElementById(k+'Val').value = v;
   }
-  // 心腎不交案例：確保能看到心腎相交效果（水<0）
-  if(key === 'xinShenBuJiao'){ /* 已在預設中設為水<0、火>0 */ }
+  caseNote.textContent = CASE_DESC[key] || "已套用預設，可再用滑桿微調。";
 });
 </script>
 </body>
