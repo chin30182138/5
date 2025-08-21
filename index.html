@@ -1,212 +1,174 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>五行齒輪系統｜PWA 行動優化</title>
-
-<meta name="theme-color" content="#1b6aa5" />
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>五行齒輪模擬｜證型選單＋五行強度</title>
 <style>
-  :root{ --panel-w: 340px; }
-  body{
-    margin:0; overflow:hidden;
-    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif;
-    -webkit-user-select:none; user-select:none; touch-action:none;
-    background:#69aee0;
+  body{margin:0;display:flex;height:100vh;overflow:hidden;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+  canvas{flex:1;display:block;background:#ffffff}
+  #controls{
+    width:300px;background:#f7f7f8;border-left:1px solid #e5e7eb;box-sizing:border-box;
+    padding:12px 12px 16px;overflow:auto
   }
-  #canvas{ display:block; margin:0 auto; background:transparent; }
-
-  /* 主面板 */
-  .panel{
-    position:absolute; top:16px; right:16px; width:var(--panel-w);
-    background:rgba(255,255,255,.96); border-radius:14px; padding:12px 14px;
-    box-shadow:0 8px 20px rgba(0,0,0,.12); color:#222; font-size:16px
-  }
-  .panel h3{ margin:6px 0 10px; font-size:18px; text-align:center }
-  .row{ display:flex; align-items:center; gap:10px; margin:10px 0 }
-  .row .name{ width:2.2em; text-align:center; font-weight:700 }
-  .row input[type=range]{ flex:1; height:22px }
-  .row input[type=number]{ width:84px; height:30px; font-size:16px }
-  .btns{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px }
-  .btns button{ padding:10px 12px; border-radius:10px; border:1px solid #777; background:#fff; cursor:pointer; font-size:16px }
-  .muted{ color:#666; font-size:14px }
-
-  .hueWrap{ margin:8px 0 2px }
-  .hueLabel{ display:flex; justify-content:space-between; align-items:center; }
-  #bgHue{
-    width:100%; height:18px; appearance:none; border-radius:999px; outline:none; cursor:pointer;
-    background:linear-gradient(90deg,hsl(0,100%,50%),hsl(60,100%,50%),hsl(120,100%,40%),hsl(180,100%,45%),hsl(240,100%,60%),hsl(300,100%,55%),hsl(360,100%,50%));
-  }
-  #bgHue::-webkit-slider-thumb{
-    appearance:none; width:22px; height:22px; border-radius:50%;
-    background:#fff; border:2px solid #333; box-shadow:0 0 0 2px #fff;
-  }
-
-  /* 解說面板（可拖曳） */
-  .panel-small{
-    position:absolute; left:16px; bottom:16px; width:300px;
-    background:rgba(255,255,255,.98); border-radius:14px; padding:12px;
-    box-shadow:0 8px 20px rgba(0,0,0,.12); color:#222; font-size:16px;
-    touch-action:none;
-  }
-  .panel-small h4{
-    margin:0 0 10px; font-size:17px; text-align:center;
-    cursor:grab; user-select:none;
-  }
-  .panel-small.dragging h4{ cursor:grabbing; }
-  #explainBox{
-    padding:10px; border:1px dashed #bbb; border-radius:10px; background:#fff;
-    max-height:220px; overflow:auto; line-height:1.5;
-  }
-  #explainBox b{ color:#000 }
-  #explainBox .hk{ color:#c0392b; font-weight:700 }
-
-  /* 手機（寬度 < 500px）自動縮小面板、把解說預設置底角，提供顯示/隱藏 */
-  @media (max-width: 500px){
-    :root{ --panel-w: 300px; }
-    .panel{ top:8px; right:8px; font-size:15px }
-    .row input[type=number]{ width:70px; font-size:15px }
-    .panel-small{ left:8px; right:auto; bottom:8px; width:280px; }
-    .toggle-explain{ display:inline-block; }
-  }
-
-  .toggle-explain{
-    display:none; margin-left:auto; padding:6px 10px; border-radius:10px;
-    border:1px solid #777; background:#fff; cursor:pointer; font-size:14px;
-  }
+  h2{font-size:16px;margin:8px 0 8px}
+  .section{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px;margin-bottom:10px}
+  .row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  label{font-size:14px;min-width:2em}
+  input[type=range]{flex:1}
+  input[type=number]{width:72px}
+  select,button,input[type=color]{width:100%;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+  button{cursor:pointer}
+  .muted{font-size:12px;color:#64748b}
+  /* 五行強度條 */
+  .bar{height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+  .bar>span{display:block;height:100%;border-radius:999px}
+  .b-wood{background:#2ecc71}
+  .b-fire{background:#e74c3c}
+  .b-earth{background:#f1c40f}
+  .b-metal{background:#cfd8dc}
+  .b-water{background:#3498db}
+  .line{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
+  .line .name{min-width:2em}
 </style>
 </head>
 <body>
-
 <canvas id="canvas"></canvas>
 
-<div class="panel" id="mainPanel">
-  <h3>控制面板
-    <button id="toggleExplain" class="toggle-explain">顯示/隱藏解說</button>
-  </h3>
-
-  <!-- 背景色條 -->
-  <div class="hueWrap">
-    <div class="hueLabel"><span>背景色條</span><span class="muted"><span id="hVal">200</span>°</span></div>
-    <input type="range" id="bgHue" min="0" max="360" value="200">
-    <div class="muted">拖動色條可選任意背景色（同色相亮/暗漸層）。</div>
-  </div>
-
-  <!-- 五行輸入 -->
-  <div id="rows"></div>
-
-  <!-- 心腎相交 -->
-  <div style="margin:10px 0">
-    <label><input type="checkbox" id="hkToggle" checked> 啟用「心腎相交」</label>
-    <div class="muted">水（腎）若逆轉為負，火（心）放大；火反燒木、助土、灼金。</div>
-  </div>
-
-  <!-- 齒輪大小 -->
-  <div>
-    <label for="sizeSlider">齒輪大小（半徑）</label>
-    <input type="range" id="sizeSlider" min="20" max="100" value="60">
-    <div class="btns">
-      <button id="resetSize">大小重設(60)</button>
-      <button id="resetAll">全部歸零</button>
+<div id="controls">
+  <h2>常見證型</h2>
+  <div class="section">
+    <select id="caseSelect">
+      <option value="">（選一個案例）</option>
+      <option value="ganYu">肝鬱氣滯</option>
+      <option value="xinHuo">心火亢盛</option>
+      <option value="piXuShi">脾虛濕困</option>
+      <option value="feiZao">肺燥傷津</option>
+      <option value="shenYangXu">腎陽虛</option>
+      <option value="tanShi">痰濕內阻</option>
+      <option value="ganHuoFanFei">肝火犯肺</option>
+      <option value="xinShenBuJiao">心腎不交</option>
+    </select>
+    <div class="row" style="margin-top:8px">
+      <button id="applyCase">套用案例</button>
     </div>
+    <div class="muted">提示：套用後仍可用下方滑桿微調。</div>
   </div>
 
-  <div class="muted" id="readout" style="margin-top:6px">入：木0 火0 土0 金0 水0 ｜ 實：木0 火0 土0 金0 水0</div>
-</div>
+  <h2>五行入/實（速度）</h2>
+  <div class="section" id="sliders">
+    <div class="row"><label>木</label><input type="range" id="wood" min="-180" max="180" step="1" value="0"><input type="number" id="woodVal" value="0"></div>
+    <div class="row"><label>火</label><input type="range" id="fire" min="-180" max="180" step="1" value="0"><input type="number" id="fireVal" value="0"></div>
+    <div class="row"><label>土</label><input type="range" id="earth" min="-180" max="180" step="1" value="0"><input type="number" id="earthVal" value="0"></div>
+    <div class="row"><label>金</label><input type="range" id="metal" min="-180" max="180" step="1" value="0"><input type="number" id="metalVal" value="0"></div>
+    <div class="row"><label>水</label><input type="range" id="water" min="-180" max="180" step="1" value="0"><input type="number" id="waterVal" value="0"></div>
+    <div class="row"><button id="resetAll">全部歸零</button></div>
+    <div class="muted">負值＝逆轉（入）；正值＝順時針（實）。</div>
+  </div>
 
-<!-- 入 vs 實：可拖曳說明面板（手機預設左下，不遮齒輪） -->
-<div class="panel-small" id="explainPanel">
-  <h4 id="explainHandle">入 vs 實｜動態解說（可拖曳）</h4>
-  <div class="muted" id="explainBox">（調整滑桿後，這裡會即時說明各項生剋與心腎相交影響）</div>
+  <h2>整體控制</h2>
+  <div class="section">
+    <div class="row"><label>大小</label><input type="range" id="gearSize" min="20" max="110" value="60"></div>
+    <div class="row"><label>垂直</label><input type="range" id="gearOffsetY" min="-200" max="240" value="0"></div>
+    <div class="row"><label>水平</label><input type="range" id="gearOffsetX" min="-240" max="240" value="0"></div>
+    <div class="row"><label>自動</label><input type="checkbox" id="autoScale" checked><span class="muted">手機自動大小</span></div>
+    <div class="row"><label>背景</label><input type="color" id="bgColor" value="#ffffff"></div>
+  </div>
+
+  <h2>五行強度（實際）</h2>
+  <div class="section" id="bars">
+    <div class="line"><span class="name">木</span><div class="bar"><span id="bw" class="b-wood" style="width:0%"></span></div><span id="pw" class="muted">0</span></div>
+    <div class="line"><span class="name">火</span><div class="bar"><span id="bf" class="b-fire" style="width:0%"></span></div><span id="pf" class="muted">0</span></div>
+    <div class="line"><span class="name">土</span><div class="bar"><span id="be" class="b-earth" style="width:0%"></span></div><span id="pe" class="muted">0</span></div>
+    <div class="line"><span class="name">金</span><div class="bar"><span id="bm" class="b-metal" style="width:0%"></span></div><span id="pm" class="muted">0</span></div>
+    <div class="line"><span class="name">水</span><div class="bar"><span id="ba" class="b-water" style="width:0%"></span></div><span id="pa" class="muted">0</span></div>
+    <div class="muted">以「實際速度」的絕對值換算（0～180）。</div>
+  </div>
+
+  <div class="muted">仙人指路占卜研究學會｜阿青師製作</div>
 </div>
 
 <script>
-/* ===== 背景：色條（Hue） ===== */
-const bgHue=document.getElementById('bgHue'); const hVal=document.getElementById('hVal');
-function setBgByHue(h){
-  const c1=`hsl(${h}, 85%, 80%)`, c2=`hsl(${h}, 70%, 60%)`, c3=`hsl(${h}, 65%, 35%)`;
-  document.body.style.background=`radial-gradient(1200px 800px at 50% 10%, ${c1} 0%, ${c2} 40%, ${c3} 90%)`;
+/* ====== 畫布 ====== */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+function resize(){
+  canvas.width = window.innerWidth - document.getElementById('controls').offsetWidth;
+  canvas.height = window.innerHeight;
 }
-setBgByHue(bgHue.value); hVal.textContent=bgHue.value;
-bgHue.addEventListener('input', ()=>{ hVal.textContent=bgHue.value; setBgByHue(bgHue.value); });
+addEventListener("resize", resize); resize();
 
-/* ===== Canvas 響應式 + 裝置像素比 ===== */
-const canvas=document.getElementById('canvas'); const ctx=canvas.getContext('2d');
-function resizeCanvas(){
-  const pad=8, w=Math.max(360, innerWidth - pad), h=Math.max(420, innerHeight - pad);
-  const dpr=Math.max(1, devicePixelRatio||1);
-  canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr);
-  canvas.style.width=w+'px'; canvas.style.height=h+'px';
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-}
-addEventListener('resize', resizeCanvas); resizeCanvas();
+/* ====== 狀態 ====== */
+let RADIUS = 60;
+let OFFSET_Y = 0;
+let OFFSET_X = 0;
+let autoScale = true;
+let bgColor = "#ffffff";
 
-/* ===== 狀態與參數 ===== */
-let RADIUS=60;                           // 桌機預設由滑桿控制
-let MOBILE_COMPACT = innerWidth < 500;   // 手機模式
-const COLORS={ wood:"#2ecc71", fire:"#e74c3c", earth:"#f1c40f", metal:"#bdc3c7", water:"#3498db" };
+const colors = { wood:"#2ecc71", fire:"#e74c3c", earth:"#f1c40f", metal:"#bdc3c7", water:"#3498db" };
+const angle = { wood:0, fire:0, earth:0, metal:0, water:0 };
+const input = { wood:0, fire:0, earth:0, metal:0, water:0 };
+const speed = { wood:0, fire:0, earth:0, metal:0, water:0 };
 
-const angle={ wood:0, fire:0, earth:0, metal:0, water:0 };
-const input={ wood:0, fire:0, earth:0, metal:0, water:0 };
-const speed={ wood:0, fire:0, earth:0, metal:0, water:0 };
+const BASE_CW = 12;                  // 基礎順時針
+const K_GEN = 0.20, K_CTRL = 0.50, K_REB = 0.30;
+const generateOf = { wood:'fire', fire:'earth', earth:'metal', metal:'water', water:'wood' };
+const controlTo  = { wood:'earth', earth:'water', water:'fire',  fire:'metal', metal:'wood' };
+const HK = { enabled:true, K_HK_FIRE_GAIN:0.60, K_HK_WOOD_BACK:0.40, K_HK_EARTH_FEED:0.30, K_HK_METAL_BURN:0.50 };
 
-const BASE_CW=12, cap=v=>Math.max(-180, Math.min(180,v));
+const cap = v => Math.max(-180, Math.min(180, v));
 
-/* ===== 五行邏輯 ===== */
-const K_GEN=0.20, K_CTRL=0.50, K_REB=0.30;
-const generateOf={ wood:'fire', fire:'earth', earth:'metal', metal:'water', water:'wood' };
-const controlTo ={ wood:'earth', earth:'water', water:'fire',  fire:'metal', metal:'wood' };
-const HK={ enabled:true, K_HK_FIRE_GAIN:0.60, K_HK_WOOD_BACK:0.40, K_HK_EARTH_FEED:0.30, K_HK_METAL_BURN:0.50 };
+/* ====== 證型庫（入/實：-180~180）====== */
+const CASES = {
+  ganYu:          { wood:-40, fire:-10, earth:0,   metal:-10, water:0   }, // 肝鬱：木入為主
+  xinHuo:         { wood: 20, fire: 80, earth:10,  metal:-40, water:-20 }, // 心火亢盛：火旺克金、耗水
+  piXuShi:        { wood: 15, fire:-10, earth:-60, metal:-10, water: 20 }, // 脾虛濕困：土虛水濕偏盛
+  feiZao:         { wood:  0, fire: 10, earth: 0,  metal:-50, water:-30 }, // 肺燥傷津：金水虧
+  shenYangXu:     { wood:  0, fire:-20, earth:-10, metal:  0, water:-70 }, // 腎陽虛：水虛火衰
+  tanShi:         { wood:-10, fire:-10, earth:-30, metal:-10, water: 40 }, // 痰濕內阻：水濕偏盛、土運差
+  ganHuoFanFei:   { wood: 40, fire: 60, earth:10,  metal:-40, water:-20 }, // 肝火犯肺：木火旺，金水受制
+  xinShenBuJiao:  { wood:-20, fire: 60, earth:20,  metal:-20, water:-60 }  // 心腎不交：水逆→火旺
+};
 
+/* ====== 計算關係 ====== */
 function applyRelations(){
-  for(const k in speed) speed[k]=input[k];
-  for(const a in generateOf){ const b=generateOf[a]; speed[b]+=input[a]*K_GEN; }
-  for(const a in controlTo){ const b=controlTo[a]; speed[b]-=Math.sign(input[a])*Math.abs(input[a])*K_CTRL; }
-  for(const a in controlTo){ const b=controlTo[a]; const diff=Math.abs(speed[b])-Math.abs(speed[a]);
-    if(diff>0){ const sgn=Math.sign(speed[b]); speed[a]-=sgn*diff*K_REB; } }
-  if(HK.enabled && speed.water<0){
-    const mag=Math.abs(speed.water); speed.fire+=HK.K_HK_FIRE_GAIN*mag;
-    const fm=Math.abs(speed.fire);
-    speed.wood-=HK.K_HK_WOOD_BACK*fm; speed.earth+=HK.K_HK_EARTH_FEED*fm; speed.metal-=HK.K_HK_METAL_BURN*fm;
+  for(const k in speed) speed[k] = input[k];
+
+  // 相生（按入值）
+  for(const a in generateOf){ const b = generateOf[a]; speed[b] += input[a]*K_GEN; }
+
+  // 相剋（按入值方向）
+  for(const a in controlTo){ const b = controlTo[a]; speed[b] -= Math.sign(input[a]) * Math.abs(input[a]) * K_CTRL; }
+
+  // 反剋（被剋者更強→回壓剋者）
+  for(const a in controlTo){
+    const b = controlTo[a];
+    const diff = Math.abs(speed[b]) - Math.abs(speed[a]);
+    if(diff > 0){ const sgn = Math.sign(speed[b]); speed[a] -= sgn * diff * K_REB; }
   }
-  for(const k in speed) speed[k]=cap(speed[k]+BASE_CW);
+
+  // 心腎相交（特例：水<0）
+  if (HK.enabled && speed.water < 0){
+    const mag = Math.abs(speed.water);
+    speed.fire += HK.K_HK_FIRE_GAIN * mag;
+    const fm = Math.abs(speed.fire);
+    speed.wood  -= HK.K_HK_WOOD_BACK  * fm;
+    speed.earth += HK.K_HK_EARTH_FEED * fm;
+    speed.metal -= HK.K_HK_METAL_BURN * fm;
+  }
+
+  // 基礎順時針與限幅
+  for(const k in speed) speed[k] = cap(speed[k] + BASE_CW);
 }
 
-/* ===== 自動縮放與布局 ===== */
-function stageCenter(){
-  // 桌機：往上 90；手機：往上 70，避免上方署名
-  return { x: canvas.clientWidth/2, y: canvas.clientHeight/2 - (MOBILE_COMPACT? 70 : 90) };
-}
-// 依螢幕大小決定齒輪半徑與間距
-function autoRadius(){
-  if (!MOBILE_COMPACT) return RADIUS; // 桌機依滑桿
-  // 手機：根據短邊自動縮小，落在 28~48 之間
-  const short = Math.min(canvas.clientWidth, canvas.clientHeight);
-  return Math.max(28, Math.min(48, Math.round(short/12)));
-}
-function layout(){
-  const r = autoRadius();
-  const spacing = r*2 + (MOBILE_COMPACT? 12 : 26);
-  const {x:cx0,y:cy} = stageCenter();
-  const GEAR_OFFSET_X = MOBILE_COMPACT ? -60 : -120;   // 手機偏移少一點
-  const cx = cx0 + GEAR_OFFSET_X;
-  return {
-    r,
-    earth:{x:cx,     y:cy,      label:'土', color:COLORS.earth},
-    wood :{x:cx-spacing, y:cy,      label:'木', color:COLORS.wood },
-    fire :{x:cx,     y:cy-spacing,  label:'火', color:COLORS.fire },
-    metal:{x:cx+spacing, y:cy,      label:'金', color:COLORS.metal},
-    water:{x:cx,     y:cy+spacing,  label:'水', color:COLORS.water},
-  };
-}
+/* ====== 位置與繪圖 ====== */
+function center(){ return { x: canvas.width/2 + OFFSET_X, y: canvas.height/2 + OFFSET_Y }; }
 
-/* ===== 齒輪繪製 ===== */
 function drawGear(x,y,r,deg,fillColor,text){
   const teeth=14, step=Math.PI/(teeth), R1=r, R2=r*1.12;
   ctx.save(); ctx.translate(x,y); ctx.rotate(deg);
+
+  // 外齒
   ctx.beginPath();
   for(let i=0;i<teeth*2;i++){
     const useR=(i%2===0)?R2:R1, a=-Math.PI/2+i*step;
@@ -216,130 +178,141 @@ function drawGear(x,y,r,deg,fillColor,text){
   ctx.closePath();
   const g=ctx.createRadialGradient(0,0,r*0.2,0,0,R2); g.addColorStop(0,"#ffffffcc"); g.addColorStop(1,fillColor);
   ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle="#25314f"; ctx.stroke();
-  const innerR=r*0.65, spokeW=Math.max(2, r*0.07);
+
+  // 內輻條＋中心孔
+  const innerR=r*0.65, spokeW=Math.max(3,r*0.07);
   ctx.lineWidth=spokeW; ctx.strokeStyle="rgba(0,0,0,0.35)";
   for(let s=0;s<4;s++){ const a=s*Math.PI/2; ctx.beginPath(); ctx.moveTo(innerR*Math.cos(a),innerR*Math.sin(a)); ctx.lineTo((r*0.25)*Math.cos(a),(r*0.25)*Math.sin(a)); ctx.stroke(); }
-  ctx.beginPath(); ctx.arc(0,0,Math.max(5,r*0.22),0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle="rgba(0,0,0,0.4)"; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,-R2-3,Math.max(3,r*0.06),0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,Math.max(6,r*0.22),0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle="rgba(0,0,0,0.4)"; ctx.stroke();
+
+  // 旋轉指示點
+  ctx.beginPath(); ctx.arc(0,-R2-4,Math.max(3,r*0.06),0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill();
+
   ctx.restore();
+
+  // 中文大字
   ctx.save();
-  ctx.font=`bold ${Math.round(r*0.6)}px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif`;
+  ctx.font = `bold ${Math.round(r*0.6)}px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif`;
   ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,0.78)"; ctx.strokeText(text,x,y+1);
-  ctx.fillStyle="#fff"; ctx.fillText(text,x,y+1); ctx.restore();
-}
-
-/* ===== 署名 ===== */
-function drawSignature(){
-  ctx.save();
-  const SIGN="仙人指路占卜研究學會 阿青師製作";
-  ctx.font='bold 24px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif';
-  ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,0.6)';
-  ctx.strokeText(SIGN, canvas.clientWidth/2, 8);
-  ctx.fillStyle='#ffd54f';
-  ctx.fillText(SIGN, canvas.clientWidth/2, 8);
+  ctx.lineWidth=4; ctx.strokeStyle="rgba(0,0,0,0.78)"; ctx.strokeText(text,x,y+1);
+  ctx.fillStyle="#fff"; ctx.fillText(text,x,y+1);
   ctx.restore();
 }
 
-/* ===== 讀數與解說 ===== */
-const ro=document.getElementById('readout'); const explainBox=document.getElementById('explainBox');
-function updateReadout(){
-  ro.textContent=`入：木${input.wood|0} 火${input.fire|0} 土${input.earth|0} 金${input.metal|0} 水${input.water|0} ｜ `+
-                 `實：木${speed.wood|0} 火${speed.fire|0} 土${speed.earth|0} 金${speed.metal|0} 水${speed.water|0}`;
-}
-function updateExplanation(){
-  if(!explainBox) return;
-  const genFrom={wood:0,fire:0,earth:0,metal:0,water:0}, ctrlFrom={wood:0,fire:0,earth:0,metal:0,water:0};
-  for(const a in generateOf){ const b=generateOf[a]; genFrom[b]+=input[a]*K_GEN; }
-  for(const a in controlTo){ const b=controlTo[a]; ctrlFrom[b]-=Math.sign(input[a])*Math.abs(input[a])*K_CTRL; }
-  let hkLine=''; if(HK.enabled && speed.water<0){
-    const mag=Math.abs(speed.water), fireGain=HK.K_HK_FIRE_GAIN*mag, fireMag=Math.abs(speed.fire+fireGain);
-    const woodBack=-HK.K_HK_WOOD_BACK*fireMag, earthAdd=HK.K_HK_EARTH_FEED*fireMag, metalSub=-HK.K_HK_METAL_BURN*fireMag;
-    hkLine=`<div class="hk" style="margin-top:6px">心腎相交：水<0 ⇒ 火+${fireGain.toFixed(1)}；木${woodBack.toFixed(1)}；土+${earthAdd.toFixed(1)}；金${metalSub.toFixed(1)}</div>`;
-  }
-  function ln(name,key){
-    const ins=input[key], out=speed[key], g=genFrom[key], c=ctrlFrom[key];
-    const parts=[]; if(Math.abs(g)>0.05) parts.push(`受生 +${g.toFixed(1)}`); if(Math.abs(c)>0.05) parts.push(`受剋 ${c.toFixed(1)}`);
-    const mid=parts.length? `；${parts.join('，')}`:''; return `<div><b>${name}</b>：入 ${ins.toFixed(0)}${mid} → 實 ${out.toFixed(0)}</div>`;
-  }
-  explainBox.innerHTML=ln('木','wood')+ln('火','fire')+ln('土','earth')+ln('金','metal')+ln('水','water')+hkLine;
-}
-
-/* ===== 主迴圈 ===== */
-let last=performance.now();
+/* ====== 主循環 ====== */
+let last = performance.now();
 function loop(now){
-  const dt=(now-last)/1000; last=now; MOBILE_COMPACT = innerWidth < 500;
+  const dt = (now - last)/1000; last = now;
 
-  // 手機版自動半徑（桌機保留滑桿設定）
-  const L=layout(); const useR = L.r; // 供繪圖使用
-  if (MOBILE_COMPACT) { /* 手機時 slider 仍可調，但 auto 將優先，保持簡潔 */ }
+  // 自動大小（手機/窄螢幕）
+  if (autoScale){
+    const shortSide = Math.min(canvas.width, canvas.height);
+    RADIUS = Math.max(24, Math.min(110, Math.round(shortSide/8)));
+    const sizeSlider = document.getElementById('gearSize');
+    if (sizeSlider) sizeSlider.value = RADIUS;
+  }
 
   applyRelations();
-  for(const k in angle){ angle[k]=(angle[k]+speed[k]*dt)%360; }
+  for(const k in angle){ angle[k] = (angle[k] + speed[k]*dt) % 360; }
 
-  ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
-  drawSignature();
-  drawGear(L.earth.x,L.earth.y,useR, angle.earth*Math.PI/180, L.earth.color,'土');
-  drawGear(L.wood .x,L.wood .y,useR, angle.wood *Math.PI/180, L.wood .color,'木');
-  drawGear(L.fire .x,L.fire .y,useR, angle.fire *Math.PI/180, L.fire .color,'火');
-  drawGear(L.metal.x,L.metal.y,useR, angle.metal*Math.PI/180, L.metal.color,'金');
-  drawGear(L.water.x,L.water.y,useR, angle.water*Math.PI/180, L.water .color,'水');
+  // 背景
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  updateReadout(); updateExplanation();
+  // 位置
+  const c = center();
+  const d = RADIUS*2 + 26;
+  const pos = {
+    earth:{x:c.x, y:c.y,     label:'土', color:colors.earth},
+    wood :{x:c.x-d, y:c.y,   label:'木', color:colors.wood },
+    fire :{x:c.x, y:c.y-d,   label:'火', color:colors.fire },
+    metal:{x:c.x+d, y:c.y,   label:'金', color:colors.metal},
+    water:{x:c.x, y:c.y+d,   label:'水', color:colors.water}
+  };
+
+  // 齒輪
+  drawGear(pos.earth.x,pos.earth.y,RADIUS, angle.earth*Math.PI/180, pos.earth.color, pos.earth.label);
+  drawGear(pos.wood .x,pos.wood .y,RADIUS, angle.wood *Math.PI/180, pos.wood .color, pos.wood .label);
+  drawGear(pos.fire .x,pos.fire .y,RADIUS, angle.fire *Math.PI/180, pos.fire .color, pos.fire .label);
+  drawGear(pos.metal.x,pos.metal.y,RADIUS, angle.metal*Math.PI/180, pos.metal.color, pos.metal.label);
+  drawGear(pos.water.x,pos.water.y,RADIUS, angle.water*Math.PI/180, pos.water.color, pos.water.label);
+
+  // 署名
+  ctx.save();
+  const SIGN="仙人指路占卜研究學會 阿青師製作";
+  ctx.font='bold 18px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.fillText(SIGN, 12, 10);
+  ctx.restore();
+
+  // 更新強度條
+  updateBars();
+
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-/* ===== UI 綁定 ===== */
-const rowsDiv=document.getElementById('rows');
-[['木','wood'],['火','fire'],['土','earth'],['金','metal'],['水','water']].forEach(([label,key])=>{
-  const row=document.createElement('div'); row.className='row';
-  row.innerHTML=`<div class="name">${label}</div>
-  <input type="range" min="-180" max="180" step="1" value="0" id="${key}Slider">
-  <input type="number" min="-180" max="180" step="1" value="0" id="${key}Input">`;
-  rowsDiv.appendChild(row);
-  const sld=row.querySelector(`#${key}Slider`), inp=row.querySelector(`#${key}Input`);
-  const set=v=>{ v=cap(+v||0); sld.value=v; inp.value=v; input[key]=v; };
-  sld.addEventListener('input', ()=> set(sld.value), {passive:true});
-  inp.addEventListener('input', ()=> set(inp.value), {passive:true});
-});
-document.getElementById('hkToggle').addEventListener('change', e=>{ HK.enabled=e.target.checked; }, {passive:true});
-const sizeSlider=document.getElementById('sizeSlider');
-document.getElementById('resetSize').addEventListener('click', ()=>{ RADIUS=60; sizeSlider.value=60; }, {passive:true});
-sizeSlider.addEventListener('input', ()=>{ RADIUS=+sizeSlider.value; }, {passive:true});
-document.getElementById('resetAll').addEventListener('click', ()=>{
-  ['wood','fire','earth','metal','water'].forEach(k=>{
-    input[k]=0; document.getElementById(`${k}Slider`).value=0; document.getElementById(`${k}Input`).value=0;
-  });
-  RADIUS=60; sizeSlider.value=60; HK.enabled=true; document.getElementById('hkToggle').checked=true;
-  updateReadout(); updateExplanation();
-}, {passive:true});
-
-/* ===== 顯示/隱藏 解說面板（手機友善） ===== */
-const toggleBtn = document.getElementById('toggleExplain');
-const explainPanel = document.getElementById('explainPanel');
-toggleBtn?.addEventListener('click', ()=>{ 
-  if (!explainPanel) return;
-  const hide = explainPanel.style.display === 'none';
-  explainPanel.style.display = hide ? 'block' : 'none';
-});
-
-/* ===== 可拖曳（Pointer Events） ===== */
-function makeDraggable(el, handle, resetPos={left:16, top:86}){
-  let dragging=false, sx=0, sy=0, sl=0, st=0;
-  const onDown=ev=>{ dragging=true; el.classList.add('dragging'); sx=ev.clientX; sy=ev.clientY;
-    const r=el.getBoundingClientRect(); sl=r.left; st=r.top; handle.setPointerCapture?.(ev.pointerId); };
-  const onMove=ev=>{ if(!dragging) return;
-    let nx=sl+(ev.clientX-sx), ny=st+(ev.clientY-sy);
-    const maxL=innerWidth-el.offsetWidth-4, maxT=innerHeight-el.offsetHeight-4;
-    nx=Math.max(4,Math.min(maxL,nx)); ny=Math.max(4,Math.min(maxT,ny));
-    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.right='auto'; el.style.bottom='auto'; el.style.position='absolute'; };
-  const onUp=ev=>{ dragging=false; el.classList.remove('dragging'); handle.releasePointerCapture?.(ev.pointerId); };
-  handle.addEventListener('pointerdown', onDown); addEventListener('pointermove', onMove); addEventListener('pointerup', onUp);
-  handle.addEventListener('dblclick', ()=>{ el.style.left=resetPos.left+'px'; el.style.top=resetPos.top+'px'; el.style.right='auto'; el.style.bottom='auto'; });
+/* ====== 強度條（以「實」＝speed 的絕對值）====== */
+function toPct(v){ return Math.round(Math.min(100, Math.max(0, Math.abs(v)/180*100))); }
+function updateBars(){
+  const pairs = [
+    ['bw','pw',speed.wood],
+    ['bf','pf',speed.fire],
+    ['be','pe',speed.earth],
+    ['bm','pm',speed.metal],
+    ['ba','pa',speed.water],
+  ];
+  for(const [barId,txtId,val] of pairs){
+    const pct = toPct(val);
+    const bar = document.getElementById(barId);
+    const txt = document.getElementById(txtId);
+    if(bar) bar.style.width = pct + '%';
+    if(txt) txt.textContent = Math.round(val);
+  }
 }
-makeDraggable(document.getElementById('explainPanel'), document.getElementById('explainHandle'));
+
+/* ====== 綁定：滑桿 & 數值 ====== */
+function bind(id,key){
+  const s = document.getElementById(id);
+  const n = document.getElementById(id+'Val');
+  const set = v => { v = cap(+v||0); s.value=v; n.value=v; input[key]=v; };
+  s.addEventListener('input', ()=> set(s.value));
+  n.addEventListener('input', ()=> set(n.value));
+}
+bind('wood','wood'); bind('fire','fire'); bind('earth','earth'); bind('metal','metal'); bind('water','water');
+
+document.getElementById('resetAll').addEventListener('click', ()=>{
+  for(const k of ['wood','fire','earth','metal','water']){
+    input[k]=0; document.getElementById(k).value=0; document.getElementById(k+'Val').value=0;
+  }
+});
+
+/* ====== 整體控制 ====== */
+document.getElementById('gearSize').addEventListener('input', e=>{
+  autoScale=false; document.getElementById('autoScale').checked=false;
+  RADIUS = +e.target.value;
+});
+document.getElementById('gearOffsetY').addEventListener('input', e=>{ OFFSET_Y = +e.target.value; });
+document.getElementById('gearOffsetX').addEventListener('input', e=>{ OFFSET_X = +e.target.value; });
+document.getElementById('autoScale').addEventListener('change', e=>{
+  autoScale = e.target.checked;
+});
+document.getElementById('bgColor').addEventListener('input', e=>{ bgColor = e.target.value; });
+
+/* ====== 套用證型 ====== */
+document.getElementById('applyCase').addEventListener('click', ()=>{
+  const key = document.getElementById('caseSelect').value;
+  if(!key || !CASES[key]) return;
+  const preset = CASES[key];
+  for(const k of ['wood','fire','earth','metal','water']){
+    const v = preset[k] ?? 0;
+    input[k] = v;
+    document.getElementById(k).value = v;
+    document.getElementById(k+'Val').value = v;
+  }
+  // 心腎不交案例：確保能看到心腎相交效果（水<0）
+  if(key === 'xinShenBuJiao'){ /* 已在預設中設為水<0、火>0 */ }
+});
 </script>
 </body>
 </html>
