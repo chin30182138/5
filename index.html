@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>五行齒輪模擬｜分科案例＋建議方向</title>
+<title>五行齒輪模擬｜分科案例＋建議方向（完整）</title>
 <style>
   body{margin:0;display:flex;height:100vh;overflow:hidden;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
   canvas{flex:1;display:block;background:#ffffff}
@@ -170,7 +170,7 @@ const CASE_DESC = {
   眩暈:"木亢、水虧；<span class='pill pill-bu'>補水填精</span><span class='pill pill-tiao'>平肝熄風</span>",
   頭脹壓迫感:"肝氣鬱滯上逆；<span class='pill pill-tiao'>疏肝理氣</span><span class='pill pill-bu'>滋水涵木</span>",
 
-  肥胖:"痰濕內盛、土失健運；<span class='pill pill-xie'>瀉土濕</span><span class='pill pill-tiao'>健脾化濕</span>",
+  肥胖:"痰濕內盛、土失健運；<span class='pill pill-xie'>化濕祛痰</span><span class='pill pill-tiao'>健脾</span>",
   脾濕:"土虛水困；<span class='pill pill-tiao'>健脾祛濕</span><span class='pill pill-bu'>補土</span>",
   胃脹食少:"脾胃運化弱、木郁犯脾；<span class='pill pill-tiao'>疏肝和胃</span><span class='pill pill-bu'>健脾</span>",
 
@@ -398,4 +398,11 @@ document.getElementById('gearSize').addEventListener('input', e=>{
 });
 document.getElementById('gearOffsetY').addEventListener('input', e=>{ OFFSET_Y = +e.target.value; });
 document.getElementById('gearOffsetX').addEventListener('input', e=>{ OFFSET_X = +e.target.value; });
-document
+document.getElementById('autoScale').addEventListener('change', e=>{
+  autoScale = e.target.checked;
+});
+document.getElementById('bgColor').addEventListener('input', e=>{ bgColor = e.target.value; });
+
+</script>
+</body>
+</html>
