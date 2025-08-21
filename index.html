@@ -3,25 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>五行齒輪系統｜PWA 版</title>
+<title>五行齒輪系統｜PWA 行動優化</title>
 
-<!-- PWA 必要設定 -->
 <meta name="theme-color" content="#1b6aa5" />
 <link rel="manifest" href="manifest.json">
-<!-- iOS 沒看 manifest 的 icon，沒有也行，會自動截圖成圖標；若你有 192px 圖，取消註解下一行 -->
-<!-- <link rel="apple-touch-icon" href="icons/icon-192.png"> -->
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 
 <style>
   :root{ --panel-w: 340px; }
   body{
     margin:0; overflow:hidden;
     font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif;
-    -webkit-user-select:none; user-select:none;
-    touch-action:none;
-    background:#69aee0; /* 載入瞬間的底色，service worker 啟動後會被漸層覆蓋 */
+    -webkit-user-select:none; user-select:none; touch-action:none;
+    background:#69aee0;
   }
   #canvas{ display:block; margin:0 auto; background:transparent; }
 
+  /* 主面板 */
   .panel{
     position:absolute; top:16px; right:16px; width:var(--panel-w);
     background:rgba(255,255,255,.96); border-radius:14px; padding:12px 14px;
@@ -40,19 +38,16 @@
   .hueLabel{ display:flex; justify-content:space-between; align-items:center; }
   #bgHue{
     width:100%; height:18px; appearance:none; border-radius:999px; outline:none; cursor:pointer;
-    background: linear-gradient(90deg,
-      hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,40%),
-      hsl(180,100%,45%), hsl(240,100%,60%), hsl(300,100%,55%),
-      hsl(360,100%,50%)
-    );
+    background:linear-gradient(90deg,hsl(0,100%,50%),hsl(60,100%,50%),hsl(120,100%,40%),hsl(180,100%,45%),hsl(240,100%,60%),hsl(300,100%,55%),hsl(360,100%,50%));
   }
   #bgHue::-webkit-slider-thumb{
     appearance:none; width:22px; height:22px; border-radius:50%;
     background:#fff; border:2px solid #333; box-shadow:0 0 0 2px #fff;
   }
 
+  /* 解說面板（可拖曳） */
   .panel-small{
-    position:absolute; left:16px; top:86px; width:300px;
+    position:absolute; left:16px; bottom:16px; width:300px;
     background:rgba(255,255,255,.98); border-radius:14px; padding:12px;
     box-shadow:0 8px 20px rgba(0,0,0,.12); color:#222; font-size:16px;
     touch-action:none;
@@ -64,15 +59,23 @@
   .panel-small.dragging h4{ cursor:grabbing; }
   #explainBox{
     padding:10px; border:1px dashed #bbb; border-radius:10px; background:#fff;
-    max-height:260px; overflow:auto; line-height:1.5;
+    max-height:220px; overflow:auto; line-height:1.5;
   }
   #explainBox b{ color:#000 }
   #explainBox .hk{ color:#c0392b; font-weight:700 }
 
-  @media (max-width: 900px){
+  /* 手機（寬度 < 500px）自動縮小面板、把解說預設置底角，提供顯示/隱藏 */
+  @media (max-width: 500px){
     :root{ --panel-w: 300px; }
-    .panel{ font-size:15px }
+    .panel{ top:8px; right:8px; font-size:15px }
     .row input[type=number]{ width:70px; font-size:15px }
+    .panel-small{ left:8px; right:auto; bottom:8px; width:280px; }
+    .toggle-explain{ display:inline-block; }
+  }
+
+  .toggle-explain{
+    display:none; margin-left:auto; padding:6px 10px; border-radius:10px;
+    border:1px solid #777; background:#fff; cursor:pointer; font-size:14px;
   }
 </style>
 </head>
@@ -81,21 +84,27 @@
 <canvas id="canvas"></canvas>
 
 <div class="panel" id="mainPanel">
-  <h3>控制面板</h3>
+  <h3>控制面板
+    <button id="toggleExplain" class="toggle-explain">顯示/隱藏解說</button>
+  </h3>
 
+  <!-- 背景色條 -->
   <div class="hueWrap">
     <div class="hueLabel"><span>背景色條</span><span class="muted"><span id="hVal">200</span>°</span></div>
     <input type="range" id="bgHue" min="0" max="360" value="200">
     <div class="muted">拖動色條可選任意背景色（同色相亮/暗漸層）。</div>
   </div>
 
+  <!-- 五行輸入 -->
   <div id="rows"></div>
 
+  <!-- 心腎相交 -->
   <div style="margin:10px 0">
     <label><input type="checkbox" id="hkToggle" checked> 啟用「心腎相交」</label>
     <div class="muted">水（腎）若逆轉為負，火（心）放大；火反燒木、助土、灼金。</div>
   </div>
 
+  <!-- 齒輪大小 -->
   <div>
     <label for="sizeSlider">齒輪大小（半徑）</label>
     <input type="range" id="sizeSlider" min="20" max="100" value="60">
@@ -108,6 +117,7 @@
   <div class="muted" id="readout" style="margin-top:6px">入：木0 火0 土0 金0 水0 ｜ 實：木0 火0 土0 金0 水0</div>
 </div>
 
+<!-- 入 vs 實：可拖曳說明面板（手機預設左下，不遮齒輪） -->
 <div class="panel-small" id="explainPanel">
   <h4 id="explainHandle">入 vs 實｜動態解說（可拖曳）</h4>
   <div class="muted" id="explainBox">（調整滑桿後，這裡會即時說明各項生剋與心腎相交影響）</div>
@@ -123,25 +133,26 @@ function setBgByHue(h){
 setBgByHue(bgHue.value); hVal.textContent=bgHue.value;
 bgHue.addEventListener('input', ()=>{ hVal.textContent=bgHue.value; setBgByHue(bgHue.value); });
 
-/* ===== Canvas 響應式 ===== */
+/* ===== Canvas 響應式 + 裝置像素比 ===== */
 const canvas=document.getElementById('canvas'); const ctx=canvas.getContext('2d');
 function resizeCanvas(){
-  const pad=12, w=Math.max(640, window.innerWidth-pad), h=Math.max(480, window.innerHeight-pad);
-  const dpr=Math.max(1, window.devicePixelRatio||1);
+  const pad=8, w=Math.max(360, innerWidth - pad), h=Math.max(420, innerHeight - pad);
+  const dpr=Math.max(1, devicePixelRatio||1);
   canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr);
   canvas.style.width=w+'px'; canvas.style.height=h+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 addEventListener('resize', resizeCanvas); resizeCanvas();
 
-/* ===== 幾何與狀態 ===== */
-let RADIUS=60;
-function stageCenter(){ return { x: canvas.clientWidth/2, y: canvas.clientHeight/2 - 90 }; }
-const GEAR_OFFSET_X=-120;
+/* ===== 狀態與參數 ===== */
+let RADIUS=60;                           // 桌機預設由滑桿控制
+let MOBILE_COMPACT = innerWidth < 500;   // 手機模式
 const COLORS={ wood:"#2ecc71", fire:"#e74c3c", earth:"#f1c40f", metal:"#bdc3c7", water:"#3498db" };
+
 const angle={ wood:0, fire:0, earth:0, metal:0, water:0 };
 const input={ wood:0, fire:0, earth:0, metal:0, water:0 };
 const speed={ wood:0, fire:0, earth:0, metal:0, water:0 };
+
 const BASE_CW=12, cap=v=>Math.max(-180, Math.min(180,v));
 
 /* ===== 五行邏輯 ===== */
@@ -154,28 +165,41 @@ function applyRelations(){
   for(const k in speed) speed[k]=input[k];
   for(const a in generateOf){ const b=generateOf[a]; speed[b]+=input[a]*K_GEN; }
   for(const a in controlTo){ const b=controlTo[a]; speed[b]-=Math.sign(input[a])*Math.abs(input[a])*K_CTRL; }
-  for(const a in controlTo){
-    const b=controlTo[a]; const diff=Math.abs(speed[b])-Math.abs(speed[a]);
-    if(diff>0){ const sgn=Math.sign(speed[b]); speed[a]-=sgn*diff*K_REB; }
-  }
+  for(const a in controlTo){ const b=controlTo[a]; const diff=Math.abs(speed[b])-Math.abs(speed[a]);
+    if(diff>0){ const sgn=Math.sign(speed[b]); speed[a]-=sgn*diff*K_REB; } }
   if(HK.enabled && speed.water<0){
-    const mag=Math.abs(speed.water);
-    speed.fire+=HK.K_HK_FIRE_GAIN*mag;
+    const mag=Math.abs(speed.water); speed.fire+=HK.K_HK_FIRE_GAIN*mag;
     const fm=Math.abs(speed.fire);
-    speed.wood-=HK.K_HK_WOOD_BACK*fm; speed.earth+=HK.K_H_EARTH_FEED?HK.K_H_EARTH_FEED*fm:HK.K_HK_EARTH_FEED*fm; speed.metal-=HK.K_HK_METAL_BURN*fm;
+    speed.wood-=HK.K_HK_WOOD_BACK*fm; speed.earth+=HK.K_HK_EARTH_FEED*fm; speed.metal-=HK.K_HK_METAL_BURN*fm;
   }
   for(const k in speed) speed[k]=cap(speed[k]+BASE_CW);
 }
 
-/* ===== 位置布局 ===== */
+/* ===== 自動縮放與布局 ===== */
+function stageCenter(){
+  // 桌機：往上 90；手機：往上 70，避免上方署名
+  return { x: canvas.clientWidth/2, y: canvas.clientHeight/2 - (MOBILE_COMPACT? 70 : 90) };
+}
+// 依螢幕大小決定齒輪半徑與間距
+function autoRadius(){
+  if (!MOBILE_COMPACT) return RADIUS; // 桌機依滑桿
+  // 手機：根據短邊自動縮小，落在 28~48 之間
+  const short = Math.min(canvas.clientWidth, canvas.clientHeight);
+  return Math.max(28, Math.min(48, Math.round(short/12)));
+}
 function layout(){
-  const {x:cx0,y:cy}=stageCenter(), cx=cx0+GEAR_OFFSET_X, d=RADIUS*2+26;
+  const r = autoRadius();
+  const spacing = r*2 + (MOBILE_COMPACT? 12 : 26);
+  const {x:cx0,y:cy} = stageCenter();
+  const GEAR_OFFSET_X = MOBILE_COMPACT ? -60 : -120;   // 手機偏移少一點
+  const cx = cx0 + GEAR_OFFSET_X;
   return {
-    earth:{x:cx,y:cy,label:'土',color:COLORS.earth},
-    wood :{x:cx-d,y:cy,label:'木',color:COLORS.wood},
-    fire :{x:cx,y:cy-d,label:'火',color:COLORS.fire},
-    metal:{x:cx+d,y:cy,label:'金',color:COLORS.metal},
-    water:{x:cx,y:cy+d,label:'水',color:COLORS.water},
+    r,
+    earth:{x:cx,     y:cy,      label:'土', color:COLORS.earth},
+    wood :{x:cx-spacing, y:cy,      label:'木', color:COLORS.wood },
+    fire :{x:cx,     y:cy-spacing,  label:'火', color:COLORS.fire },
+    metal:{x:cx+spacing, y:cy,      label:'金', color:COLORS.metal},
+    water:{x:cx,     y:cy+spacing,  label:'水', color:COLORS.water},
   };
 }
 
@@ -192,16 +216,16 @@ function drawGear(x,y,r,deg,fillColor,text){
   ctx.closePath();
   const g=ctx.createRadialGradient(0,0,r*0.2,0,0,R2); g.addColorStop(0,"#ffffffcc"); g.addColorStop(1,fillColor);
   ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle="#25314f"; ctx.stroke();
-  const innerR=r*0.65, spokeW=Math.max(3,r*0.07);
+  const innerR=r*0.65, spokeW=Math.max(2, r*0.07);
   ctx.lineWidth=spokeW; ctx.strokeStyle="rgba(0,0,0,0.35)";
   for(let s=0;s<4;s++){ const a=s*Math.PI/2; ctx.beginPath(); ctx.moveTo(innerR*Math.cos(a),innerR*Math.sin(a)); ctx.lineTo((r*0.25)*Math.cos(a),(r*0.25)*Math.sin(a)); ctx.stroke(); }
-  ctx.beginPath(); ctx.arc(0,0,Math.max(6,r*0.22),0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle="rgba(0,0,0,0.4)"; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,-R2-4,Math.max(3,r*0.06),0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,Math.max(5,r*0.22),0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle="rgba(0,0,0,0.4)"; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,-R2-3,Math.max(3,r*0.06),0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill();
   ctx.restore();
   ctx.save();
   ctx.font=`bold ${Math.round(r*0.6)}px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif`;
   ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.lineWidth=4; ctx.strokeStyle="rgba(0,0,0,0.78)"; ctx.strokeText(text,x,y+1);
+  ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,0.78)"; ctx.strokeText(text,x,y+1);
   ctx.fillStyle="#fff"; ctx.fillText(text,x,y+1); ctx.restore();
 }
 
@@ -209,12 +233,12 @@ function drawGear(x,y,r,deg,fillColor,text){
 function drawSignature(){
   ctx.save();
   const SIGN="仙人指路占卜研究學會 阿青師製作";
-  ctx.font='bold 26px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif';
+  ctx.font='bold 24px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif';
   ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.lineWidth=5; ctx.strokeStyle='rgba(0,0,0,0.6)';
-  ctx.strokeText(SIGN, canvas.clientWidth/2, 10);
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,0.6)';
+  ctx.strokeText(SIGN, canvas.clientWidth/2, 8);
   ctx.fillStyle='#ffd54f';
-  ctx.fillText(SIGN, canvas.clientWidth/2, 10);
+  ctx.fillText(SIGN, canvas.clientWidth/2, 8);
   ctx.restore();
 }
 
@@ -229,8 +253,7 @@ function updateExplanation(){
   const genFrom={wood:0,fire:0,earth:0,metal:0,water:0}, ctrlFrom={wood:0,fire:0,earth:0,metal:0,water:0};
   for(const a in generateOf){ const b=generateOf[a]; genFrom[b]+=input[a]*K_GEN; }
   for(const a in controlTo){ const b=controlTo[a]; ctrlFrom[b]-=Math.sign(input[a])*Math.abs(input[a])*K_CTRL; }
-  let hkLine='';
-  if(HK.enabled && speed.water<0){
+  let hkLine=''; if(HK.enabled && speed.water<0){
     const mag=Math.abs(speed.water), fireGain=HK.K_HK_FIRE_GAIN*mag, fireMag=Math.abs(speed.fire+fireGain);
     const woodBack=-HK.K_HK_WOOD_BACK*fireMag, earthAdd=HK.K_HK_EARTH_FEED*fireMag, metalSub=-HK.K_HK_METAL_BURN*fireMag;
     hkLine=`<div class="hk" style="margin-top:6px">心腎相交：水<0 ⇒ 火+${fireGain.toFixed(1)}；木${woodBack.toFixed(1)}；土+${earthAdd.toFixed(1)}；金${metalSub.toFixed(1)}</div>`;
@@ -238,8 +261,7 @@ function updateExplanation(){
   function ln(name,key){
     const ins=input[key], out=speed[key], g=genFrom[key], c=ctrlFrom[key];
     const parts=[]; if(Math.abs(g)>0.05) parts.push(`受生 +${g.toFixed(1)}`); if(Math.abs(c)>0.05) parts.push(`受剋 ${c.toFixed(1)}`);
-    const mid=parts.length? `；${parts.join('，')}`:'';
-    return `<div><b>${name}</b>：入 ${ins.toFixed(0)}${mid} → 實 ${out.toFixed(0)}</div>`;
+    const mid=parts.length? `；${parts.join('，')}`:''; return `<div><b>${name}</b>：入 ${ins.toFixed(0)}${mid} → 實 ${out.toFixed(0)}</div>`;
   }
   explainBox.innerHTML=ln('木','wood')+ln('火','fire')+ln('土','earth')+ln('金','metal')+ln('水','water')+hkLine;
 }
@@ -247,17 +269,23 @@ function updateExplanation(){
 /* ===== 主迴圈 ===== */
 let last=performance.now();
 function loop(now){
-  const dt=(now-last)/1000; last=now;
+  const dt=(now-last)/1000; last=now; MOBILE_COMPACT = innerWidth < 500;
+
+  // 手機版自動半徑（桌機保留滑桿設定）
+  const L=layout(); const useR = L.r; // 供繪圖使用
+  if (MOBILE_COMPACT) { /* 手機時 slider 仍可調，但 auto 將優先，保持簡潔 */ }
+
   applyRelations();
   for(const k in angle){ angle[k]=(angle[k]+speed[k]*dt)%360; }
+
   ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
   drawSignature();
-  const L=layout();
-  drawGear(L.earth.x,L.earth.y,RADIUS, angle.earth*Math.PI/180, L.earth.color,'土');
-  drawGear(L.wood .x,L.wood .y,RADIUS, angle.wood *Math.PI/180, L.wood .color,'木');
-  drawGear(L.fire .x,L.fire .y,RADIUS, angle.fire *Math.PI/180, L.fire .color,'火');
-  drawGear(L.metal.x,L.metal.y,RADIUS, angle.metal*Math.PI/180, L.metal.color,'金');
-  drawGear(L.water.x,L.water.y,RADIUS, angle.water*Math.PI/180, L.water .color,'水');
+  drawGear(L.earth.x,L.earth.y,useR, angle.earth*Math.PI/180, L.earth.color,'土');
+  drawGear(L.wood .x,L.wood .y,useR, angle.wood *Math.PI/180, L.wood .color,'木');
+  drawGear(L.fire .x,L.fire .y,useR, angle.fire *Math.PI/180, L.fire .color,'火');
+  drawGear(L.metal.x,L.metal.y,useR, angle.metal*Math.PI/180, L.metal.color,'金');
+  drawGear(L.water.x,L.water.y,useR, angle.water*Math.PI/180, L.water .color,'水');
+
   updateReadout(); updateExplanation();
   requestAnimationFrame(loop);
 }
@@ -288,6 +316,15 @@ document.getElementById('resetAll').addEventListener('click', ()=>{
   updateReadout(); updateExplanation();
 }, {passive:true});
 
+/* ===== 顯示/隱藏 解說面板（手機友善） ===== */
+const toggleBtn = document.getElementById('toggleExplain');
+const explainPanel = document.getElementById('explainPanel');
+toggleBtn?.addEventListener('click', ()=>{ 
+  if (!explainPanel) return;
+  const hide = explainPanel.style.display === 'none';
+  explainPanel.style.display = hide ? 'block' : 'none';
+});
+
 /* ===== 可拖曳（Pointer Events） ===== */
 function makeDraggable(el, handle, resetPos={left:16, top:86}){
   let dragging=false, sx=0, sy=0, sl=0, st=0;
@@ -297,19 +334,12 @@ function makeDraggable(el, handle, resetPos={left:16, top:86}){
     let nx=sl+(ev.clientX-sx), ny=st+(ev.clientY-sy);
     const maxL=innerWidth-el.offsetWidth-4, maxT=innerHeight-el.offsetHeight-4;
     nx=Math.max(4,Math.min(maxL,nx)); ny=Math.max(4,Math.min(maxT,ny));
-    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.right='auto'; el.style.position='absolute'; };
-  const onUp =ev=>{ dragging=false; el.classList.remove('dragging'); handle.releasePointerCapture?.(ev.pointerId); };
+    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.right='auto'; el.style.bottom='auto'; el.style.position='absolute'; };
+  const onUp=ev=>{ dragging=false; el.classList.remove('dragging'); handle.releasePointerCapture?.(ev.pointerId); };
   handle.addEventListener('pointerdown', onDown); addEventListener('pointermove', onMove); addEventListener('pointerup', onUp);
-  handle.addEventListener('dblclick', ()=>{ el.style.left=resetPos.left+'px'; el.style.top=resetPos.top+'px'; el.style.right='auto'; });
+  handle.addEventListener('dblclick', ()=>{ el.style.left=resetPos.left+'px'; el.style.top=resetPos.top+'px'; el.style.right='auto'; el.style.bottom='auto'; });
 }
 makeDraggable(document.getElementById('explainPanel'), document.getElementById('explainHandle'));
-
-/* ===== 註冊 Service Worker（PWA 離線） ===== */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js');
-  });
-}
 </script>
 </body>
 </html>
