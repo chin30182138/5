@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>五行齒輪模擬｜分科案例＋建議方向（完整）</title>
+<title>五行齒輪模擬｜整合版（案例＋建議＋心腎相交）</title>
 <style>
   body{margin:0;display:flex;height:100vh;overflow:hidden;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
   canvas{flex:1;display:block;background:#ffffff}
+
   #controls{
-    width:340px;background:#f7f7f8;border-left:1px solid #e5e7eb;box-sizing:border-box;
+    width:360px;background:#f7f7f8;border-left:1px solid #e5e7eb;box-sizing:border-box;
     padding:12px 12px 16px;overflow:auto
   }
   h2{font-size:16px;margin:8px 0 8px}
@@ -16,7 +17,7 @@
   .row{display:flex;align-items:center;gap:8px;margin:6px 0}
   label{font-size:14px;min-width:2em}
   input[type=range]{flex:1}
-  input[type=number]{width:72px}
+  input[type=number]{width:76px}
   button,input[type=color]{height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer}
   .muted{font-size:12px;color:#64748b}
 
@@ -43,7 +44,7 @@
   .line .name{min-width:2em}
 
   /* 建議方向 */
-  #caseNote{margin-top:8px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:13px;line-height:1.5}
+  #caseNote{margin-top:8px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:13px;line-height:1.6}
   .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:6px;color:#fff}
   .pill-bu{background:#16a34a}  /* 補 */
   .pill-xie{background:#dc2626} /* 瀉 */
@@ -68,17 +69,30 @@
     <div class="row"><label>土</label><input type="range" id="earth" min="-180" max="180" step="1" value="0"><input type="number" id="earthVal" value="0"></div>
     <div class="row"><label>金</label><input type="range" id="metal" min="-180" max="180" step="1" value="0"><input type="number" id="metalVal" value="0"></div>
     <div class="row"><label>水</label><input type="range" id="water" min="-180" max="180" step="1" value="0"><input type="number" id="waterVal" value="0"></div>
-    <div class="row"><button id="resetAll" style="width:100%">全部歸零</button></div>
+    <div class="row" style="gap:6px">
+      <button id="resetAll" style="flex:1">全部歸零</button>
+      <button id="centerAll" style="flex:1">一鍵回中</button>
+    </div>
     <div class="muted">負值＝逆轉（入）；正值＝順時針（實）。</div>
   </div>
 
   <h2>整體控制</h2>
   <div class="section">
     <div class="row"><label>大小</label><input type="range" id="gearSize" min="20" max="110" value="60"></div>
-    <div class="row"><label>垂直</label><input type="range" id="gearOffsetY" min="-200" max="240" value="0"></div>
-    <div class="row"><label>水平</label><input type="range" id="gearOffsetX" min="-240" max="240" value="0"></div>
+    <div class="row"><label>垂直</label><input type="range" id="gearOffsetY" min="-240" max="280" value="0"></div>
+    <div class="row"><label>水平</label><input type="range" id="gearOffsetX" min="-280" max="280" value="0"></div>
     <div class="row"><label>自動</label><input type="checkbox" id="autoScale" checked><span class="muted">手機自動大小</span></div>
     <div class="row"><label>背景</label><input type="color" id="bgColor" value="#ffffff"></div>
+  </div>
+
+  <h2>進階關係</h2>
+  <div class="section">
+    <div class="row" style="justify-content:space-between">
+      <span class="muted">心腎相交（腎水不足→心火上擾…）</span>
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="toggleHK" checked> 啟用
+      </label>
+    </div>
   </div>
 
   <h2>五行強度（實際）</h2>
@@ -111,7 +125,7 @@ let OFFSET_X = 0;
 let autoScale = true;
 let bgColor = "#ffffff";
 
-const colors = { wood:"#2ecc71", fire:"#e74c3c", earth:"#f1c40f", metal:"#bdc3c7", water:"#3498db" };
+const colors = { wood:"#2ecc71", fire:"#e74c3c", earth:"#f1c40f", metal:"#cfd8dc", water:"#3498db" };
 const angle = { wood:0, fire:0, earth:0, metal:0, water:0 };
 const input = { wood:0, fire:0, earth:0, metal:0, water:0 };
 const speed = { wood:0, fire:0, earth:0, metal:0, water:0 };
@@ -121,6 +135,7 @@ const K_GEN = 0.20, K_CTRL = 0.50, K_REB = 0.30;
 const generateOf = { wood:'fire', fire:'earth', earth:'metal', metal:'water', water:'wood' };
 const controlTo  = { wood:'earth', earth:'water', water:'fire',  fire:'metal', metal:'wood' };
 const HK = { enabled:true, K_HK_FIRE_GAIN:0.60, K_HK_WOOD_BACK:0.40, K_HK_EARTH_FEED:0.30, K_HK_METAL_BURN:0.50 };
+document.getElementById('toggleHK').addEventListener('change', e=>{ HK.enabled = e.target.checked; });
 
 const cap = v => Math.max(-180, Math.min(180, v));
 
@@ -129,7 +144,9 @@ const CASES = {
   神志: {
     失眠:       { wood: 10, fire: 60, earth: 10, metal:-10, water:-40 },
     心悸焦慮:   { wood:  0, fire: 50, earth: 10, metal:-10, water:-20 },
-    多夢易醒:   { wood:  5, fire: 40, earth:  0, metal: -5, water:-20 }
+    多夢易醒:   { wood:  5, fire: 40, earth:  0, metal: -5, water:-20 },
+    憂鬱情緒:   { wood:-20, fire:-10, earth:-10, metal: 10, water:-10 },
+    失智傾向:   { wood:-10, fire:-10, earth: 10, metal: 10, water:-30 }
   },
   頭部: {
     偏頭痛:     { wood: 50, fire: 20, earth:  0, metal:-10, water:-10 },
@@ -139,6 +156,8 @@ const CASES = {
   消化: {
     肥胖:       { wood:-10, fire:-10, earth:-40, metal:-10, water: 40 },
     脾濕:       { wood:-10, fire:-10, earth:-50, metal:-10, water: 30 },
+    胃食道逆流: { wood: 30, fire: 20, earth:-20, metal:  0, water: -5 },
+    便秘:       { wood:-10, fire: 10, earth:  0, metal: 10, water:-20 },
     胃脹食少:   { wood: 10, fire:-10, earth:-20, metal:  0, water:  0 }
   },
   呼吸: {
@@ -146,15 +165,21 @@ const CASES = {
     過敏鼻炎:   { wood:  0, fire:  0, earth: 10, metal:-30, water:-10 },
     易感冒:     { wood:  0, fire:  0, earth:  0, metal:-30, water:-10 }
   },
+  筋骨皮膚: {
+    痛風:       { wood:  0, fire: 20, earth: 10, metal:  0, water:-30 },
+    關節炎:     { wood:  0, fire: 10, earth: 10, metal:  0, water:-20 },
+    濕疹:       { wood:  0, fire:  0, earth: 10, metal:-10, water: 10 }
+  },
   腎系: {
     陽痿:       { wood:  0, fire:-20, earth:-10, metal:  0, water:-70 },
     腰膝酸軟:   { wood:  0, fire:-10, earth:  0, metal:  0, water:-40 },
-    夜尿頻多:   { wood:  0, fire:  0, earth:  0, metal:  0, water:-30 }
+    夜尿頻多:   { wood:  0, fire:  0, earth:  0, metal:  0, water:-30 },
+    自律神經失調:{wood:  0, fire: 20, earth:-10, metal:  0, water:-30 }
   },
   代謝: {
     高血壓:     { wood: 40, fire: 30, earth:  0, metal:-10, water:-20 },
     高血脂:     { wood:-10, fire:-10, earth: 30, metal:-10, water: 10 },
-    糖尿病:     { wood:  0, fire: 30, earth:-30, metal:  0, water:-40 },
+    高血糖(糖尿病):{wood: 0, fire: 30, earth:-30, metal: 0, water:-40 },
     代謝症候群: { wood:-10, fire: 10, earth: 20, metal:-10, water: 10 },
     高尿酸:     { wood: 10, fire: 10, earth: 10, metal:-10, water:-20 }
   }
@@ -165,26 +190,35 @@ const CASE_DESC = {
   失眠:"水虛火旺；<span class='pill pill-bu'>補水</span><span class='pill pill-xie'>瀉火</span><span class='pill pill-tiao'>調心腎</span>",
   心悸焦慮:"心火偏盛、土弱；<span class='pill pill-xie'>瀉火</span><span class='pill pill-bu'>補土</span>",
   多夢易醒:"心神不寧、水少難制火；<span class='pill pill-bu'>補水養心</span><span class='pill pill-xie'>瀉火安神</span>",
+  憂鬱情緒:"木鬱火衰，水不足；<span class='pill pill-tiao'>疏肝理氣</span><span class='pill pill-bu'>滋陰補水</span>",
+  失智傾向:"腎精不足為本；<span class='pill pill-bu'>補水填精</span><span class='pill pill-tiao'>調心腎</span>",
 
   偏頭痛:"肝陽上亢；<span class='pill pill-xie'>瀉木火</span><span class='pill pill-bu'>補水制木</span>",
   眩暈:"木亢、水虧；<span class='pill pill-bu'>補水填精</span><span class='pill pill-tiao'>平肝熄風</span>",
-  頭脹壓迫感:"肝氣鬱滯上逆；<span class='pill pill-tiao'>疏肝理氣</span><span class='pill pill-bu'>滋水涵木</span>",
+  頭脹壓迫感:"肝氣鬱滯；<span class='pill pill-tiao'>疏肝理氣</span><span class='pill pill-bu'>滋水涵木</span>",
 
   肥胖:"痰濕內盛、土失健運；<span class='pill pill-xie'>化濕祛痰</span><span class='pill pill-tiao'>健脾</span>",
   脾濕:"土虛水困；<span class='pill pill-tiao'>健脾祛濕</span><span class='pill pill-bu'>補土</span>",
-  胃脹食少:"脾胃運化弱、木郁犯脾；<span class='pill pill-tiao'>疏肝和胃</span><span class='pill pill-bu'>健脾</span>",
+  胃食道逆流:"木鬱化火犯胃；<span class='pill pill-tiao'>疏肝和胃</span><span class='pill pill-xie'>清火</span>",
+  便秘:"津液不足、金失宣降；<span class='pill pill-bu'>養陰增液</span><span class='pill pill-tiao'>潤腸通便</span>",
+  胃脹食少:"脾胃弱、木郁犯脾；<span class='pill pill-tiao'>疏肝和胃</span><span class='pill pill-bu'>健脾</span>",
 
   久咳:"金弱、水津不足；<span class='pill pill-bu'>補金養陰</span><span class='pill pill-bu'>補水</span>",
   過敏鼻炎:"金虛衛外不固；<span class='pill pill-bu'>補金固表</span><span class='pill pill-tiao'>祛濕化痰</span>",
   易感冒:"肺衛不足；<span class='pill pill-bu'>補金固表</span>",
 
+  痛風:"濕熱下注；<span class='pill pill-xie'>清熱利濕</span><span class='pill pill-tiao'>調土水</span>",
+  關節炎:"風寒濕痹或濕熱痹；<span class='pill pill-tiao'>祛風除濕</span><span class='pill pill-xie'>清熱</span>",
+  濕疹:"濕盛挾熱；<span class='pill pill-xie'>清熱祛濕</span>",
+
   陽痿:"腎陽不足；<span class='pill pill-bu'>補水溫腎</span><span class='pill pill-tiao'>調水火</span>",
   腰膝酸軟:"腎精不足；<span class='pill pill-bu'>補水填精</span><span class='pill pill-bu'>養木（筋骨）</span>",
   夜尿頻多:"腎氣不固；<span class='pill pill-bu'>補水澀精</span>",
+  自律神經失調:"水不足、火不寧；<span class='pill pill-bu'>滋陰補水</span><span class='pill pill-tiao'>調心腎</span>",
 
   高血壓:"肝陽上亢，心火偏盛；<span class='pill pill-xie'>平肝瀉火</span><span class='pill pill-bu'>滋水涵木</span>",
   高血脂:"痰濕內停、土失健運；<span class='pill pill-xie'>化濕祛痰</span><span class='pill pill-tiao'>健脾</span>",
-  糖尿病:"火旺耗津、水虧、土弱；<span class='pill pill-bu'>滋陰補水</span><span class='pill pill-tiao'>健脾</span><span class='pill pill-xie'>瀉火</span>",
+  "高血糖(糖尿病)":"火旺耗津、水虧、土弱；<span class='pill pill-bu'>滋陰補水</span><span class='pill pill-tiao'>健脾</span><span class='pill pill-xie'>瀉火</span>",
   代謝症候群:"痰濕與輕度火旺並見；<span class='pill pill-tiao'>健脾化濕</span><span class='pill pill-xie'>清火</span>",
   高尿酸:"濕熱偏盛、水液代謝失常；<span class='pill pill-xie'>清熱利濕</span><span class='pill pill-tiao'>調土水</span>"
 };
@@ -244,7 +278,7 @@ function applyRelations(){
   // 相剋
   for(const a in controlTo){ const b = controlTo[a]; speed[b] -= Math.sign(input[a]) * Math.abs(input[a]) * K_CTRL; }
 
-  // 反剋
+  // 反剋（被剋者更強→回壓剋者）
   for(const a in controlTo){
     const b = controlTo[a];
     const diff = Math.abs(speed[b]) - Math.abs(speed[a]);
@@ -390,6 +424,11 @@ document.getElementById('resetAll').addEventListener('click', ()=>{
     input[k]=0; document.getElementById(k).value=0; document.getElementById(k+'Val').value=0;
   }
 });
+document.getElementById('centerAll').addEventListener('click', ()=>{
+  OFFSET_X=0; OFFSET_Y=0;
+  document.getElementById('gearOffsetX').value=0;
+  document.getElementById('gearOffsetY').value=0;
+});
 
 /* ====== 整體控制 ====== */
 document.getElementById('gearSize').addEventListener('input', e=>{
@@ -402,7 +441,6 @@ document.getElementById('autoScale').addEventListener('change', e=>{
   autoScale = e.target.checked;
 });
 document.getElementById('bgColor').addEventListener('input', e=>{ bgColor = e.target.value; });
-
 </script>
 </body>
 </html>
