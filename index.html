@@ -1,446 +1,202 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>五行齒輪模擬｜整合版（案例＋建議＋心腎相交）</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>五行齒輪（穩定顯示版）</title>
 <style>
-  body{margin:0;display:flex;height:100vh;overflow:hidden;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
-  canvas{flex:1;display:block;background:#ffffff}
-
-  #controls{
-    width:360px;background:#f7f7f8;border-left:1px solid #e5e7eb;box-sizing:border-box;
-    padding:12px 12px 16px;overflow:auto
-  }
-  h2{font-size:16px;margin:8px 0 8px}
-  .section{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px;margin-bottom:10px}
-  .row{display:flex;align-items:center;gap:8px;margin:6px 0}
-  label{font-size:14px;min-width:2em}
-  input[type=range]{flex:1}
-  input[type=number]{width:76px}
-  button,input[type=color]{height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer}
-  .muted{font-size:12px;color:#64748b}
-
-  /* 分科分頁 */
+  *{box-sizing:border-box}
+  body{margin:0;height:100vh;display:flex;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui}
+  #left{flex:1;min-width:0}
+  #canvas{width:100%;height:100%;display:block;background:#fff}
+  #controls{width:320px;max-width:45vw;background:#f7f7f8;border-left:1px solid #e5e7eb;padding:12px;overflow:auto}
+  h2{margin:8px 0;font-size:16px}
+  .section{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-bottom:10px}
   .tabs{display:flex;gap:6px;flex-wrap:wrap}
-  .tab{padding:6px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;font-size:14px;cursor:pointer}
+  .tab{padding:6px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;cursor:pointer}
   .tab.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
-
-  /* 案例按鈕網格 */
-  .case-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-  .case-btn{padding:8px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;line-height:1.2}
-  .case-btn:hover{background:#eef2ff;border-color:#93c5fd}
-  .case-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
-
-  /* 五行強度條 */
-  .bar{height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden}
-  .bar>span{display:block;height:100%;border-radius:999px}
-  .b-wood{background:#2ecc71}
-  .b-fire{background:#e74c3c}
-  .b-earth{background:#f1c40f}
-  .b-metal{background:#cfd8dc}
-  .b-water{background:#3498db}
-  .line{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
-  .line .name{min-width:2em}
-
-  /* 建議方向 */
-  #caseNote{margin-top:8px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:13px;line-height:1.6}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:6px;color:#fff}
-  .pill-bu{background:#16a34a}  /* 補 */
-  .pill-xie{background:#dc2626} /* 瀉 */
-  .pill-tiao{background:#2563eb}/* 調 */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .btn{padding:8px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;cursor:pointer}
+  .btn:hover{background:#eef2ff}
+  .row{display:flex;gap:8px;align-items:center;margin:6px 0}
+  label{min-width:2em}
+  input[type=range]{flex:1}
+  input[type=number]{width:72px}
+  .muted{font-size:12px;color:#64748b}
 </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-
-<div id="controls">
-  <h2>常見症（分科快速選）</h2>
-  <div class="section">
-    <div class="tabs" id="deptTabs"></div>
-    <div class="case-grid" id="caseGrid"></div>
-    <div id="caseNote" class="muted">點案例即會套用，可再用下方滑桿微調。</div>
-  </div>
-
-  <h2>五行入/實（速度）</h2>
-  <div class="section" id="sliders">
-    <div class="row"><label>木</label><input type="range" id="wood" min="-180" max="180" step="1" value="0"><input type="number" id="woodVal" value="0"></div>
-    <div class="row"><label>火</label><input type="range" id="fire" min="-180" max="180" step="1" value="0"><input type="number" id="fireVal" value="0"></div>
-    <div class="row"><label>土</label><input type="range" id="earth" min="-180" max="180" step="1" value="0"><input type="number" id="earthVal" value="0"></div>
-    <div class="row"><label>金</label><input type="range" id="metal" min="-180" max="180" step="1" value="0"><input type="number" id="metalVal" value="0"></div>
-    <div class="row"><label>水</label><input type="range" id="water" min="-180" max="180" step="1" value="0"><input type="number" id="waterVal" value="0"></div>
-    <div class="row" style="gap:6px">
-      <button id="resetAll" style="flex:1">全部歸零</button>
-      <button id="centerAll" style="flex:1">一鍵回中</button>
+  <div id="left"><canvas id="canvas"></canvas></div>
+  <aside id="controls">
+    <h2>分科案例</h2>
+    <div class="section">
+      <div id="tabs" class="tabs"></div>
+      <div id="cases" class="grid"></div>
+      <div id="note" class="muted" style="margin-top:8px">點案例即套用；仍可用下方滑桿微調。</div>
     </div>
-    <div class="muted">負值＝逆轉（入）；正值＝順時針（實）。</div>
-  </div>
 
-  <h2>整體控制</h2>
-  <div class="section">
-    <div class="row"><label>大小</label><input type="range" id="gearSize" min="20" max="110" value="60"></div>
-    <div class="row"><label>垂直</label><input type="range" id="gearOffsetY" min="-240" max="280" value="0"></div>
-    <div class="row"><label>水平</label><input type="range" id="gearOffsetX" min="-280" max="280" value="0"></div>
-    <div class="row"><label>自動</label><input type="checkbox" id="autoScale" checked><span class="muted">手機自動大小</span></div>
-    <div class="row"><label>背景</label><input type="color" id="bgColor" value="#ffffff"></div>
-  </div>
-
-  <h2>進階關係</h2>
-  <div class="section">
-    <div class="row" style="justify-content:space-between">
-      <span class="muted">心腎相交（腎水不足→心火上擾…）</span>
-      <label style="display:flex;align-items:center;gap:6px">
-        <input type="checkbox" id="toggleHK" checked> 啟用
-      </label>
+    <h2>五行入/實</h2>
+    <div class="section">
+      <div class="row"><label>木</label><input type="range" id="wood" min="-180" max="180" value="0"><input type="number" id="woodVal" value="0"></div>
+      <div class="row"><label>火</label><input type="range" id="fire" min="-180" max="180" value="0"><input type="number" id="fireVal" value="0"></div>
+      <div class="row"><label>土</label><input type="range" id="earth" min="-180" max="180" value="0"><input type="number" id="earthVal" value="0"></div>
+      <div class="row"><label>金</label><input type="range" id="metal" min="-180" max="180" value="0"><input type="number" id="metalVal" value="0"></div>
+      <div class="row"><label>水</label><input type="range" id="water" min="-180" max="180" value="0"><input type="number" id="waterVal" value="0"></div>
+      <div class="row"><button id="reset" style="width:100%">全部歸零</button></div>
+      <div class="muted">負值＝逆轉（入）；正值＝順時針（實）。</div>
     </div>
-  </div>
 
-  <h2>五行強度（實際）</h2>
-  <div class="section" id="bars">
-    <div class="line"><span class="name">木</span><div class="bar"><span id="bw" class="b-wood" style="width:0%"></span></div><span id="pw" class="muted">0</span></div>
-    <div class="line"><span class="name">火</span><div class="bar"><span id="bf" class="b-fire" style="width:0%"></span></div><span id="pf" class="muted">0</span></div>
-    <div class="line"><span class="name">土</span><div class="bar"><span id="be" class="b-earth" style="width:0%"></span></div><span id="pe" class="muted">0</span></div>
-    <div class="line"><span class="name">金</span><div class="bar"><span id="bm" class="b-metal" style="width:0%"></span></div><span id="pm" class="muted">0</span></div>
-    <div class="line"><span class="name">水</span><div class="bar"><span id="ba" class="b-water" style="width:0%"></span></div><span id="pa" class="muted">0</span></div>
-    <div class="muted">以「實際速度」的絕對值換算（0～180）。</div>
-  </div>
-
-  <div class="muted">仙人指路占卜研究學會｜阿青師製作</div>
-</div>
+    <h2>整體控制</h2>
+    <div class="section">
+      <div class="row"><label>大小</label><input type="range" id="gearSize" min="24" max="110" value="60"></div>
+      <div class="row"><label>垂直</label><input type="range" id="offY" min="-240" max="240" value="0"></div>
+      <div class="row"><label>水平</label><input type="range" id="offX" min="-280" max="280" value="0"></div>
+      <div class="row"><label>背景</label><input type="color" id="bg" value="#ffffff"></div>
+      <div class="row"><label>心腎</label><input type="checkbox" id="hk" checked><span class="muted">心腎相交啟用</span></div>
+    </div>
+    <div class="muted">仙人指路占卜研究學會｜阿青師製作</div>
+  </aside>
 
 <script>
-/* ====== 畫布 ====== */
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-function resize(){
-  canvas.width = window.innerWidth - document.getElementById('controls').offsetWidth;
-  canvas.height = window.innerHeight;
-}
-addEventListener("resize", resize); resize();
+/* ===== 基本狀態 ===== */
+const cvs = document.getElementById('canvas'), ctx = cvs.getContext('2d');
+const left = document.getElementById('left'), controls = document.getElementById('controls');
+function fit(){ cvs.width = left.clientWidth; cvs.height = left.clientHeight; }
+addEventListener('resize', fit); fit();
 
-/* ====== 狀態 ====== */
-let RADIUS = 60;
-let OFFSET_Y = 0;
-let OFFSET_X = 0;
-let autoScale = true;
-let bgColor = "#ffffff";
+let R=60, OX=0, OY=0, BG='#ffffff';
+const angle={wood:0,fire:0,earth:0,metal:0,water:0};
+const input={wood:0,fire:0,earth:0,metal:0,water:0};
+const speed={wood:0,fire:0,earth:0,metal:0,water:0};
+const color={wood:'#2ecc71',fire:'#e74c3c',earth:'#f1c40f',metal:'#cfd8dc',water:'#3498db'};
 
-const colors = { wood:"#2ecc71", fire:"#e74c3c", earth:"#f1c40f", metal:"#cfd8dc", water:"#3498db" };
-const angle = { wood:0, fire:0, earth:0, metal:0, water:0 };
-const input = { wood:0, fire:0, earth:0, metal:0, water:0 };
-const speed = { wood:0, fire:0, earth:0, metal:0, water:0 };
+const BASE=12, K_GEN=0.2, K_CTRL=0.5, K_REB=0.3;
+const gen={wood:'fire',fire:'earth',earth:'metal',metal:'water',water:'wood'};
+const ctl={wood:'earth',earth:'water',water:'fire',fire:'metal',metal:'wood'};
+const HK={enabled:true,FG:0.6,WB:0.4,EF:0.3,MB:0.5};
+const cap=v=>Math.max(-180,Math.min(180,v));
 
-const BASE_CW = 12;                  // 基礎順時針
-const K_GEN = 0.20, K_CTRL = 0.50, K_REB = 0.30;
-const generateOf = { wood:'fire', fire:'earth', earth:'metal', metal:'water', water:'wood' };
-const controlTo  = { wood:'earth', earth:'water', water:'fire',  fire:'metal', metal:'wood' };
-const HK = { enabled:true, K_HK_FIRE_GAIN:0.60, K_HK_WOOD_BACK:0.40, K_HK_EARTH_FEED:0.30, K_HK_METAL_BURN:0.50 };
-document.getElementById('toggleHK').addEventListener('change', e=>{ HK.enabled = e.target.checked; });
-
-const cap = v => Math.max(-180, Math.min(180, v));
-
-/* ====== 分科 & 案例庫（入/實：-180~180）====== */
-const CASES = {
-  神志: {
-    失眠:       { wood: 10, fire: 60, earth: 10, metal:-10, water:-40 },
-    心悸焦慮:   { wood:  0, fire: 50, earth: 10, metal:-10, water:-20 },
-    多夢易醒:   { wood:  5, fire: 40, earth:  0, metal: -5, water:-20 },
-    憂鬱情緒:   { wood:-20, fire:-10, earth:-10, metal: 10, water:-10 },
-    失智傾向:   { wood:-10, fire:-10, earth: 10, metal: 10, water:-30 }
-  },
-  頭部: {
-    偏頭痛:     { wood: 50, fire: 20, earth:  0, metal:-10, water:-10 },
-    眩暈:       { wood: 20, fire: 10, earth:  0, metal:  0, water:-30 },
-    頭脹壓迫感: { wood: 30, fire: 10, earth:  0, metal:  0, water:-20 }
-  },
-  消化: {
-    肥胖:       { wood:-10, fire:-10, earth:-40, metal:-10, water: 40 },
-    脾濕:       { wood:-10, fire:-10, earth:-50, metal:-10, water: 30 },
-    胃食道逆流: { wood: 30, fire: 20, earth:-20, metal:  0, water: -5 },
-    便秘:       { wood:-10, fire: 10, earth:  0, metal: 10, water:-20 },
-    胃脹食少:   { wood: 10, fire:-10, earth:-20, metal:  0, water:  0 }
-  },
-  呼吸: {
-    久咳:       { wood:  0, fire: 10, earth: 10, metal:-40, water:-20 },
-    過敏鼻炎:   { wood:  0, fire:  0, earth: 10, metal:-30, water:-10 },
-    易感冒:     { wood:  0, fire:  0, earth:  0, metal:-30, water:-10 }
-  },
-  筋骨皮膚: {
-    痛風:       { wood:  0, fire: 20, earth: 10, metal:  0, water:-30 },
-    關節炎:     { wood:  0, fire: 10, earth: 10, metal:  0, water:-20 },
-    濕疹:       { wood:  0, fire:  0, earth: 10, metal:-10, water: 10 }
-  },
-  腎系: {
-    陽痿:       { wood:  0, fire:-20, earth:-10, metal:  0, water:-70 },
-    腰膝酸軟:   { wood:  0, fire:-10, earth:  0, metal:  0, water:-40 },
-    夜尿頻多:   { wood:  0, fire:  0, earth:  0, metal:  0, water:-30 },
-    自律神經失調:{wood:  0, fire: 20, earth:-10, metal:  0, water:-30 }
-  },
-  代謝: {
-    高血壓:     { wood: 40, fire: 30, earth:  0, metal:-10, water:-20 },
-    高血脂:     { wood:-10, fire:-10, earth: 30, metal:-10, water: 10 },
-    高血糖(糖尿病):{wood: 0, fire: 30, earth:-30, metal: 0, water:-40 },
-    代謝症候群: { wood:-10, fire: 10, earth: 20, metal:-10, water: 10 },
-    高尿酸:     { wood: 10, fire: 10, earth: 10, metal:-10, water:-20 }
-  }
+/* ===== 案例（精簡，但包含你要的現代病） ===== */
+const CASES={
+  神志:{失眠:{wood:10,fire:60,earth:10,metal:-10,water:-40},心悸焦慮:{wood:0,fire:50,earth:10,metal:-10,water:-20}},
+  頭部:{偏頭痛:{wood:50,fire:20,earth:0,metal:-10,water:-10},眩暈:{wood:20,fire:10,earth:0,metal:0,water:-30}},
+  消化:{肥胖:{wood:-10,fire:-10,earth:-40,metal:-10,water:40},脾濕:{wood:-10,fire:-10,earth:-50,metal:-10,water:30}},
+  代謝:{高血壓:{wood:40,fire:30,earth:0,metal:-10,water:-20},高血脂:{wood:-10,fire:-10,earth:30,metal:-10,water:10},"高血糖(糖尿病)":{"wood":0,"fire":30,"earth":-30,"metal":0,"water":-40}}
+};
+const DESC={
+  失眠:"補水、瀉火、調心腎", 心悸焦慮:"瀉火、補土",
+  偏頭痛:"瀉木火、補水制木", 眩暈:"補水填精、平肝熄風",
+  肥胖:"化濕祛痰、健脾",     脾濕:"健脾祛濕、補土",
+  高血壓:"平肝瀉火、滋水涵木", 高血脂:"化濕祛痰、健脾",
+  "高血糖(糖尿病)":"滋陰補水、健脾、瀉火"
 };
 
-/* ====== 建議方向（補/瀉/調）簡述 ====== */
-const CASE_DESC = {
-  失眠:"水虛火旺；<span class='pill pill-bu'>補水</span><span class='pill pill-xie'>瀉火</span><span class='pill pill-tiao'>調心腎</span>",
-  心悸焦慮:"心火偏盛、土弱；<span class='pill pill-xie'>瀉火</span><span class='pill pill-bu'>補土</span>",
-  多夢易醒:"心神不寧、水少難制火；<span class='pill pill-bu'>補水養心</span><span class='pill pill-xie'>瀉火安神</span>",
-  憂鬱情緒:"木鬱火衰，水不足；<span class='pill pill-tiao'>疏肝理氣</span><span class='pill pill-bu'>滋陰補水</span>",
-  失智傾向:"腎精不足為本；<span class='pill pill-bu'>補水填精</span><span class='pill pill-tiao'>調心腎</span>",
-
-  偏頭痛:"肝陽上亢；<span class='pill pill-xie'>瀉木火</span><span class='pill pill-bu'>補水制木</span>",
-  眩暈:"木亢、水虧；<span class='pill pill-bu'>補水填精</span><span class='pill pill-tiao'>平肝熄風</span>",
-  頭脹壓迫感:"肝氣鬱滯；<span class='pill pill-tiao'>疏肝理氣</span><span class='pill pill-bu'>滋水涵木</span>",
-
-  肥胖:"痰濕內盛、土失健運；<span class='pill pill-xie'>化濕祛痰</span><span class='pill pill-tiao'>健脾</span>",
-  脾濕:"土虛水困；<span class='pill pill-tiao'>健脾祛濕</span><span class='pill pill-bu'>補土</span>",
-  胃食道逆流:"木鬱化火犯胃；<span class='pill pill-tiao'>疏肝和胃</span><span class='pill pill-xie'>清火</span>",
-  便秘:"津液不足、金失宣降；<span class='pill pill-bu'>養陰增液</span><span class='pill pill-tiao'>潤腸通便</span>",
-  胃脹食少:"脾胃弱、木郁犯脾；<span class='pill pill-tiao'>疏肝和胃</span><span class='pill pill-bu'>健脾</span>",
-
-  久咳:"金弱、水津不足；<span class='pill pill-bu'>補金養陰</span><span class='pill pill-bu'>補水</span>",
-  過敏鼻炎:"金虛衛外不固；<span class='pill pill-bu'>補金固表</span><span class='pill pill-tiao'>祛濕化痰</span>",
-  易感冒:"肺衛不足；<span class='pill pill-bu'>補金固表</span>",
-
-  痛風:"濕熱下注；<span class='pill pill-xie'>清熱利濕</span><span class='pill pill-tiao'>調土水</span>",
-  關節炎:"風寒濕痹或濕熱痹；<span class='pill pill-tiao'>祛風除濕</span><span class='pill pill-xie'>清熱</span>",
-  濕疹:"濕盛挾熱；<span class='pill pill-xie'>清熱祛濕</span>",
-
-  陽痿:"腎陽不足；<span class='pill pill-bu'>補水溫腎</span><span class='pill pill-tiao'>調水火</span>",
-  腰膝酸軟:"腎精不足；<span class='pill pill-bu'>補水填精</span><span class='pill pill-bu'>養木（筋骨）</span>",
-  夜尿頻多:"腎氣不固；<span class='pill pill-bu'>補水澀精</span>",
-  自律神經失調:"水不足、火不寧；<span class='pill pill-bu'>滋陰補水</span><span class='pill pill-tiao'>調心腎</span>",
-
-  高血壓:"肝陽上亢，心火偏盛；<span class='pill pill-xie'>平肝瀉火</span><span class='pill pill-bu'>滋水涵木</span>",
-  高血脂:"痰濕內停、土失健運；<span class='pill pill-xie'>化濕祛痰</span><span class='pill pill-tiao'>健脾</span>",
-  "高血糖(糖尿病)":"火旺耗津、水虧、土弱；<span class='pill pill-bu'>滋陰補水</span><span class='pill pill-tiao'>健脾</span><span class='pill pill-xie'>瀉火</span>",
-  代謝症候群:"痰濕與輕度火旺並見；<span class='pill pill-tiao'>健脾化濕</span><span class='pill pill-xie'>清火</span>",
-  高尿酸:"濕熱偏盛、水液代謝失常；<span class='pill pill-xie'>清熱利濕</span><span class='pill pill-tiao'>調土水</span>"
-};
-
-/* ====== 分科 UI：分頁 + 案例按鈕 ====== */
-const deptTabs = document.getElementById('deptTabs');
-const caseGrid = document.getElementById('caseGrid');
-const caseNote = document.getElementById('caseNote');
-
-const DEPTS = Object.keys(CASES);
-let activeDept = DEPTS[0];
-let activeCase = null;
-
+/* ===== UI：分科＋案例 ===== */
+const tabs=document.getElementById('tabs'), casesDiv=document.getElementById('cases'), note=document.getElementById('note');
+const depts=Object.keys(CASES); let activeDept=depts[0];
 function renderTabs(){
-  deptTabs.innerHTML = '';
-  DEPTS.forEach(d=>{
-    const b = document.createElement('button');
-    b.className = 'tab' + (d===activeDept?' active':'');
-    b.textContent = d;
-    b.onclick = ()=>{ activeDept=d; activeCase=null; renderTabs(); renderCases(); caseNote.innerHTML='選好案例後會立即套用，可再微調。'; };
-    deptTabs.appendChild(b);
+  tabs.innerHTML='';
+  depts.forEach(d=>{
+    const b=document.createElement('button'); b.className='tab'+(d===activeDept?' active':''); b.textContent=d;
+    b.onclick=()=>{activeDept=d; renderTabs(); renderCases(); note.textContent='點案例即套用；仍可用滑桿微調。'};
+    tabs.appendChild(b);
   });
 }
 function renderCases(){
-  caseGrid.innerHTML = '';
-  const list = Object.keys(CASES[activeDept]);
-  list.forEach(name=>{
-    const btn = document.createElement('button');
-    btn.className = 'case-btn' + (name===activeCase?' active':'');
-    btn.textContent = name;
-    btn.onclick = ()=>{
-      activeCase = name;
-      [...caseGrid.children].forEach(c=>c.classList.remove('active'));
-      btn.classList.add('active');
-      // 套用數值
-      const preset = CASES[activeDept][name];
-      for(const k of ['wood','fire','earth','metal','water']){
-        const v = preset[k] ?? 0;
-        input[k] = v;
-        document.getElementById(k).value = v;
-        document.getElementById(k+'Val').value = v;
-      }
-      caseNote.innerHTML = CASE_DESC[name] || '已套用預設，可再用滑桿微調。';
+  casesDiv.innerHTML='';
+  Object.keys(CASES[activeDept]).forEach(name=>{
+    const b=document.createElement('button'); b.className='btn'; b.textContent=name;
+    b.onclick=()=>{
+      const p=CASES[activeDept][name];
+      ['wood','fire','earth','metal','water'].forEach(k=>{
+        input[k]=p[k]||0; document.getElementById(k).value=input[k]; document.getElementById(k+'Val').value=input[k];
+      });
+      note.textContent=DESC[name]||'已套用預設。';
     };
-    caseGrid.appendChild(btn);
+    casesDiv.appendChild(b);
   });
 }
 renderTabs(); renderCases();
 
-/* ====== 計算關係 ====== */
+/* ===== 邏輯：相生相剋＋心腎相交 ===== */
 function applyRelations(){
-  for(const k in speed) speed[k] = input[k];
-
-  // 相生
-  for(const a in generateOf){ const b = generateOf[a]; speed[b] += input[a]*K_GEN; }
-
-  // 相剋
-  for(const a in controlTo){ const b = controlTo[a]; speed[b] -= Math.sign(input[a]) * Math.abs(input[a]) * K_CTRL; }
-
-  // 反剋（被剋者更強→回壓剋者）
-  for(const a in controlTo){
-    const b = controlTo[a];
-    const diff = Math.abs(speed[b]) - Math.abs(speed[a]);
-    if(diff > 0){ const sgn = Math.sign(speed[b]); speed[a] -= sgn * diff * K_REB; }
+  for(const k in speed) speed[k]=input[k];
+  for(const a in gen){ const b=gen[a]; speed[b]+=input[a]*K_GEN; }
+  for(const a in ctl){ const b=ctl[a]; speed[b]-=Math.sign(input[a])*Math.abs(input[a])*K_CTRL; }
+  for(const a in ctl){ const b=ctl[a]; const diff=Math.abs(speed[b])-Math.abs(speed[a]); if(diff>0){ const s=Math.sign(speed[b]); speed[a]-=s*diff*K_REB; } }
+  if(HK.enabled && speed.water<0){
+    const m=Math.abs(speed.water);
+    speed.fire+=HK.FG*m;
+    const fm=Math.abs(speed.fire);
+    speed.wood-=HK.WB*fm; speed.earth+=HK.EF*fm; speed.metal-=HK.MB*fm;
   }
-
-  // 心腎相交（特例：水<0）
-  if (HK.enabled && speed.water < 0){
-    const mag = Math.abs(speed.water);
-    speed.fire += HK.K_HK_FIRE_GAIN * mag;
-    const fm = Math.abs(speed.fire);
-    speed.wood  -= HK.K_HK_WOOD_BACK  * fm;
-    speed.earth += HK.K_HK_EARTH_FEED * fm;
-    speed.metal -= HK.K_HK_METAL_BURN * fm;
-  }
-
-  // 基礎順時針與限幅
-  for(const k in speed) speed[k] = cap(speed[k] + BASE_CW);
+  for(const k in speed) speed[k]=cap(speed[k]+BASE);
 }
 
-/* ====== 位置與繪圖 ====== */
-function center(){ return { x: canvas.width/2 + OFFSET_X, y: canvas.height/2 + OFFSET_Y }; }
-
-function drawGear(x,y,r,deg,fillColor,text){
-  const teeth=14, step=Math.PI/(teeth), R1=r, R2=r*1.12;
+/* ===== 繪圖 ===== */
+function center(){ return {x:cvs.width/2+OX, y:cvs.height/2+OY}; }
+function drawGear(x,y,r,deg,fill,txt){
+  const teeth=14, step=Math.PI/teeth, R1=r, R2=r*1.12;
   ctx.save(); ctx.translate(x,y); ctx.rotate(deg);
-
-  // 外齒
   ctx.beginPath();
-  for(let i=0;i<teeth*2;i++){
-    const useR=(i%2===0)?R2:R1, a=-Math.PI/2+i*step;
-    const px=useR*Math.cos(a), py=useR*Math.sin(a);
-    (i===0)?ctx.moveTo(px,py):ctx.lineTo(px,py);
-  }
+  for(let i=0;i<teeth*2;i++){ const rr=(i%2===0)?R2:R1, a=-Math.PI/2+i*step; const px=rr*Math.cos(a), py=rr*Math.sin(a); i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
   ctx.closePath();
-  const g=ctx.createRadialGradient(0,0,r*0.2,0,0,R2); g.addColorStop(0,"#ffffffcc"); g.addColorStop(1,fillColor);
-  ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle="#25314f"; ctx.stroke();
-
-  // 內輻條＋中心孔
-  const innerR=r*0.65, spokeW=Math.max(3,r*0.07);
-  ctx.lineWidth=spokeW; ctx.strokeStyle="rgba(0,0,0,0.35)";
-  for(let s=0;s<4;s++){ const a=s*Math.PI/2; ctx.beginPath(); ctx.moveTo(innerR*Math.cos(a),innerR*Math.sin(a)); ctx.lineTo((r*0.25)*Math.cos(a),(r*0.25)*Math.sin(a)); ctx.stroke(); }
-  ctx.beginPath(); ctx.arc(0,0,Math.max(6,r*0.22),0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle="rgba(0,0,0,0.4)"; ctx.stroke();
-
-  // 旋轉指示點
-  ctx.beginPath(); ctx.arc(0,-R2-4,Math.max(3,r*0.06),0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill();
-
+  const g=ctx.createRadialGradient(0,0,r*0.2,0,0,R2); g.addColorStop(0,'#ffffffcc'); g.addColorStop(1,fill);
+  ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#25314f'; ctx.stroke();
+  // 指示點
+  ctx.beginPath(); ctx.arc(0,-R2-4,Math.max(3,r*0.06),0,Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
   ctx.restore();
-
-  // 中文大字
+  // 大字
   ctx.save();
-  ctx.font = `bold ${Math.round(r*0.6)}px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif`;
-  ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.lineWidth=4; ctx.strokeStyle="rgba(0,0,0,0.78)"; ctx.strokeText(text,x,y+1);
-  ctx.fillStyle="#fff"; ctx.fillText(text,x,y+1);
+  ctx.font=`bold ${Math.round(r*0.6)}px "Noto Sans TC","Microsoft JhengHei",system-ui`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.75)'; ctx.strokeText(txt,x,y+1);
+  ctx.fillStyle='#fff'; ctx.fillText(txt,x,y+1);
   ctx.restore();
 }
 
-/* ====== 主循環 ====== */
-let last = performance.now();
+let last=performance.now();
 function loop(now){
-  const dt = (now - last)/1000; last = now;
-
-  // 自動大小（手機/窄螢幕）
-  if (autoScale){
-    const shortSide = Math.min(canvas.width, canvas.height);
-    RADIUS = Math.max(24, Math.min(110, Math.round(shortSide/8)));
-    const sizeSlider = document.getElementById('gearSize');
-    if (sizeSlider) sizeSlider.value = RADIUS;
-  }
-
+  const dt=(now-last)/1000; last=now;
   applyRelations();
-  for(const k in angle){ angle[k] = (angle[k] + speed[k]*dt) % 360; }
+  for(const k in angle){ angle[k]=(angle[k]+speed[k]*dt)%360; }
 
-  // 背景
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // 位置
-  const c = center();
-  const d = RADIUS*2 + 26;
-  const pos = {
-    earth:{x:c.x, y:c.y,     label:'土', color:colors.earth},
-    wood :{x:c.x-d, y:c.y,   label:'木', color:colors.wood },
-    fire :{x:c.x, y:c.y-d,   label:'火', color:colors.fire },
-    metal:{x:c.x+d, y:c.y,   label:'金', color:colors.metal},
-    water:{x:c.x, y:c.y+d,   label:'水', color:colors.water}
-  };
-
-  // 齒輪
-  drawGear(pos.earth.x,pos.earth.y,RADIUS, angle.earth*Math.PI/180, pos.earth.color, pos.earth.label);
-  drawGear(pos.wood .x,pos.wood .y,RADIUS, angle.wood *Math.PI/180, pos.wood .color, pos.wood .label);
-  drawGear(pos.fire .x,pos.fire .y,RADIUS, angle.fire *Math.PI/180, pos.fire .color, pos.fire .label);
-  drawGear(pos.metal.x,pos.metal.y,RADIUS, angle.metal*Math.PI/180, pos.metal.color, pos.metal.label);
-  drawGear(pos.water.x,pos.water.y,RADIUS, angle.water*Math.PI/180, pos.water.color, pos.water.label);
+  ctx.fillStyle=BG; ctx.fillRect(0,0,cvs.width,cvs.height);
+  const c=center(), d=R*2+26;
+  const pos={ earth:{x:c.x,y:c.y,l:'土',f:color.earth},
+              wood:{x:c.x-d,y:c.y,l:'木',f:color.wood},
+              fire:{x:c.x,y:c.y-d,l:'火',f:color.fire},
+              metal:{x:c.x+d,y:c.y,l:'金',f:color.metal},
+              water:{x:c.x,y:c.y+d,l:'水',f:color.water} };
+  drawGear(pos.earth.x,pos.earth.y,R, angle.earth*Math.PI/180,pos.earth.f,pos.earth.l);
+  drawGear(pos.wood.x ,pos.wood.y ,R, angle.wood *Math.PI/180,pos.wood.f ,pos.wood.l );
+  drawGear(pos.fire.x ,pos.fire.y ,R, angle.fire *Math.PI/180,pos.fire.f ,pos.fire.l );
+  drawGear(pos.metal.x,pos.metal.y,R, angle.metal*Math.PI/180,pos.metal.f,pos.metal.l);
+  drawGear(pos.water.x,pos.water.y,R, angle.water*Math.PI/180,pos.water.f,pos.water.l);
 
   // 署名
-  ctx.save();
-  const SIGN="仙人指路占卜研究學會 阿青師製作";
-  ctx.font='bold 18px "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,ui-sans-serif,sans-serif';
-  ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='rgba(0,0,0,0.55)';
-  ctx.fillText(SIGN, 12, 10);
-  ctx.restore();
-
-  // 更新強度條
-  updateBars();
+  ctx.fillStyle='rgba(0,0,0,.55)'; ctx.font='bold 16px "Noto Sans TC","Microsoft JhengHei"';
+  ctx.fillText('仙人指路占卜研究學會 阿青師製作', 12, 10);
 
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-/* ====== 強度條（以「實」＝speed 的絕對值）====== */
-function toPct(v){ return Math.round(Math.min(100, Math.max(0, Math.abs(v)/180*100))); }
-function updateBars(){
-  const pairs = [
-    ['bw','pw',speed.wood],
-    ['bf','pf',speed.fire],
-    ['be','pe',speed.earth],
-    ['bm','pm',speed.metal],
-    ['ba','pa',speed.water],
-  ];
-  for(const [barId,txtId,val] of pairs){
-    const pct = toPct(val);
-    const bar = document.getElementById(barId);
-    const txt = document.getElementById(txtId);
-    if(bar) bar.style.width = pct + '%';
-    if(txt) txt.textContent = Math.round(val);
-  }
-}
-
-/* ====== 綁定：滑桿 & 數值 ====== */
+/* ===== 綁定控制 ===== */
 function bind(id,key){
-  const s = document.getElementById(id);
-  const n = document.getElementById(id+'Val');
-  const set = v => { v = cap(+v||0); s.value=v; n.value=v; input[key]=v; };
-  s.addEventListener('input', ()=> set(s.value));
-  n.addEventListener('input', ()=> set(n.value));
+  const s=document.getElementById(id), n=document.getElementById(id+'Val');
+  const set=v=>{ v=cap(+v||0); s.value=v; n.value=v; input[key]=v; };
+  s.addEventListener('input',()=>set(s.value)); n.addEventListener('input',()=>set(n.value));
 }
-bind('wood','wood'); bind('fire','fire'); bind('earth','earth'); bind('metal','metal'); bind('water','water');
-
-document.getElementById('resetAll').addEventListener('click', ()=>{
-  for(const k of ['wood','fire','earth','metal','water']){
-    input[k]=0; document.getElementById(k).value=0; document.getElementById(k+'Val').value=0;
-  }
-});
-document.getElementById('centerAll').addEventListener('click', ()=>{
-  OFFSET_X=0; OFFSET_Y=0;
-  document.getElementById('gearOffsetX').value=0;
-  document.getElementById('gearOffsetY').value=0;
-});
-
-/* ====== 整體控制 ====== */
-document.getElementById('gearSize').addEventListener('input', e=>{
-  autoScale=false; document.getElementById('autoScale').checked=false;
-  RADIUS = +e.target.value;
-});
-document.getElementById('gearOffsetY').addEventListener('input', e=>{ OFFSET_Y = +e.target.value; });
-document.getElementById('gearOffsetX').addEventListener('input', e=>{ OFFSET_X = +e.target.value; });
-document.getElementById('autoScale').addEventListener('change', e=>{
-  autoScale = e.target.checked;
-});
-document.getElementById('bgColor').addEventListener('input', e=>{ bgColor = e.target.value; });
+['wood','fire','earth','metal','water'].forEach(k=>bind(k,k));
+document.getElementById('reset').onclick=()=>{
+  ['wood','fire','earth','metal','water'].forEach(k=>{ input[k]=0; document.getElementById(k).value=0; document.getElementById(k+'Val').value=0; });
+};
+document.getElementById('gearSize').oninput=e=>{ R=+e.target.value; };
+document.getElementById('offX').oninput=e=>{ OX=+e.target.value; };
+document.getElementById('offY').oninput=e=>{ OY=+e.target.value; };
+document.getElementById('bg').oninput=e=>{ BG=e.target.value; };
+document.getElementById('hk').onchange=e=>{ HK.enabled=e.target.checked; };
 </script>
 </body>
 </html>
