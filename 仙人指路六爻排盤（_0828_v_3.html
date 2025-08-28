@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>仙人指路六爻排盤（0828‑V3.1 修正版）</title>
+<style>
+  :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
+  *{box-sizing:border-box}
+  body{margin:0;background:#f6f7fb;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui}
+  main{max-width:1180px;margin:18px auto;padding:0 12px}
+  h1{margin:0 0 10px;font-size:22px}
+  .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  input[type=text]{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:8px;height:36px;padding:0 10px;font-size:14px}
+  input[type=datetime-local], select, button{height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;font-size:14px}
+  button{cursor:pointer}
+  .muted{color:var(--muted);font-size:13px}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px}
+  .canvasWrap{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px}
+  canvas{display:block;width:100%;height:560px}
+  .yaoCtl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .yaoCtl>label{display:flex;align-items:center;gap:6px;justify-content:center;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;font-size:14px}
+  #err{position:fixed;right:12px;top:12px;max-width:60ch;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px;display:none}
+  .miniVal{font-variant-numeric:tabular-nums;color:#475569;font-size:13px}
+  .btns button{height:32px}
+  .pillars{display:flex;gap:10px;flex-wrap:wrap}
+  .pillars span{background:#eef2ff;color:#1e3a8a;border-radius:8px;padding:4px 10px;font-size:13px}
+  .rightNote{white-space:pre-wrap;margin-top:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:14px}
+  .gearPanel{border:1px dashed #d1d5db;border-radius:12px;padding:10px;margin-top:8px}
+  .gearRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .gearWrap{position:relative;display:inline-flex;gap:8px;align-items:center}
+  .gear{width:24px;height:24px;animation:spin linear infinite;}
+  .gear.big{width:34px;height:34px;animation:spin linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .gear svg{display:block}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .chip{font-size:12px;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;background:#f9fafb}
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    .grid { display:block; }
+    .sec { border:none; padding:0; margin:0 0 10px; }
+    .hide-print, .btns, .yaoCtl, #redraw, #download, #btnNow, #btnPrint, #size, #offx, #offy, #gap, #headgap, #sizeVal, #offxVal, #offyVal, #gapVal, #headgapVal, .gearPanel { display:none !important; }
+    .canvasWrap { border:none; padding:0; }
+    canvas { height:auto; width:100%; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
+</head>
+<body>
+<main>
+  <h1>仙人指路六爻排盤（0828‑V3.1 修正版）</h1>
+  <div id="err"></div>
+
+  <div class="grid">
+    <section class="sec">
+      <div class="row hide-print">
+        <label>上卦</label>
+        <select id="upper">
+          <option>乾</option><option>兌</option><option>離</option><option>震</option>
+          <option>巽</option><option selected>坎</option><option>艮</option><option>坤</option>
+        </select>
+        <span>下卦</span>
+        <select id="lower">
+          <option selected>坎</option><option>乾</option><option>兌</option><option>離</option>
+          <option>震</option><option>巽</option><option>艮</option><option>坤</option>
+        </select>
+        <span class="badge">
+          <span id="gearBadge" title="齒輪已啟動" style="display:inline-flex;align-items:center;gap:6px">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" class="gear" style="animation-duration: var(--spd,4s)"><path d="M19.14,12.94a7.49,7.49,0,0,0,.05-1,7.49,7.49,0,0,0-.05-1l2.11-1.65a.5.5,0,0,0,.12-.63l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.73-1l-.38-2.65A.5.5,0,0,0,13.5,1h-4a.5.5,0,0,0-.5.42L8.62,4.07a7.28,7.28,0,0,0-1.73,1l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.63L3.9,10a7.49,7.49,0,0,0-.05,1,7.49,7.49,0,0,0,.05,1L1.79,13.65a.5.5,0,0,0-.12.63l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.73,1l.38,2.65a.5.5,0,0,0,.5.42h4a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.73-1l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.63Zm-7.64,2.56A3.5,3.5,0,1,1,15,12,3.5,3.5,0,0,1,11.5,15.5Z" fill="#4338ca"/></svg>
+          </span>
+          伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6
+        </span>
+      </div>
+
+      <div class="row btns hide-print" style="gap:8px">
+        <button id="btnTai">地天泰（坤宮）</button>
+        <button id="btnWeiJi">火水未濟（離宮）</button>
+      </div>
+
+      <div class="row hide-print" style="gap:14px">
+        <label>問題</label>
+        <input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運">
+      </div>
+
+      <div class="row hide-print" style="gap:14px">
+        <label>時間</label>
+        <input id="dt" type="datetime-local">
+        <button id="btnNow">現在</button>
+        <button id="btnPrint">列印（A4）</button>
+        <span class="muted">四柱由 Lunar.js 精準換算（含節氣切換）</span>
+      </div>
+
+      <div class="row pillars">
+        <span id="gzYear">年：—</span>
+        <span id="gzMonth">月：—</span>
+        <span id="gzDay">日：—</span>
+        <span id="gzHour">時：—</span>
+        <span id="gzXun">旬首：—</span>
+        <span id="gzKW">空亡：—</span>
+      </div>
+
+      <div class="row hide-print">
+        <label>動爻</label>
+        <div class="yaoCtl" id="mvCtl"></div>
+      </div>
+
+      <div class="row hide-print" style="gap:10px">
+        <button id="redraw">重繪卦象</button>
+        <button id="download">匯出 PNG</button>
+      </div>
+
+      <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
+
+      <div class="row hide-print">
+        <label>大小</label><input type="range" id="size" min="140" max="480" value="320"><span class="miniVal" id="sizeVal">320</span>
+        <label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span>
+        <label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span>
+        <label>爻距</label><input type="range" id="gap" min="26" max="40" value="33"><span class="miniVal" id="gapVal">33</span>
+        <label>欄頭間距</label><input type="range" id="headgap" min="18" max="56" value="30"><span class="miniVal" id="headgapVal">30</span>
+      </div>
+
+      <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
+    </section>
+
+    <section class="sec hide-print">
+      <div id="headInfo" class="muted" style="font-size:14px">卦名：—　上卦：—　下卦：—　卦宮：—　卦型：—　世：—　應：—</div>
+      <pre id="brief" class="rightNote">（這裡會列出六爻摘要）</pre>
+
+      <div class="gearPanel">
+        <div class="gearRow">
+          <strong>齒輪五行（視覺指示）</strong>
+          <label>速度</label>
+          <input id="gearSpeed" type="range" min="1" max="10" value="4" style="width:140px">
+          <span class="miniVal" id="gearSpeedVal">4</span>
+          <label style="margin-left:auto;display:flex;align-items:center;gap:6px"><input id="gearToggle" type="checkbox" checked/> 顯示齒輪</label>
+        </div>
+        <div id="gears" class="legend" aria-hidden="false">
+          <div class="gearWrap"><span class="chip">木</span><span class="gear big" data-el="木"></span></div>
+          <div class="gearWrap"><span class="chip">火</span><span class="gear" data-el="火"></span></div>
+          <div class="gearWrap"><span class="chip">土</span><span class="gear big" data-el="土"></span></div>
+          <div class="gearWrap"><span class="chip">金</span><span class="gear" data-el="金"></span></div>
+          <div class="gearWrap"><span class="chip">水</span><span class="gear big" data-el="水"></span></div>
+        </div>
+        <div class="muted" style="margin-top:6px">※ 本版齒輪為視覺確認「有在轉」與速度可控；不影響排盤運算。後續可把強度影響寫進解讀規則。</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const E=(id)=>{const el=document.getElementById(id);if(!el){const b=document.getElementById('err');b.style.display='block';b.textContent='⚠️ 缺少元素 #'+id;}return el;};
+(function(){const box=E('err');const show=msg=>{box.style.display='block';box.textContent='⚠️ 發生錯誤：'+msg};window.addEventListener('error',e=>show(e.message||e.error));window.addEventListener('unhandledrejection',e=>show(e.reason&&e.reason.message?e.reason:String(e.reason)));})();
+
+/* ===== 常量 ===== */
+const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const ZHI_ELEM={子:'水',丑:'土',寅:'木',卯:'木',辰:'土',巳:'火',午:'火',未:'土',申:'金',酉:'金',戌:'土',亥:'水'};
+const GONG_ELEM={乾:'金',坤:'土',震:'木',巽:'木',坎:'水',離:'火',艮:'土',兌:'金'};
+const TRIG={乾:[1,1,1],兌:[1,1,0],離:[1,0,1],震:[1,0,0],巽:[0,1,1],坎:[0,1,0],艮:[0,0,1],坤:[0,0,0]};
+const TRINAMES=Object.keys(TRIG); const YANG_TRIG=new Set(['乾','震','坎','艮']);
+const INNER_START={乾:'子',坎:'寅',震:'子',艮:'辰',坤:'未',巽:'丑',離:'卯',兌:'巳'};
+const OUTER_START={乾:'午',坎:'申',震:'午',艮:'戌',坤:'丑',巽:'未',離:'酉',兌:'亥'};
+const SEQ_YANG=['子','寅','辰','午','申','戌']; const SEQ_YIN=['亥','酉','未','巳','卯','丑'];
+const SIX=['青龍','朱雀','勾陳','螣蛇','白虎','玄武'];
+const SIX_START_BY_GAN={甲:0,乙:0,丙:1,丁:1,戊:2,己:3,庚:4,辛:4,壬:5,癸:5};
+const NAMES={ '乾':{'乾':'乾為天','兌':'天澤履','離':'天火同人','震':'天雷無妄','巽':'天風姤','坎':'天水訟','艮':'天山遁','坤':'天地否'},
+ '兌':{'乾':'澤天夬','兌':'兌為澤','離':'澤火革','震':'澤雷隨','巽':'澤風大過','坎':'澤水困','艮':'澤山咸','坤':'澤地萃'},
+ '離':{'乾':'火天大有','兌':'火澤睽','離':'離為火','震':'火雷噬嗑','巽':'火風鼎','坎':'火水未濟','艮':'火山旅','坤':'火地晉'},
+ '震':{'乾':'雷天大壯','兌':'雷澤歸妹','離':'雷火豐','震':'震為雷','巽':'雷風恆','坎':'雷水解','艮':'雷山小過','坤':'雷地豫'},
+ '巽':{'乾':'風天小畜','兌':'風澤中孚','離':'風火家人','震':'風雷益','巽':'巽為風','坎':'風水渙','艮':'風山漸','坤':'風地觀'},
+ '坎':{'乾':'水天需','兌':'水澤節','離':'水火既濟','震':'水雷屯','巽':'水風井','坎':'坎為水','艮':'水山蹇','坤':'水地比'},
+ '艮':{'乾':'山天大畜','兌':'山澤損','離':'山火賁','震':'山雷頤','巽':'山風蠱','坎':'山水蒙','艮':'艮為山','坤':'山地謙'},
+ '坤':{'乾':'地天泰','兌':'地澤臨','離':'地火明夷','震':'地雷復','巽':'地風升','坎':'地水師','艮':'地山謙','坤':'坤為地'} };
+
+/* ===== 64卦：卦宮/類型查表 ===== */
+const GUA_CLASS = {
+  // 乾宮
+  "乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遁":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},
+  "風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},
+  // 坤宮
+  "坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},
+  "雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},
+  // 震宮
+  "震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},
+  "地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},
+  // 巽宮
+  "巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},
+  "天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},
+  // 坎宮
+  "坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},
+  "澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},
+  // 離宮
+  "離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},
+  "山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},
+  // 艮宮
+  "艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},
+  "火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},
+  // 兌宮
+  "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},
+  "水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
+};
+
+/* ===== 名稱對照（上×下 → 卦名） ===== */
+function trigFromBits(b3){for(const n of TRINAMES){const t=TRIG[n];if(t[0]===b3[0]&&t[1]===b3[1]&&t[2]===b3[2]) return n} return null}
+function upperLowerOf(lines){const lo=trigFromBits([lines[0],lines[1],lines[2]]), up=trigFromBits([lines[3],lines[4],lines[5]]); return {up,lo}}
+function guaNameOf(up,lo){return (NAMES[up]&&NAMES[up][lo])?NAMES[up][lo]:`${up}上·${lo}下`;}
+
+/* ===== NaJia & 六親 ===== */
+const toYMDhm=d=>{const z=n=>(n<10?'0'+n:n);return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;};
+function threeBranchesOfTrigram(tri,inner){
+  const start=inner?INNER_START[tri]:OUTER_START[tri];
+  const seq=YANG_TRIG.has(tri)?SEQ_YANG:SEQ_YIN;
+  const i0=seq.indexOf(start); return [seq[i0%6],seq[(i0+1)%6],seq[(i0+2)%6]];
+}
+function naJiaBranches(lines){const {up,lo}=upperLowerOf(lines); return [...threeBranchesOfTrigram(lo,true), ...threeBranchesOfTrigram(up,false)]}
+function sixKin(meElem,branch){
+  const e=ZHI_ELEM[branch]||'土';
+  const GEN={木:'火',火:'土',土:'金',金:'水',水:'木'};
+  const CTL={木:'土',土:'水',水:'火',火:'金',金:'木'};
+  if(e===meElem) return '兄弟';
+  if(CTL[e]===meElem) return '官鬼';
+  if(CTL[meElem]===e) return '妻財';
+  if(GEN[e]===meElem) return '父母';
+  if(GEN[meElem]===e) return '子孫';
+  return '兄弟';
+}
+function changedLines(lines,moving){ return lines.map((v,i)=> moving[i] ? (v?0:1) : v); }
+
+/* ===== 四柱（Lunar.js）＋ 六獸起序、旬首空亡 ===== */
+function cycleIndexFromGZ(ganChar,zhiChar){
+  const gi=GAN.indexOf(ganChar), zi=ZHI.indexOf(zhiChar);
+  for(let k=0;k<60;k++){ if(k%10===gi && k%12===zi) return k; }
+  return 0;
+}
+let pillars=null, dayGan='甲', dayZhi='子';
+function calcPillarsAndSix(){
+  const s=E('dt').value; const dt=s?new Date(s):new Date();
+  const lunar=Lunar.fromDate(dt);
+  const Y=lunar.getYearInGanZhiExact();
+  const M=lunar.getMonthInGanZhiExact();
+  const D=lunar.getDayInGanZhiExact();
+  const H=lunar.getTimeInGanZhi();
+  pillars={year:Y,month:M,day:D,hour:H};
+  dayGan=D.charAt(0); dayZhi=D.charAt(1);
+  const idx=cycleIndexFromGZ(dayGan, dayZhi);
+  const start=Math.floor(idx/10)*10; const startBranch=ZHI[start%12];
+  const kw1=ZHI[(start%12+10)%12], kw2=ZHI[(start%12+11)%12];
+  E('gzYear').textContent=`年：${Y}`; E('gzMonth').textContent=`月：${M}`;
+  E('gzDay').textContent=`日：${D}`; E('gzHour').textContent=`時：${H}`;
+  E('gzXun').textContent=`旬首：${GAN[start%10]}${startBranch}`;
+  E('gzKW').textContent=`空亡：${kw1}${kw2}`;
+  const startIdx=SIX_START_BY_GAN[dayGan]??0;
+  return [0,1,2,3,4,5].map(i=> SIX[(startIdx+i)%6]); // 初→上
+}
+
+/* ===== 伏神：缺誰則回本宮純卦補位 ===== */
+function purePalaceRows(palace){
+  const lines=[...TRIG[palace], ...TRIG[palace]];
+  const branches=naJiaBranches(lines);
+  const elem=GONG_ELEM[palace];
+  const kins=branches.map(b=>sixKin(elem,b));
+  return {branches, kins};
+}
+function buildFuShenForCurrent(meElem,palace,currentKins){
+  const NEEDS=['兄弟','父母','官鬼','妻財','子孫'];
+  const have=new Set(currentKins);
+  const missing=NEEDS.filter(k=>!have.has(k));
+  if(missing.length===0) return {};
+  const {branches, kins}=purePalaceRows(palace);
+  const fuMap={};
+  for(const miss of missing){
+    const idx=kins.findIndex(k=>k===miss);
+    if(idx!==-1){
+      const pos=idx+1;
+      if(currentKins[idx]!==miss){
+        fuMap[pos]=`${branches[idx]} ${miss}`;
+      }
+    }
+  }
+  return fuMap;
+}
+
+/* ===== 世應計算 ===== */
+function yingFromShi_fixed(shi){const y=shi+3;return y>6?y-6:y;}
+function findShiByYaoBian(lines){
+  const eqTri = arr => { const {up,lo}=upperLowerOf(arr); return (up===lo)?up:null; };
+  const flipAt=(arr,i)=>{const t=[...arr]; t[i]=t[i]?0:1; return t;};
+  let tmp=[...lines];
+  for(let i=0;i<5;i++){ tmp=flipAt(tmp,i); if(eqTri(tmp)) return i+1; } // 1..5 自下而上
+  tmp=[...lines];
+  for(let i=4;i>=0;i--){ tmp=flipAt(tmp,i); if(eqTri(tmp)) return (i===0?3:i+1); }
+  return 6; // 保險
+}
+function decideShiYing(upTri, loTri, guaName, lines){
+  const info = GUA_CLASS[guaName];
+  if(!info || info.type==='飛'){
+    const shi=findShiByYaoBian(lines);
+    return {shi, ying:yingFromShi_fixed(shi), gong: (info&&info.gong) || upTri, kind: (info?'飛':'飛（保險）')};
+  }
+  if(info.type==='本宮') return {shi:6, ying:3, gong:info.gong, kind:'本宮'};
+  if(info.type==='遊魂') return {shi:4, ying:1, gong:info.gong, kind:'遊魂'};
+  if(info.type==='歸魂') return {shi:3, ying:6, gong:info.gong, kind:'歸魂'};
+  const shi=findShiByYaoBian(lines);
+  return {shi, ying:yingFromShi_fixed(shi), gong:info.gong, kind:'飛（保險）'};
+}
+
+/* ===== 畫布 ===== */
+let moving=[false,false,false,false,false,false];
+let cvs,ctx,DPR=1, rafId=null;
+function setupCanvas(){
+  cvs=E('hexCanvas'); ctx=cvs.getContext('2d');
+  DPR=window.devicePixelRatio||1;
+  const cssW=cvs.clientWidth, cssH=cvs.clientHeight;
+  cvs.width=Math.max(1,Math.floor(cssW*DPR));
+  cvs.height=Math.max(1,Math.floor(cssH*DPR));
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+function drawWhiteTag(x,y,text){
+  ctx.font='14px "Noto Sans TC","Microsoft JhengHei"';
+  const pad=6, h=20, w=ctx.measureText(text).width+pad*2;
+  const pa=ctx.textAlign, pb=ctx.textBaseline;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,255,255,.96)'; ctx.fillRect(x-w/2, y-h/2, w, h);
+  ctx.fillStyle='#0f172a'; ctx.fillText(text, x, y+1);
+  ctx.textAlign=pa; ctx.textBaseline=pb;
+}
+function drawBoard(meta,rows){
+  setupCanvas(); const W=cvs.width/DPR, H=cvs.height/DPR;
+  ctx.clearRect(0,0,W,H);
+
+  ctx.fillStyle='#0f172a'; ctx.font='bold 18px "Noto Sans TC","Microsoft JhengHei",sans-serif';
+  ctx.fillText(`問題：${meta.q}`,12,26);
+  ctx.font='15px "Noto Sans TC","Microsoft JhengHei",sans-serif';
+  ctx.fillText(`起卦：${meta.dt}`,12,48);
+  ctx.fillText(`四柱：${meta.gzY}　${meta.gzM}　${meta.gzD}　${meta.gzH}　（旬首：${meta.xun}　空亡：${meta.kw}）`,12,70);
+  ctx.fillText(`卦名：${meta.name}　上卦：${meta.up}　下卦：${meta.lo}　卦宮：${meta.gong}　卦型：${meta.kind}　世：${meta.shi}　應：${meta.ying}`,12,92);
+
+  const size=+E('size').value, offx=+E('offx').value, offy=+E('offy').value, gap=+E('gap').value;
+  const rowOffset=+E('headgap').value || 30; // 調高避免「上爻貼欄頭」
+  E('sizeVal').textContent=size; E('offxVal').textContent=offx; E('offyVal').textContent=offy; E('gapVal').textContent=gap; E('headgapVal').textContent=rowOffset;
+
+  const x0=16+offx, y0=120+offy;
+  const headerY=y0-8;
+  const lineGap=gap;
+  const yaoLen=size, yaoX1=x0+120, yaoX2=yaoX1+yaoLen;
+
+  const col={six:x0, fu:x0+76, yao:yaoX1, kin:yaoX2+30, zhi:yaoX2+98, mark:yaoX2+160, kinc:yaoX2+220, zhic:yaoX2+290};
+
+  ctx.fillStyle='#475569'; ctx.font='bold 13px "Noto Sans TC","Microsoft JhengHei"';
+  ctx.fillText('六獸',col.six,headerY); ctx.fillText('伏神',col.fu,headerY);
+  ctx.fillText('爻象',col.yao,headerY); ctx.fillText('六親',col.kin,headerY);
+  ctx.fillText('地支',col.zhi,headerY); ctx.fillText('世應',col.mark,headerY);
+  ctx.fillText('變六親',col.kinc,headerY); ctx.fillText('變支',col.zhic,headerY);
+
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, headerY+8); ctx.lineTo(yaoX2+320, headerY+8); ctx.stroke();
+
+  ctx.lineWidth=6; ctx.strokeStyle='#111827'; ctx.fillStyle='#0f172a';
+  rows.forEach((r,idx)=>{
+    const y=y0 + rowOffset + idx*lineGap;
+    ctx.font='14px "Noto Sans TC","Microsoft JhengHei"';
+    ctx.fillText(r.six||'—', col.six, y+5);
+    if(r.fu) drawWhiteTag(col.fu, y, r.fu); else ctx.fillText('—', col.fu, y+5);
+
+    if(r.yy===1){ ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+yaoLen, y); ctx.stroke(); }
+    else{ const g=yaoLen*0.22, seg=(yaoLen-g)/2;
+      ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+seg, y);
+      ctx.moveTo(col.yao+seg+g, y); ctx.lineTo(col.yao+yaoLen, y); ctx.stroke(); }
+
+    if(r.mv){ ctx.font='15px "Noto Sans TC","Microsoft JhengHei"'; ctx.fillText(r.yy===1?'○':'×', col.yao+yaoLen+12, y+6); }
+    ctx.fillText(r.kin||'—', col.kin, y+5);
+    ctx.fillText(r.zhi||'—', col.zhi, y+5);
+
+    if(r.mark) drawWhiteTag(col.mark, y, r.mark);
+    if(r.kinc) drawWhiteTag(col.kinc, y, r.kinc);
+    if(r.zhic) drawWhiteTag(col.zhic, y, r.zhic);
+  });
+
+  ctx.fillStyle='#64748b'; ctx.font='12.5px "Noto Sans TC","Microsoft JhengHei"';
+  ctx.fillText('（初爻在下；動爻：陽○／陰×；伏神＝本卦缺誰→回本宮純卦補誰；世應：固定配對 1↔4、2↔5、3↔6；遊魂世=四，歸魂世=三；飛卦以爻變法求世。）', 12, H-12);
+}
+
+/* ===== 主渲染（含簡易防抖） ===== */
+let _pending=false; function render(){ if(_pending) return; _pending=true; window.requestAnimationFrame(()=>{ _pending=false; _renderNow(); }); }
+function _renderNow(){
+  const upTri=E('upper').value, loTri=E('lower').value;
+  const baseLines=[...TRIG[loTri], ...TRIG[upTri]]; // 初→上
+  const q=(E('question').value||'').trim()||'—';
+  const dt=E('dt').value||toYMDhm(new Date());
+  const gzSix=calcPillarsAndSix();
+  const xun=E('gzXun').textContent.replace('旬首：','');
+  const kw=E('gzKW').textContent.replace('空亡：','');
+
+  const guaName = guaNameOf(upTri, loTri);
+  const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
+  const meElem=GONG_ELEM[gong];
+
+  const branches=naJiaBranches(baseLines);
+  const kins=branches.map(b=>sixKin(meElem,b));
+
+  const chLines=changedLines(baseLines,moving);
+  const branchesC=naJiaBranches(chLines);
+  const kinsC=branchesC.map(b=>sixKin(meElem,b));
+
+  const fuMap=buildFuShenForCurrent(meElem,gong,kins);
+
+  const rows=[];
+  for(let pos=6;pos>=1;pos--){
+    const i=pos-1;
+    rows.push({
+      six:gzSix[i],
+      fu: fuMap[pos] || '',
+      yy: baseLines[i],
+      mv: moving[i],
+      kin: kins[i],
+      zhi: branches[i],
+      kinc: moving[i]? kinsC[i] : '',
+      zhic: moving[i]? branchesC[i] : '',
+      mark:(pos===shi)?'世':(pos===ying)?'應':''
+    });
+  }
+
+  const y=pillars.year, m=pillars.month, d=pillars.day, h=pillars.hour;
+  drawBoard({
+    q, dt:dt.replace('T',' '),
+    gzY:y, gzM:m, gzD:d, gzH:h,
+    xun, kw, name:guaName, up:upTri, lo:loTri, gong, shi, ying, kind
+  }, rows);
+
+  const yaoTxt=(yy,mv)=> mv?(yy?'—○—':'--×--'):(yy?'———':'-- --');
+  let brief=`卦名：${guaName}｜上：${upTri} 下：${loTri}｜卦宮：${gong}｜卦型：${kind}｜世：${shi} 應：${ying}\n`;
+  brief+=`四柱：${y} ${m} ${d} ${h}　（${xun}｜空亡${kw}）\n`;
+  brief+=`問題：${q}\n起卦：${dt.replace('T',' ')}\n\n位次  六獸  伏神    爻象  六親  地支  世應  變六親  變支\n`;
+  for(let pos=6;pos>=1;pos--){
+    const i=pos-1; const fuTxt=fuMap[pos] || '—';
+    brief+=`${pos===6?'上':pos===1?'初':pos}  ${gzSix[i]}  ${fuTxt.padEnd(6,' ')}  ${yaoTxt(baseLines[i],moving[i])}  ${(kins[i]||'').padEnd(2,' ')}  ${(branches[i]||'').padEnd(2,' ')}  ${(pos===shi?'世':(pos===ying?'應':' '))}  ${(moving[i]?kinsC[i]:'').padEnd(2,' ')}  ${moving[i]?branchesC[i]:''}\n`;
+  }
+  E('headInfo').textContent=`卦名：${guaName}　上卦：${upTri}　下卦：${loTri}　卦宮：${gong}　卦型：${kind}　世：${shi}　應：${ying}`;
+  E('brief').textContent=brief;
+}
+
+/* ===== PNG 匯出 ===== */
+function downloadPNG(){
+  const canvas=E('hexCanvas'); const filename='hexagram.png';
+  function openFallback(){
+    const data=canvas.toDataURL('image/png');
+    const win=window.open('about:blank','_blank');
+    if (win) { win.document.title='另存圖片'; win.document.body.style.margin='0'; const img=new Image(); img.src=data; win.document.body.appendChild(img); }
+    else { const a=document.createElement('a'); a.href=data; a.download=filename; document.body.appendChild(a);
+      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); a.remove(); }
+  }
+  if (canvas.toBlob) {
+    canvas.toBlob(blob=>{
+      if(!blob){ openFallback(); return; }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a);
+      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+      setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
+    });
+  } else { openFallback(); }
+}
+
+/* ===== 快捷卦 ===== */
+function applyTai(){ E('upper').value='坤'; E('lower').value='乾'; E('question').value='示例：地天泰（坤宮）'; render(); }
+function applyWeiJi(){ E('upper').value='離'; E('lower').value='坎'; E('question').value='示例：火水未濟（離宮）'; render(); }
+
+/* ===== 齒輪（純視覺） ===== */
+function gearSVG(){ return '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.14,12.94a7.49,7.49,0,0,0,.05-1,7.49,7.49,0,0,0-.05-1l2.11-1.65a.5.5,0,0,0,.12-.63l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.73-1l-.38-2.65A.5.5,0,0,0,13.5,1h-4a.5.5,0,0,0-.5.42L8.62,4.07a7.28,7.28,0,0,0-1.73,1l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.63L3.9,10a7.49,7.49,0,0,0-.05,1,7.49,7.49,0,0,0,.05,1L1.79,13.65a.5.5,0,0,0-.12.63l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.73,1l.38,2.65a.5.5,0,0,0,.5.42h4a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.73-1l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.63Zm-7.64,2.56A3.5,3.5,0,1,1,15,12,3.5,3.5,0,0,1,11.5,15.5Z" fill="#4f46e5"/></svg>'; }
+function initGears(){
+  const gWrap=document.getElementById('gears');
+  if(!gWrap) return;
+  // 塞入 SVG（避免被某些瀏覽器阻擋動畫）
+  gWrap.querySelectorAll('.gear').forEach(el=>{ el.innerHTML=gearSVG(); });
+  const spd=E('gearSpeed'); const spdVal=E('gearSpeedVal');
+  const badge=E('gearBadge');
+  const applySpeed=()=>{
+    const s=Number(spd.value)||4; spdVal.textContent=String(s);
+    const dur=(11 - s); // 1..10 -> 10..1 秒
+    document.documentElement.style.setProperty('--spd', dur+'s');
+  };
+  spd.addEventListener('input',applySpeed); applySpeed();
+  const toggle=E('gearToggle');
+  toggle.addEventListener('change',()=>{
+    gWrap.style.display = toggle.checked? 'flex':'none';
+    badge.style.opacity = toggle.checked? '1':'0.35';
+  });
+}
+
+/* ===== 綁定、初始化 ===== */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const now=new Date(); const z=n=>(n<10?'0'+n:n);
+  E('dt').value=`${now.getFullYear()}-${z(now.getMonth()+1)}-${z(now.getDate())}T${z(now.getHours())}:${z(now.getMinutes())}`;
+
+  E('btnNow').addEventListener('click', ()=>{ const t=new Date(); const z=n=>(n<10?'0'+n:n);
+    E('dt').value=`${t.getFullYear()}-${z(t.getMonth()+1)}-${z(t.getDate())}T${z(t.getHours())}:${z(t.getMinutes())}`; render(); });
+  E('btnPrint').addEventListener('click', ()=>{ window.print(); });
+
+  const mvCtl=E('mvCtl'); mvCtl.innerHTML='';
+  for(let pos=1;pos<=6;pos++){ const i=pos-1; const lab=document.createElement('label');
+    lab.innerHTML=`<input type="checkbox" data-mv="${i}"> ${pos===6?'上':pos===1?'初':pos}爻動`; mvCtl.appendChild(lab); }
+  mvCtl.addEventListener('change',e=>{const i=+e.target.getAttribute('data-mv'); if(!isNaN(i)){moving[i]=e.target.checked; render();}});
+
+  const bind=(id,fn)=>{const el=E(id);['input','change'].forEach(ev=>el&&el.addEventListener(ev,fn));};
+  ['upper','lower','question','dt','size','offx','offy','gap','headgap'].forEach(id=>bind(id,render));
+  E('redraw').addEventListener('click',render);
+  E('download').addEventListener('click',downloadPNG);
+
+  E('btnTai').addEventListener('click',applyTai);
+  E('btnWeiJi').addEventListener('click',applyWeiJi);
+
+  initGears();
+  render();
+});
+</script>
+</body>
+</html>
