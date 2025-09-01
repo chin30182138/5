@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（0831-V3）</title>
+<title>仙人指路六爻排盤（0901-V1）</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -41,7 +41,7 @@
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（0831-V3）</h1>
+  <h1>仙人指路六爻排盤（0901-V1）</h1>
   <div id="err"></div>
 
   <div class="grid">
@@ -1760,6 +1760,2100 @@ window.addEventListener('DOMContentLoaded', ()=>{
   applyTrim(getMode());
 })();
 </script>
+<script id="W5_ORIENT_PATCH">
+(function(){
+  if(window.__W5_ORIENT_PATCH__) return; window.__W5_ORIENT_PATCH__=true;
+
+  // 方位：上方=火；順時針：火→土→金→水→木（木位在左上，視覺上在左側）
+  const ORDER=['火','土','金','水','木'];
+  const ANG0 = -Math.PI/2; // -90°=正上方
+  const COLORS={木:'#16a34a',火:'#ef4444',土:'#f59e0b',金:'#64748b',水:'#3b82f6'};
+
+  const $=id=>document.getElementById(id);
+  const num=(id,def)=>{const el=$(id); const v=Number(el&&el.value); return isFinite(v)?v:def;};
+  const values=()=>({木:num('w5_mu',6),火:num('w5_huo',6),土:num('w5_tu',6),金:num('w5_jin',6),水:num('w5_shui',6)});
+  function sizeScale(){
+    let f=parseFloat(($('w5_size')&&$('w5_size').value)||1.3);
+    f=Math.max(0.8,Math.min(1.8,f));
+    const tip=$('w5_sizeVal'); if(tip) tip.textContent=Number(f).toFixed(2);
+    return f;
+  }
+
+  function drawPoly(ctx, cx, cy, R, vMap, dash){
+    if(dash){ ctx.save(); ctx.setLineDash([6,4]); }
+    ctx.beginPath();
+    ORDER.forEach((k,i)=>{
+      const a = ANG0 + i*(2*Math.PI/ORDER.length);
+      const rr = R * (Math.max(0,Math.min(10, vMap[k]))/10);
+      const x = cx + rr*Math.cos(a), y = cy + rr*Math.sin(a);
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    });
+    ctx.closePath();
+    if(dash){ ctx.lineWidth=2; ctx.strokeStyle='rgba(17,24,39,.9)'; ctx.stroke(); ctx.restore(); }
+    else    { ctx.fillStyle='rgba(59,130,246,0.18)'; ctx.strokeStyle='rgba(59,130,246,0.9)'; ctx.lineWidth=2; ctx.fill(); ctx.stroke(); }
+  }
+
+  function draw(){
+    const c=$('w5_canv'); if(!c) return;
+    const dpr=window.devicePixelRatio||1, W=c.clientWidth||600, H=c.clientHeight||300;
+    c.width=Math.floor(W*dpr); c.height=Math.floor(H*dpr);
+    const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+
+    const cx=W/2, cy=H/2+6, sc=sizeScale();
+    const R=Math.min(W,H*0.9)/2*0.78*sc, rings=5;
+
+    // 網格
+    ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb';
+    for(let r=1;r<=rings;r++){
+      const rr=R*r/rings; ctx.beginPath();
+      for(let i=0;i<ORDER.length;i++){
+        const a=ANG0+i*(2*Math.PI/ORDER.length);
+        const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a);
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+
+    // 軸 + 標籤
+    ctx.font='12px "Noto Sans TC","Microsoft JhengHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ORDER.forEach((k,i)=>{
+      const a=ANG0+i*(2*Math.PI/ORDER.length);
+      const x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
+      ctx.fillStyle=COLORS[k]||'#334155'; ctx.fillText(k, x, y-12);
+    });
+
+    // 實線多邊形（滑桿原值）
+    const v=values();
+    drawPoly(ctx, cx, cy, R, v, /*dash=*/false);
+
+    // 虛線多邊形（若你有裝「互動平衡」外掛且已勾選）
+    if (typeof window.balanced10 === 'function' && ($('w5_mode')?.checked)){
+      drawPoly(ctx, cx, cy, R, window.balanced10(), /*dash=*/true);
+    }
+
+    // 頂點圓點 + 數字
+    ORDER.forEach((k,i)=>{
+      const a=ANG0+i*(2*Math.PI/ORDER.length);
+      const rr=R*(Math.max(1,Math.min(10,v[k]))/10);
+      const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a);
+      ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fillStyle=COLORS[k]||'#111827'; ctx.fill();
+      ctx.fillStyle='#0f172a'; ctx.fillText(String(v[k]), x, y-16);
+    });
+  }
+
+  // 覆蓋成新的畫法（不用動舊程式）
+  window.w5_draw = draw;
+
+  // 互動重繪
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size','w5_mode'].forEach(id=>{
+    const el=$(id); if(el){ el.addEventListener('input', draw); }
+  });
+  window.addEventListener('resize', draw);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(draw,50));
+  else setTimeout(draw,50);
+})();
+</script>
+<style id="W5_BAL_MODE_CSS">
+  #w5_mode_row{display:flex;gap:8px;align-items:center;margin:6px 0}
+  #w5_mode_row input{vertical-align:middle}
+  #w5_mode_row .w5_badge{font-size:11px;color:#64748b}
+</style>
+
+<script id="W5_BAL_MODE_JS">
+(function(){
+  if(window.__W5_BAL_MODE__) return; window.__W5_BAL_MODE__=true;
+  const id=s=>document.getElementById(s);
+
+  // 1) 開關 UI：加到雷達控制區最上面
+  function ensureUI(){
+    const ctrl=id('w5_ctrl'); if(!ctrl) return;
+    if(id('w5_mode_row')) return;
+    const row=document.createElement('div'); row.className='row'; row.id='w5_mode_row';
+    row.innerHTML=`<label style="display:flex;align-items:center;gap:6px">
+      <input id="w5_mode" type="checkbox"> 互動平衡（總分100）
+    </label>
+    <span class="w5_badge">相生：木→火→土→金→水；相剋：木克土、土克水、水克火、火克金、金克木</span>`;
+    ctrl.insertBefore(row, ctrl.firstChild);
+  }
+
+  // 2) 參數（可微調）
+  const BASE=20;           // 理想均衡分（100/5）
+  const ALPHA=0.5;         // 生的傳導強度（↑則旺者拉高子行更多）
+  const BETA =0.7;         // 剋的抑制強度（↑則旺者壓低所剋更多）
+  const ORDER=['木','火','土','金','水'];
+  const SHENG={木:'火',火:'土',土:'金',金:'水',水:'木'};
+  const KE   ={木:'土',土:'水',水:'火',火:'金',金:'木'};
+
+  // 3) 讀原始滑桿 → 100分正規化
+  function getRaw(){ return {
+    木:+(id('w5_mu')?.value||6), 火:+(id('w5_huo')?.value||6),
+    土:+(id('w5_tu')?.value||6), 金:+(id('w5_jin')?.value||6),
+    水:+(id('w5_shui')?.value||6)
+  }; }
+  function to100(v){ const s=ORDER.reduce((a,k)=>a+(+v[k]||0),0)||1; const o={}; ORDER.forEach(k=>o[k]=v[k]*100/s); return o; }
+  function to10(p100){ const o={}; ORDER.forEach(k=>o[k]=Math.max(0,Math.min(10,p100[k]/10))); return o; }
+
+  // 4) 一輪平衡（生加、剋減），再正規化
+  function balanceOnce(p){
+    const add={木:0,火:0,土:0,金:0,水:0};
+    ORDER.forEach(k=>{
+      const r=(p[k]-BASE)/BASE;           // 正=過旺，負=不足
+      add[SHENG[k]] += ALPHA*r*BASE;      // 生子
+      add[KE[k]]    -= BETA *r*BASE;      // 剋所剋
+    });
+    const s={}; ORDER.forEach(k=> s[k]=Math.max(0,p[k]+add[k]));
+    const sum=ORDER.reduce((a,k)=>a+s[k],0)||1; ORDER.forEach(k=> s[k]=s[k]*100/sum);
+    return s;
+  }
+  function balanced100(){ const raw=to100(getRaw()); const on=!!id('w5_mode')?.checked; return on? balanceOnce(raw): raw; }
+  function balanced10(){ return to10(balanced100()); }
+
+  // 5) 雷達疊「平衡後」虛線（不改原 draw）
+  const OLD_DRAW=window.w5_draw;
+  window.w5_draw=function(){
+    if(typeof OLD_DRAW==='function') OLD_DRAW();
+    try{
+      const c=id('w5_canv'); if(!c) return;
+      const dpr=window.devicePixelRatio||1, W=c.clientWidth, H=c.clientHeight;
+      const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+      const cx=W/2, cy=H/2+6, R=Math.min(W,H*0.9)/2*0.78*(+id('w5_size')?.value||1.3);
+      const ang0=-Math.PI/2, v=balanced10();
+      ctx.save(); ctx.beginPath();
+      ORDER.forEach((k,i)=>{ const a=ang0+i*(2*Math.PI/ORDER.length); const rr=R*(Math.max(0,Math.min(10,v[k]))/10);
+        const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+      ctx.closePath(); ctx.setLineDash([6,4]); ctx.lineWidth=2; ctx.strokeStyle='rgba(17,24,39,.9)'; ctx.stroke(); ctx.restore();
+    }catch(_){}
+  };
+
+  // 6) 讓中醫排序也用「平衡後」：暫換滑桿值呼叫，再還原
+  const OLD_UPD=window.updateTCMAdvice;
+  window.updateTCMAdvice=function(meElem){
+    const on=!!id('w5_mode')?.checked;
+    if(!on || typeof OLD_UPD!=='function'){ if(typeof OLD_UPD==='function') OLD_UPD(meElem); return; }
+    const els={木:id('w5_mu'),火:id('w5_huo'),土:id('w5_tu'),金:id('w5_jin'),水:id('w5_shui')};
+    const bak={}; ORDER.forEach(k=> bak[k]=els[k]?.value);
+    const b10=balanced10();
+    try{
+      ORDER.forEach(k=>{ if(els[k]) els[k].value=String(Math.round(b10[k])); });
+      OLD_UPD(meElem);
+    } finally {
+      ORDER.forEach(k=>{ if(els[k]) els[k].value=bak[k]; });
+    }
+    try{ window.w5_draw && window.w5_draw(); }catch(_){}
+  };
+
+  // 7) 事件：滑桿/尺寸或開關變動 → 更新
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size','w5_mode'].forEach(s=>{
+    const el=id(s); if(el){ el.addEventListener('input', ()=>{ try{ window.updateTCMAdvice(window.__lastMeElem||'土'); }catch(_){} }); }
+  });
+
+  function init(){ ensureUI(); try{ window.updateTCMAdvice && window.updateTCMAdvice(window.__lastMeElem||'土'); }catch(_){} }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<style id="W5_HELP_DOC_CSS">
+  /* 說明按鈕 + 圖例 */
+  .w5-help-btn{border:1px solid #e2e8f0;background:#fff;border-radius:999px;height:26px;padding:0 10px;cursor:pointer;font-size:12px;color:#334155}
+  .w5-help-btn:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+  .w5-legend{display:flex;align-items:center;gap:10px;margin:6px 0 0;color:#475569;font-size:12px}
+  .w5-leg-item{display:flex;align-items:center;gap:6px}
+  .w5-leg-line{display:inline-block;width:22px;height:0;border-top:2px solid #1f2937}
+  .w5-leg-dash{display:inline-block;width:22px;height:0;border-top:2px dashed #1f2937}
+  /* Modal */
+  #w5_help_modal{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;z-index:10060}
+  #w5_help_modal.on{display:block}
+  #w5_help_modal .dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,92vw);max-height:80vh;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.22)}
+  #w5_help_modal .hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-weight:600}
+  #w5_help_modal .x{border:1px solid #e2e8f0;background:#fff;border-radius:8px;height:28px;padding:0 10px;cursor:pointer}
+  #w5_help_modal .body{padding:12px 14px;color:#0f172a;font-size:14px;line-height:1.65}
+  #w5_help_modal .body h4{margin:10px 0 6px;font-size:15px;color:#334155}
+  #w5_help_modal .body ul{margin:6px 0 10px 20px}
+  #w5_help_modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e5e7eb}
+  #w5_help_modal .foot .x{height:30px}
+  .w5-badge{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#1d4ed8;font-size:11px}
+  @media print{#w5_help_modal,.w5-help-btn{display:none!important}} /* 列印時不顯示說明層與按鈕 */
+</style>
+
+<script id="W5_HELP_DOC_JS">
+(function(){
+  if(window.__W5_HELP_DOC__) return; window.__W5_HELP_DOC__=true;
+  const $=s=>document.querySelector(s);
+
+  function ensureUI(){
+    const host = document.getElementById('w5_sec');  // 五行雷達圖區塊
+    if(!host) return;
+
+    // 1) 在標題旁加「說明」按鈕
+    const h3 = host.querySelector('h3');
+    if(h3 && !host.querySelector('.w5-help-btn')){
+      const btn = document.createElement('button');
+      btn.className='w5-help-btn'; btn.id='w5_help_btn'; btn.textContent='說明';
+      h3.appendChild(document.createTextNode(' '));
+      h3.appendChild(btn);
+    }
+
+    // 2) 在雷達圖下方加圖例（若尚未存在）
+    if(!host.querySelector('.w5-legend')){
+      const legend = document.createElement('div');
+      legend.className='w5-legend';
+      legend.innerHTML = `
+        <div class="w5-leg-item"><span class="w5-leg-line"></span> 實線：原始拉桿</div>
+        <div class="w5-leg-item"><span class="w5-leg-dash"></span> 虛線：平衡後（相生相剋一次傳導、總分100）</div>
+        <span class="w5-badge">方位：上＝火 → 土 → 金 → 水 → 木（木在左側）</span>`;
+      host.appendChild(legend);
+    }
+
+    // 3) 全頁共用的 Modal（只建一次）
+    if(!document.getElementById('w5_help_modal')){
+      const modal = document.createElement('div');
+      modal.id='w5_help_modal';
+      modal.innerHTML = `
+        <div class="dlg">
+          <div class="hdr">
+            <div>五行雷達與虛線怎麼看？</div>
+            <button class="x" data-act="close">關閉</button>
+          </div>
+          <div class="body">
+            <h4>方位與圖例</h4>
+            <ul>
+              <li><b>上方＝火</b>，順時針依序：火 → 土 → 金 → 水 → 木（木位在左側/左上）。</li>
+              <li><span class="w5-leg-line"></span> <b>實線</b>：你拉桿的原始值。</li>
+              <li><span class="w5-leg-dash"></span> <b>虛線</b>：啟用「互動平衡（總分100）」後，依相生相剋做一次溫和傳導後的<b>平衡後分布</b>（原始拉桿不會被改）。</li>
+            </ul>
+
+            <h4>判讀口訣</h4>
+            <ul>
+              <li><b>X 旺 → 子行↑、所剋↓</b>（例：<b>木旺</b> ⇒ <b>火</b>虛線 ↑、<b>土</b>虛線 ↓）。</li>
+              <li><b>X 弱 → 子行↓、所剋↑</b>（例：<b>水弱</b> ⇒ <b>木</b>虛線 ↓、<b>火</b>虛線 ↑）。</li>
+              <li>右欄「分科/穴位/方藥」排序：<b>勾選互動平衡</b>時參考虛線；取消勾選則回到實線。</li>
+            </ul>
+
+            <h4>迷你示例</h4>
+            <ul>
+              <li>你把 <b>木</b> 拉高：虛線在 <b>火</b>（被木生）會凸一點，在 <b>土</b>（被木克）會縮一點。</li>
+              <li>你把 <b>水</b> 拉低：虛線的 <b>木</b>（得水生）下降、<b>火</b>（原本被水克）回升。</li>
+            </ul>
+
+            <h4>常見問題</h4>
+            <ul>
+              <li>看不到虛線？請確認有勾選 <b>互動平衡（總分100）</b>；未勾選時只顯示實線。</li>
+              <li>列印時會顯示嗎？預設只印實線與內容；說明視窗與按鈕不會出現在列印頁。</li>
+            </ul>
+          </div>
+          <div class="foot">
+            <button class="x" data-act="close">我了解了</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      // 關閉事件：按鈕、遮罩點擊、ESC
+      const close = ()=> modal.classList.remove('on');
+      modal.addEventListener('click', e=>{
+        if(e.target===modal || e.target.closest('[data-act="close"]')) close();
+      });
+      window.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
+    }
+
+    // 綁定開啟
+    const btn = document.getElementById('w5_help_btn');
+    const modal = document.getElementById('w5_help_modal');
+    btn && modal && btn.addEventListener('click', ()=> modal.classList.add('on'));
+  }
+
+  function init(){
+    ensureUI();
+    // 如果雷達區塊是動態插入（你本來就是），稍微等一下再跑一次
+    setTimeout(ensureUI, 200);
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+<style id="W5_HELP_DRAG_CSS">
+  /* 讓標題列成為拖曳把手 */
+  #w5_help_modal .hdr{ cursor: move }
+  /* 拖動時一點點透明，給回饋 */
+  #w5_help_modal .dlg.dragging{ opacity:.98 }
+</style>
+
+<script id="W5_HELP_DRAG_JS">
+(function(){
+  if(window.__W5_HELP_DRAG__) return; window.__W5_HELP_DRAG__=true;
+  const modal = document.getElementById('w5_help_modal'); if(!modal) return;
+  const dlg   = modal.querySelector('.dlg'); const hdr = modal.querySelector('.hdr'); if(!dlg||!hdr) return;
+
+  const LSKEY='w5_help_pos_v1';
+  const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
+
+  function center(){
+    dlg.style.left='50%'; dlg.style.top='50%'; dlg.style.transform='translate(-50%,-50%)';
+    localStorage.removeItem(LSKEY);
+  }
+  function applyPos(left,top){
+    dlg.style.left = left+'px';
+    dlg.style.top  = top +'px';
+    dlg.style.transform = 'none';
+  }
+  function loadSaved(){
+    const s = localStorage.getItem(LSKEY); if(!s) return;
+    try{
+      const p = JSON.parse(s);
+      // 若視窗縮放過，確保還在可視範圍內
+      const maxL = window.innerWidth  - dlg.offsetWidth  - 8;
+      const maxT = window.innerHeight - dlg.offsetHeight - 8;
+      applyPos(clamp(p.left,8,maxL), clamp(p.top,8,maxT));
+    }catch(_){}
+  }
+  function saveNow(){
+    const r = dlg.getBoundingClientRect();
+    localStorage.setItem(LSKEY, JSON.stringify({left:r.left, top:r.top}));
+  }
+
+  // —— 拖曳（滑鼠 + 觸控）——
+  let dragging=false, offX=0, offY=0;
+  function start(clientX, clientY){
+    dragging=true; dlg.classList.add('dragging');
+    const r=dlg.getBoundingClientRect();
+    offX = clientX - r.left; offY = clientY - r.top;
+    document.documentElement.style.userSelect='none';
+  }
+  function move(clientX, clientY){
+    if(!dragging) return;
+    const L = clamp(clientX - offX, 8, window.innerWidth  - dlg.offsetWidth  - 8);
+    const T = clamp(clientY - offY, 8, window.innerHeight - dlg.offsetHeight - 8);
+    applyPos(L,T);
+  }
+  function end(){
+    if(!dragging) return;
+    dragging=false; dlg.classList.remove('dragging');
+    document.documentElement.style.userSelect='';
+    saveNow();
+  }
+
+  // 滑鼠
+  hdr.addEventListener('mousedown', e=>{ start(e.clientX,e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e=> move(e.clientX,e.clientY));
+  window.addEventListener('mouseup',   end);
+
+  // 觸控
+  hdr.addEventListener('touchstart', e=>{
+    const t=e.touches[0]; start(t.clientX,t.clientY); e.preventDefault();
+  }, {passive:false});
+  window.addEventListener('touchmove', e=>{
+    if(!dragging) return;
+    const t=e.touches[0]; move(t.clientX,t.clientY); e.preventDefault();
+  }, {passive:false});
+  window.addEventListener('touchend', end);
+
+  // 雙擊標題列：回到置中
+  hdr.addEventListener('dblclick', center);
+
+  // 視窗縮放後，若跑出邊界就拉回來
+  window.addEventListener('resize', ()=>{
+    const r=dlg.getBoundingClientRect();
+    const L = clamp(r.left, 8, window.innerWidth  - dlg.offsetWidth  - 8);
+    const T = clamp(r.top,  8, window.innerHeight - dlg.offsetHeight - 8);
+    applyPos(L,T);
+    saveNow();
+  });
+
+  // 每次開啟說明時套用上次位置
+  const openBtn = document.getElementById('w5_help_btn');
+  if(openBtn){
+    openBtn.addEventListener('click', ()=> setTimeout(loadSaved, 0));
+  }
+  // 若你是用其他方式打開，也保險觀察 class 變化
+  if('MutationObserver' in window){
+    const mo = new MutationObserver(()=>{ if(modal.classList.contains('on')) loadSaved(); });
+    mo.observe(modal, {attributes:true, attributeFilter:['class']});
+  }
+
+  // 初次也載入一次位置
+  if(modal.classList.contains('on')) loadSaved();
+})();
+</script>
+<style id="W5_HELP_DRAG_PASS_V2_CSS">
+  /* 讓整個遮罩不攔截滑鼠事件（背景可點、可拖拉雷達） */
+  #w5_help_modal{ pointer-events: none; }
+  /* 只有對話框本身可以互動（拖曳、按鈕） */
+  #w5_help_modal .dlg{ pointer-events: auto; }
+  /* 拖曳游標與拖曳時的微透明效果 */
+  #w5_help_modal .hdr{ cursor: move; }
+  #w5_help_modal .dlg.dragging{ opacity:.98; }
+</style>
+<script id="W5_HELP_DRAG_PASS_V2_JS">
+(function(){
+  if(window.__W5_HELP_DRAG_PASS_V2__) return; window.__W5_HELP_DRAG_PASS_V2__=true;
+
+  const LSKEY='w5_help_pos_v2';
+  const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
+
+  function bindDrag(modal){
+    const dlg = modal.querySelector('.dlg');
+    const hdr = modal.querySelector('.hdr');
+    if(!dlg || !hdr) return;
+
+    function center(){
+      dlg.style.left='50%'; dlg.style.top='50%'; dlg.style.transform='translate(-50%,-50%)';
+      try{ localStorage.removeItem(LSKEY); }catch(_){}
+    }
+    function applyPos(left,top){
+      dlg.style.left = left+'px';
+      dlg.style.top  = top +'px';
+      dlg.style.transform = 'none';
+    }
+    function loadSaved(){
+      try{
+        const s=localStorage.getItem(LSKEY); if(!s) return;
+        const p=JSON.parse(s);
+        const maxL = window.innerWidth  - dlg.offsetWidth  - 8;
+        const maxT = window.innerHeight - dlg.offsetHeight - 8;
+        applyPos(clamp(p.left,8,maxL), clamp(p.top,8,maxT));
+      }catch(_){}
+    }
+    function saveNow(){
+      const r=dlg.getBoundingClientRect();
+      try{ localStorage.setItem(LSKEY, JSON.stringify({left:r.left, top:r.top})); }catch(_){}
+    }
+
+    // 拖曳（滑鼠 + 觸控）
+    let dragging=false, offX=0, offY=0;
+    function start(clientX, clientY){
+      dragging=true; dlg.classList.add('dragging');
+      const r=dlg.getBoundingClientRect();
+      offX = clientX - r.left; offY = clientY - r.top;
+      document.documentElement.style.userSelect='none';
+    }
+    function move(clientX, clientY){
+      if(!dragging) return;
+      const L = clamp(clientX - offX, 8, window.innerWidth  - dlg.offsetWidth  - 8);
+      const T = clamp(clientY - offY, 8, window.innerHeight - dlg.offsetHeight - 8);
+      applyPos(L,T);
+    }
+    function end(){
+      if(!dragging) return;
+      dragging=false; dlg.classList.remove('dragging');
+      document.documentElement.style.userSelect='';
+      saveNow();
+    }
+
+    // 事件註冊
+    hdr.addEventListener('mousedown', e=>{ start(e.clientX,e.clientY); e.preventDefault(); });
+    window.addEventListener('mousemove', e=> move(e.clientX,e.clientY));
+    window.addEventListener('mouseup',   end);
+
+    hdr.addEventListener('touchstart', e=>{
+      const t=e.touches[0]; start(t.clientX,t.clientY); e.preventDefault();
+    }, {passive:false});
+    window.addEventListener('touchmove', e=>{
+      if(!dragging) return;
+      const t=e.touches[0]; move(t.clientX,t.clientY); e.preventDefault();
+    }, {passive:false});
+    window.addEventListener('touchend', end);
+
+    // 雙擊標題列回到置中
+    hdr.addEventListener('dblclick', center);
+
+    // 每次視窗打開時套用上次位置
+    const applyWhenOpen = ()=>{
+      if(modal.classList.contains('on')) loadSaved();
+    };
+    if('MutationObserver' in window){
+      const mo = new MutationObserver(applyWhenOpen);
+      mo.observe(modal, {attributes:true, attributeFilter:['class']});
+    }
+    // 若當下就是開啟狀態，也套一次
+    applyWhenOpen();
+
+    // 視窗縮放時，若視窗超出邊界就拉回
+    window.addEventListener('resize', ()=>{
+      const r=dlg.getBoundingClientRect();
+      const L = clamp(r.left, 8, window.innerWidth  - dlg.offsetWidth  - 8);
+      const T = clamp(r.top,  8, window.innerHeight - dlg.offsetHeight - 8);
+      applyPos(L,T);
+      saveNow();
+    });
+  }
+
+  // 等 #w5_help_modal 建好再綁定（避免早於說明外掛執行而失效）
+  function waitForModalAndBind(){
+    const modal = document.getElementById('w5_help_modal');
+    if(modal){ bindDrag(modal); return; }
+    // 監看 body，有建立就綁
+    if('MutationObserver' in window){
+      const mo = new MutationObserver(()=>{
+        const m = document.getElementById('w5_help_modal');
+        if(m){ mo.disconnect(); bindDrag(m); }
+      });
+      mo.observe(document.body, {childList:true, subtree:true});
+    } else {
+      // 後備輪詢
+      const t=setInterval(()=>{
+        const m=document.getElementById('w5_help_modal');
+        if(m){ clearInterval(t); bindDrag(m); }
+      }, 200);
+      setTimeout(()=>clearInterval(t), 6000);
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', waitForModalAndBind);
+  else waitForModalAndBind();
+})();
+</script>
+<script id="W5_AUTO_FROM_GUA_JS">
+(function(){
+  if(window.__W5_AUTO_FROM_GUA__) return; window.__W5_AUTO_FROM_GUA__=true;
+  const id=s=>document.getElementById(s);
+
+  /* —— 權重（可依喜好微調）—— */
+  const WEI = {
+    lineBase: 1.0,   // 每一爻的納甲本支
+    moveChange: 0.7, // 動爻→變卦對應支
+    shi: 0.5,        // 世爻加權
+    ying: 0.25,      // 應爻加權
+    palace: 0.5,     // 卦宮五行（本卦屬性）
+    month: 1.4,      // 月令（旺相）
+    day: 0.8         // 日令（次要）
+  };
+  const ORDER=['木','火','土','金','水'];
+
+  const isZhi = c => (window.ZHI_ELEM && window.ZHI_ELEM[c]);
+  const elemOfBranch = b => (window.ZHI_ELEM && window.ZHI_ELEM[b]) || '';
+  const add = (m,k,v)=>{ if(!k) return; m[k]=(m[k]||0)+v; };
+  const to100 = m=>{
+    let s=ORDER.reduce((a,k)=>a+(m[k]||0),0); if(s<=0) s=1;
+    const o={}; ORDER.forEach(k=>o[k]=(m[k]||0)*100/s); return o;
+  };
+  const to10 = v100 => Math.max(1,Math.min(10,Math.round(v100/10)));
+  const setSlider = (sid,val)=>{ const el=id(sid); if(!el) return; el.value=String(val);
+    el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); };
+  const toast = msg => { const box=id('err'); if(!box){ alert(msg); return; }
+    box.style.display='block'; box.textContent='✔ '+msg; setTimeout(()=>{ box.style.display='none'; },1200); };
+
+  function estimateFromHex(){
+    try{
+      const up=id('upper')?.value, lo=id('lower')?.value;
+      if(!(window.TRIG && window.naJiaBranches && up && lo)) return toast('缺少卦象資料');
+      const baseLines=[...TRIG[lo], ...TRIG[up]];
+      const branches = window.naJiaBranches(baseLines);
+      const counts   = {木:0,火:0,土:0,金:0,水:0};
+
+      // 1) 本卦六爻的納甲地支 → 五行
+      branches.forEach(br=> add(counts, elemOfBranch(br), WEI.lineBase));
+
+      // 2) 動爻：變卦對應的地支
+      const mv = Array.isArray(window.moving)? window.moving : [false,false,false,false,false,false];
+      if(mv.some(Boolean) && window.changedLines){
+        const chLines   = window.changedLines(baseLines, mv);
+        const branchesC = window.naJiaBranches(chLines);
+        branchesC.forEach((br,i)=>{ if(mv[i]) add(counts, elemOfBranch(br), WEI.moveChange); });
+      }
+
+      // 3) 世/應加權
+      if(window.decideShiYing){
+        const gName = window.guaNameOf? window.guaNameOf(up,lo) : '';
+        const {shi, ying} = window.decideShiYing(up, lo, gName, baseLines) || {};
+        if(shi){ add(counts, elemOfBranch(branches[shi-1]), WEI.shi); }
+        if(ying){ add(counts, elemOfBranch(branches[ying-1]), WEI.ying); }
+      }
+
+      // 4) 卦宮五行（你的主程式在 render() 會寫到 __lastMeElem）
+      if(window.__lastMeElem) add(counts, window.__lastMeElem, WEI.palace);
+
+      // 5) 月令/日令（從畫面四柱讀出支）
+      const mTxt = id('gzMonth')?.textContent||''; // 例：月：乙酉
+      const dTxt = id('gzDay')?.textContent||'';   // 例：日：庚子
+      const mZhi = mTxt.replace(/.*月：/,'').trim().charAt(1);
+      const dZhi = dTxt.replace(/.*日：/,'').trim().charAt(1);
+      if(isZhi(mZhi)) add(counts, elemOfBranch(mZhi), WEI.month);
+      if(isZhi(dZhi)) add(counts, elemOfBranch(dZhi), WEI.day);
+
+      // 6) 正規化 → 設定滑桿（1~10）
+      const p100 = to100(counts);
+      setSlider('w5_mu',   to10(p100['木']));
+      setSlider('w5_huo',  to10(p100['火']));
+      setSlider('w5_tu',   to10(p100['土']));
+      setSlider('w5_jin',  to10(p100['金']));
+      setSlider('w5_shui', to10(p100['水']));
+
+      // 7) 重繪/更新建議
+      try{ window.updateTCMAdvice && window.updateTCMAdvice(window.__lastMeElem||'土'); }catch(_){}
+      try{ window.w5_draw && window.w5_draw(); }catch(_){}
+      toast('已依卦象估算五行（納甲/動變/世應/月日/卦宮）');
+    }catch(e){ console.error(e); toast('估算失敗：'+(e.message||e)); }
+  }
+
+  // 在「五行雷達圖」的控制區加一顆按鈕
+  function injectButton(){
+    const ctrl=id('w5_ctrl'); if(!ctrl) return;
+    if(id('w5_auto_from_gua')) return;
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML='<button id="w5_auto_from_gua" title="根據卦象估算五行強弱並正規化為100分"></button>';
+    ctrl.insertBefore(row, ctrl.firstChild?.nextSibling || ctrl.firstChild);
+    id('w5_auto_from_gua').addEventListener('click', estimateFromHex);
+  }
+
+  function init(){ injectButton(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<style id="W5_AUTO_FROM_GUA_BTN_CSS">
+  /* 內嵌在雷達控制列的按鈕樣式 */
+  #w5_auto_from_gua{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer;font-size:13px}
+  #w5_auto_from_gua:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+  /* 右下角浮動備援按鈕（找不到容器時出現） */
+  #w5_auto_float{position:fixed;right:14px;bottom:14px;z-index:10020;height:38px;padding:0 14px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);font-size:13px;display:none}
+  #w5_auto_float:hover{box-shadow:0 10px 28px rgba(0,0,0,.16)}
+  @media print{#w5_auto_float{display:none!important}}
+</style>
+
+<script id="W5_AUTO_FROM_GUA_JS_V2">
+(function(){
+  if(window.__W5_AUTO_FROM_GUA_V2__) return; window.__W5_AUTO_FROM_GUA_V2__=true;
+  const id=s=>document.getElementById(s);
+
+  /* —— 權重（可依喜好微調）—— */
+  const WEI = { lineBase:1.0, moveChange:0.7, shi:0.5, ying:0.25, palace:0.5, month:1.4, day:0.8 };
+  const ORDER=['木','火','土','金','水'];
+
+  const isZhi = c => (window.ZHI_ELEM && window.ZHI_ELEM[c]);
+  const elemOfBranch = b => (window.ZHI_ELEM && window.ZHI_ELEM[b]) || '';
+  const add = (m,k,v)=>{ if(!k) return; m[k]=(m[k]||0)+v; };
+  const to100 = m=>{ let s=ORDER.reduce((a,k)=>a+(m[k]||0),0)||1; const o={}; ORDER.forEach(k=>o[k]=(m[k]||0)*100/s); return o; };
+  const to10 = v100 => Math.max(1,Math.min(10,Math.round(v100/10)));
+  const setSlider = (sid,val)=>{ const el=id(sid); if(!el) return; el.value=String(val);
+    el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); };
+  const toast = msg => { const box=id('err'); if(!box){ try{ alert(msg);}catch(_){ } return; }
+    box.style.display='block'; box.textContent='✔ '+msg; setTimeout(()=>{ box.style.display='none'; },1200); };
+
+  function estimateFromHex(){
+    try{
+      const up=id('upper')?.value, lo=id('lower')?.value;
+      if(!(window.TRIG && window.naJiaBranches && up && lo)) return toast('缺少卦象資料');
+      const baseLines=[...TRIG[lo], ...TRIG[up]];
+      const branches = window.naJiaBranches(baseLines);
+      const counts   = {木:0,火:0,土:0,金:0,水:0};
+
+      // 1) 本卦六爻納甲
+      branches.forEach(br=> add(counts, elemOfBranch(br), WEI.lineBase));
+
+      // 2) 動爻 → 變卦支
+      const mv = Array.isArray(window.moving)? window.moving : [false,false,false,false,false,false];
+      if(mv.some(Boolean) && window.changedLines){
+        const chLines   = window.changedLines(baseLines, mv);
+        const branchesC = window.naJiaBranches(chLines);
+        branchesC.forEach((br,i)=>{ if(mv[i]) add(counts, elemOfBranch(br), WEI.moveChange); });
+      }
+
+      // 3) 世/應加權
+      if(window.decideShiYing){
+        const gName = window.guaNameOf? window.guaNameOf(up,lo) : '';
+        const r = window.decideShiYing(up, lo, gName, baseLines) || {};
+        if(r.shi){ add(counts, elemOfBranch(branches[r.shi-1]), WEI.shi); }
+        if(r.ying){ add(counts, elemOfBranch(branches[r.ying-1]), WEI.ying); }
+      }
+
+      // 4) 卦宮五行
+      if(window.__lastMeElem) add(counts, window.__lastMeElem, WEI.palace);
+
+      // 5) 月令/日令
+      const mTxt = id('gzMonth')?.textContent||''; // e.g. "月：乙酉"
+      const dTxt = id('gzDay')?.textContent||'';   // e.g. "日：庚子"
+      const mZhi = mTxt.replace(/.*月：/,'').trim().charAt(1);
+      const dZhi = dTxt.replace(/.*日：/,'').trim().charAt(1);
+      if(isZhi(mZhi)) add(counts, elemOfBranch(mZhi), WEI.month);
+      if(isZhi(dZhi)) add(counts, elemOfBranch(dZhi), WEI.day);
+
+      // 6) 正規化→設滑桿→重繪
+      const p100 = to100(counts);
+      setSlider('w5_mu',   to10(p100['木']));
+      setSlider('w5_huo',  to10(p100['火']));
+      setSlider('w5_tu',   to10(p100['土']));
+      setSlider('w5_jin',  to10(p100['金']));
+      setSlider('w5_shui', to10(p100['水']));
+
+      try{ window.updateTCMAdvice && window.updateTCMAdvice(window.__lastMeElem||'土'); }catch(_){}
+      try{ window.w5_draw && window.w5_draw(); }catch(_){}
+      toast('已依卦象估算五行（納甲/動變/世應/月日/卦宮）');
+    }catch(e){ console.error(e); toast('估算失敗：'+(e.message||e)); }
+  }
+
+  // —— UI 注入：優先插到 #w5_ctrl，其次顯示右下角浮動備援鈕 —— //
+  function ensureInlineBtn(){
+    const ctrl=id('w5_ctrl'); if(!ctrl) return false;
+    if(id('w5_auto_from_gua')) return true;
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML='<button id="w5_auto_from_gua" title="根據卦象估算五行強弱並正規化為100分">依卦一鍵估算</button>';
+    // 插在大小滑桿上方一點點：放在第一個 row 後面
+    const firstRow = ctrl.querySelector('.row') || ctrl.firstChild;
+    ctrl.insertBefore(row, firstRow ? firstRow.nextSibling : ctrl.firstChild);
+    id('w5_auto_from_gua').addEventListener('click', estimateFromHex);
+    return true;
+  }
+
+  function ensureFloatBtn(){
+    if(id('w5_auto_float')) return;
+    const b=document.createElement('button');
+    b.id='w5_auto_float'; b.textContent='依卦一鍵估算';
+    b.addEventListener('click', estimateFromHex);
+    document.body.appendChild(b);
+    // 只有當 #w5_ctrl 目前不存在時顯示
+    if(!id('w5_ctrl')) b.style.display='block';
+  }
+
+  function syncFloatVisibility(){
+    const f=id('w5_auto_float'); if(!f) return;
+    f.style.display = id('w5_ctrl') && id('w5_auto_from_gua') ? 'none' : 'block';
+  }
+
+  function boot(){
+    const ok = ensureInlineBtn();
+    ensureFloatBtn();
+    syncFloatVisibility();
+
+    // 觀察 DOM：等 W5_SAFE_JS 把 #w5_ctrl 插進來時再補插按鈕
+    if('MutationObserver' in window){
+      const mo = new MutationObserver(()=>{ 
+        const ready = ensureInlineBtn();
+        syncFloatVisibility();
+        if(ready){ /* 一旦插成功就可以維持觀察以防重繪，但也可選擇 disconnect */ }
+      });
+      mo.observe(document.body, {childList:true, subtree:true});
+    } else {
+      // 保底輪詢 6 秒
+      let n=0; const t=setInterval(()=>{ ensureInlineBtn(); syncFloatVisibility(); if(++n>30) clearInterval(t); }, 200);
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+<style id="W5_AUTO_FROM_GUA_BTN_CSS_V3">
+  #w5_auto_from_gua{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer;font-size:13px}
+  #w5_auto_from_gua:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+  #w5_auto_float{position:fixed;right:14px;bottom:14px;z-index:10020;height:38px;padding:0 14px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);font-size:13px;display:none}
+  #w5_auto_float:hover{box-shadow:0 10px 28px rgba(0,0,0,.16)}
+  @media print{#w5_auto_float{display:none!important}}
+</style>
+
+<script id="W5_AUTO_FROM_GUA_JS_V3">
+(function(){
+  if(window.__W5_AUTO_FROM_GUA_V3__) return; window.__W5_AUTO_FROM_GUA_V3__=true;
+  const $=id=>document.getElementById(id);
+
+  /* ===== 內建資料表（不依賴主程式） ===== */
+  const TRIG_BITS={乾:[1,1,1],兌:[1,1,0],離:[1,0,1],震:[1,0,0],巽:[0,1,1],坎:[0,1,0],艮:[0,0,1],坤:[0,0,0]};
+  const YANG_TRIG=new Set(['乾','震','坎','艮']);
+  const SEQ_YANG=['子','寅','辰','午','申','戌'], SEQ_YIN=['亥','酉','未','巳','卯','丑'];
+  const INNER_START={乾:'子',坎:'寅',震:'子',艮:'辰',坤:'未',巽:'丑',離:'卯',兌:'巳'};
+  const OUTER_START={乾:'午',坎:'申',震:'午',艮:'戌',坤:'丑',巽:'未',離:'酉',兌:'亥'};
+  const ZHI_ELEM={子:'水',丑:'土',寅:'木',卯:'木',辰:'土',巳:'火',午:'火',未:'土',申:'金',酉:'金',戌:'土',亥:'水'};
+  const GONG_ELEM={乾:'金',坤:'土',震:'木',巽:'木',坎:'水',離:'火',艮:'土',兌:'金'};
+  const NAMES={'乾':{'乾':'乾為天','兌':'天澤履','離':'天火同人','震':'天雷無妄','巽':'天風姤','坎':'天水訟','艮':'天山遁','坤':'天地否'},
+               '兌':{'乾':'澤天夬','兌':'兌為澤','離':'澤火革','震':'澤雷隨','巽':'澤風大過','坎':'澤水困','艮':'澤山咸','坤':'澤地萃'},
+               '離':{'乾':'火天大有','兌':'火澤睽','離':'離為火','震':'火雷噬嗑','巽':'火風鼎','坎':'火水未濟','艮':'火山旅','坤':'火地晉'},
+               '震':{'乾':'雷天大壯','兌':'雷澤歸妹','離':'雷火豐','震':'震為雷','巽':'雷風恆','坎':'雷水解','艮':'雷山小過','坤':'雷地豫'},
+               '巽':{'乾':'風天小畜','兌':'風澤中孚','離':'風火家人','震':'風雷益','巽':'巽為風','坎':'風水渙','艮':'風山漸','坤':'風地觀'},
+               '坎':{'乾':'水天需','兌':'水澤節','離':'水火既濟','震':'水雷屯','巽':'水風井','坎':'坎為水','艮':'水山蹇','坤':'水地比'},
+               '艮':{'乾':'山天大畜','兌':'山澤損','離':'山火賁','震':'山雷頤','巽':'山風蠱','坎':'山水蒙','艮':'艮為山','坤':'山地謙'},
+               '坤':{'乾':'地天泰','兌':'地澤臨','離':'地火明夷','震':'地雷復','巽':'地風升','坎':'地水師','艮':'地山謙','坤':'坤為地'}};
+  const GUA_CLASS={
+    "乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},
+    "風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},
+    "坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},
+    "雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},
+    "震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},
+    "地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},
+    "巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},
+    "天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},
+    "坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},
+    "澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},
+    "離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},
+    "山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},
+    "艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},
+    "火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},
+    "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},
+    "水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
+  };
+
+  /* ===== 小工具 ===== */
+  const add=(m,k,v)=>{ if(!k) return; m[k]=(m[k]||0)+v; };
+  const to100=m=>{ const K=['木','火','土','金','水']; let s=K.reduce((a,k)=>a+(m[k]||0),0)||1; const o={}; K.forEach(k=>o[k]=(m[k]||0)*100/s); return o; };
+  const to10 = v100 => Math.max(1,Math.min(10,Math.round(v100/10)));
+  const setSlider=(sid,val)=>{ const el=$(sid); if(!el) return; el.value=String(val);
+    el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); };
+  const toast=msg=>{ const box=$('err'); if(!box){ alert(msg); return; } box.style.display='block'; box.textContent='✔ '+msg; setTimeout(()=>{ box.style.display='none'; },1200); };
+
+  function threeBranchesOfTrigram(tri,inner){
+    const start = inner? INNER_START[tri] : OUTER_START[tri];
+    const seq = YANG_TRIG.has(tri) ? SEQ_YANG : SEQ_YIN;
+    const i0 = seq.indexOf(start);
+    return [seq[i0%6], seq[(i0+1)%6], seq[(i0+2)%6]];
+  }
+  function naJiaBranches(lines){
+    const lo=trigFromBits([lines[0],lines[1],lines[2]]), up=trigFromBits([lines[3],lines[4],lines[5]]);
+    return [...threeBranchesOfTrigram(lo,true), ...threeBranchesOfTrigram(up,false)];
+  }
+  function trigFromBits(b3){
+    for(const k in TRIG_BITS){ const t=TRIG_BITS[k]; if(t[0]===b3[0]&&t[1]===b3[1]&&t[2]===b3[2]) return k; } return null;
+  }
+  function changedLines(lines,mv){ return lines.map((v,i)=> mv[i] ? (v?0:1) : v); }
+  function guaNameOf(up,lo){ return (NAMES[up]&&NAMES[up][lo])?NAMES[up][lo] : `${up}上·${lo}下`; }
+  function findShiByYaoBian(lines){
+    const eqTri = arr => { const lo=trigFromBits([arr[0],arr[1],arr[2]]), up=trigFromBits([arr[3],arr[4],arr[5]]); return (up===lo)?up:null; };
+    const flipAt=(arr,i)=>{const t=[...arr]; t[i]=t[i]?0:1; return t;};
+    let tmp=[...lines];
+    for(let i=0;i<5;i++){ tmp=flipAt(tmp,i); if(eqTri(tmp)) return i+1; }
+    tmp=[...lines];
+    for(let i=4;i>=0;i--){ tmp=flipAt(tmp,i); if(eqTri(tmp)) return (i===0?3:i+1); }
+    return 6;
+  }
+  function decideShiYing(upTri, loTri, guaName, lines){
+    const info=GUA_CLASS[guaName];
+    if(!info || info.type==='飛'){
+      const shi=findShiByYaoBian(lines);
+      const ying=((shi+3-1)%6)+1; // 1↔4,2↔5,3↔6
+      return {shi,ying,gong:(info&&info.gong)||upTri};
+    }
+    if(info.type==='本宮') return {shi:6,ying:3,gong:info.gong};
+    if(info.type==='遊魂') return {shi:4,ying:1,gong:info.gong};
+    if(info.type==='歸魂') return {shi:3,ying:6,gong:info.gong};
+    const shi=findShiByYaoBian(lines); const ying=((shi+3-1)%6)+1;
+    return {shi,ying,gong:info.gong};
+  }
+
+  /* —— 權重（可微調）—— */
+  const WEI = { lineBase:1.0, moveChange:0.7, shi:0.5, ying:0.25, palace:0.5, month:1.4, day:0.8 };
+
+  function estimateFromHex(){
+    try{
+      const up=$('upper')?.value, lo=$('lower')?.value;
+      if(!up||!lo) return toast('缺少卦象：請先選上卦/下卦');
+      const baseLines=[...TRIG_BITS[lo], ...TRIG_BITS[up]];
+      const branches = naJiaBranches(baseLines);
+      const counts   = {木:0,火:0,土:0,金:0,水:0};
+
+      // 1) 本卦六爻納甲
+      branches.forEach(br=> add(counts, ZHI_ELEM[br], WEI.lineBase));
+
+      // 2) 動爻 → 變卦支（從勾選框讀）
+      const mv=[];
+      document.querySelectorAll('#mvCtl input[type=checkbox][data-mv]').forEach((cb,i)=> mv[i]=!!cb.checked);
+      if(mv.some(Boolean)){
+        const branchesC = naJiaBranches(changedLines(baseLines, mv));
+        branchesC.forEach((br,i)=>{ if(mv[i]) add(counts, ZHI_ELEM[br], WEI.moveChange); });
+      }
+
+      // 3) 世/應 & 卦宮
+      const gName = guaNameOf(up,lo);
+      const {shi,ying,gong} = decideShiYing(up,lo,gName,baseLines);
+      if(shi)  add(counts, ZHI_ELEM[branches[shi-1]],  WEI.shi);
+      if(ying) add(counts, ZHI_ELEM[branches[ying-1]], WEI.ying);
+      if(gong) add(counts, GONG_ELEM[gong], WEI.palace);
+
+      // 4) 月令/日令：優先用 Lunar.js，退而取介面四柱文字
+      let mZhi='', dZhi='';
+      try{
+        const dtStr=$('dt')?.value; const dt=dtStr? new Date(dtStr) : new Date();
+        if(window.Lunar){
+          const lunar=window.Lunar.fromDate(dt);
+          const M=lunar.getMonthInGanZhiExact(), D=lunar.getDayInGanZhiExact();
+          mZhi = M && M.charAt(1); dZhi = D && D.charAt(1);
+        }
+      }catch(_){}
+      if(!mZhi||!dZhi){
+        const mTxt=$('gzMonth')?.textContent||'', dTxt=$('gzDay')?.textContent||'';
+        mZhi = mZhi || (mTxt.replace(/.*月：/,'').trim().charAt(1)||'');
+        dZhi = dZhi || (dTxt.replace(/.*日：/,'').trim().charAt(1)||'');
+      }
+      if(ZHI_ELEM[mZhi]) add(counts, ZHI_ELEM[mZhi], WEI.month);
+      if(ZHI_ELEM[dZhi]) add(counts, ZHI_ELEM[dZhi], WEI.day);
+
+      // 5) 正規化→調滑桿→重繪
+      const p100=to100(counts);
+      setSlider('w5_mu',   to10(p100['木']));
+      setSlider('w5_huo',  to10(p100['火']));
+      setSlider('w5_tu',   to10(p100['土']));
+      setSlider('w5_jin',  to10(p100['金']));
+      setSlider('w5_shui', to10(p100['水']));
+
+      try{ window.updateTCMAdvice && window.updateTCMAdvice(GONG_ELEM[gong]||'土'); }catch(_){}
+      try{ window.w5_draw && window.w5_draw(); }catch(_){}
+      toast('已依卦象估算五行（納甲/動變/世應/月日/卦宮）');
+    }catch(e){
+      console.error(e);
+      const box=$('err'); if(box){ box.style.display='block'; box.textContent='⚠️ 估算錯誤：'+(e.message||e); }
+      else alert('估算錯誤：'+(e.message||e));
+    }
+  }
+
+  /* —— UI：插按鈕（內嵌＋浮動備援） —— */
+  function ensureInlineBtn(){
+    const ctrl=$('w5_ctrl'); if(!ctrl) return false;
+    if($('w5_auto_from_gua')) return true;
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML='<button id="w5_auto_from_gua" title="根據卦象估算五行強弱並正規化為100分">依卦一鍵估算</button>';
+    const firstRow = ctrl.querySelector('.row') || ctrl.firstChild;
+    ctrl.insertBefore(row, firstRow ? firstRow.nextSibling : ctrl.firstChild);
+    $('w5_auto_from_gua').addEventListener('click', estimateFromHex);
+    return true;
+  }
+  function ensureFloatBtn(){
+    if($('w5_auto_float')) return;
+    const b=document.createElement('button');
+    b.id='w5_auto_float'; b.textContent='依卦一鍵估算';
+    b.addEventListener('click', estimateFromHex);
+    document.body.appendChild(b);
+    if(!$('w5_ctrl')) b.style.display='block';
+  }
+  function syncFloatVisibility(){
+    const f=$('w5_auto_float'); if(!f) return;
+    f.style.display = ($('w5_ctrl') && $('w5_auto_from_gua')) ? 'none' : 'block';
+  }
+
+  function boot(){
+    const ok=ensureInlineBtn();
+    ensureFloatBtn();
+    syncFloatVisibility();
+    if('MutationObserver' in window){
+      const mo=new MutationObserver(()=>{ const ready=ensureInlineBtn(); syncFloatVisibility(); if(ready){ /* 保持監看亦可 */ } });
+      mo.observe(document.body,{childList:true,subtree:true});
+    } else {
+      let n=0; const t=setInterval(()=>{ ensureInlineBtn(); syncFloatVisibility(); if(++n>30) clearInterval(t); },200);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<style id="FIX_PACK_V1_CSS">
+/* 一鍵估算／說明 按鈕區塊更好看 */
+#w5_ctrl .row.fixpack{justify-content:flex-start; gap:8px}
+#w5_ctrl .row.fixpack button{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer;font-size:13px}
+#w5_ctrl .row.fixpack button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+
+/* 浮動說明面板：可拖曳，預設不擋整個雷達 */
+#w5_help{position:fixed;right:16px;bottom:16px;width:280px;max-width:78vw;z-index:10010;
+  background:#ffffffeb;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);display:none}
+#w5_help header{cursor:move;padding:8px 10px;border-bottom:1px solid #eef2f7;color:#0f172a;font-weight:600;font-size:13px}
+#w5_help .body{padding:10px;font-size:13px;line-height:1.6;color:#334155}
+#w5_help .body ul{margin:6px 0 0 18px}
+#w5_help .close{position:absolute;top:6px;right:8px;border:none;background:transparent;cursor:pointer;font-size:16px;color:#64748b}
+#w5_help .hint{font-size:12px;color:#64748b;margin-top:6px}
+</style>
+<script id="FIX_PACK_V1_JS">
+(function(){
+  if (window.__FIX_PACK_V1__) return; window.__FIX_PACK_V1__=true;
+
+  // —— 0) 去掉重複 ID 的 style/script（避免偶發卡頓/衝突）——
+  (function dedupeIds(){
+    var seen=new Set();
+    document.querySelectorAll('style[id],script[id]').forEach(function(n){
+      var id=n.id;
+      if(!id) return;
+      if(seen.has(id)){
+        // 只針對已知重複最常見的補丁 ID 做移除；其他保守忽略
+        if(id==='PRINT_TIGHT_PLUS') n.remove();
+      } else { seen.add(id); }
+    });
+  })();
+
+  // —— 1) 追加：一鍵估算 & 說明 —— 
+  function ensureButtons(){
+    var ctrl=document.getElementById('w5_ctrl'); if(!ctrl) return;
+    if(!document.getElementById('w5_auto') || !document.getElementById('w5_help_btn')){
+      var row=document.createElement('div'); row.className='row fixpack';
+      row.innerHTML='<button id="w5_auto">一鍵估算（依卦）</button><button id="w5_help_btn">說明</button>';
+      ctrl.insertBefore(row, ctrl.firstChild||null);
+    }
+  }
+  ensureButtons();
+
+  // 浮動說明面板（可拖曳）
+  (function ensureHelp(){
+    if(document.getElementById('w5_help')) return;
+    var box=document.createElement('div'); box.id='w5_help';
+    box.innerHTML = '<header>五行雷達說明<button class="close" title="關閉">×</button></header>\
+    <div class="body">\
+      <div>方位：<b>上＝火、左＝木</b>（順時針：火→土→金→水→木）</div>\
+      <div>虛線圈＝<b>6/10</b>：建議均衡參考線。</div>\
+      <ul>\
+        <li>「一鍵估算」：依卦宮（世）、上下卦、動爻、月/日支，推估木火土金水。</li>\
+        <li>可拖曳本視窗；開著也能操作雷達（別把它拖到雷達上即可）。</li>\
+      </ul>\
+      <div class="hint">※ 本系統僅供學習參考，不作醫療診斷。</div>\
+    </div>';
+    document.body.appendChild(box);
+
+    // 開關
+    var btn=document.getElementById('w5_help_btn');
+    if(btn) btn.addEventListener('click', function(){
+      box.style.display = (box.style.display==='none'||!box.style.display)?'block':'none';
+    });
+    box.querySelector('.close').addEventListener('click', function(){ box.style.display='none'; });
+
+    // 拖曳
+    (function drag(ele, handle){
+      var dx=0, dy=0, dragging=false, sx=0, sy=0;
+      handle.addEventListener('mousedown', function(e){ dragging=true; sx=e.clientX; sy=e.clientY; var r=ele.getBoundingClientRect(); dx=sx-r.left; dy=sy-r.top; e.preventDefault(); });
+      window.addEventListener('mousemove', function(e){ if(!dragging) return;
+        var x=e.clientX-dx, y=e.clientY-dy;
+        // 邊界保護
+        x=Math.max(6, Math.min(window.innerWidth - ele.offsetWidth - 6, x));
+        y=Math.max(6, Math.min(window.innerHeight- ele.offsetHeight- 6, y));
+        ele.style.left=x+'px'; ele.style.top=y+'px'; ele.style.right='auto'; ele.style.bottom='auto';
+      });
+      window.addEventListener('mouseup', function(){ dragging=false; });
+    })(box, box.querySelector('header'));
+  })();
+
+  // —— 2) 改寫雷達畫法：上＝火、左＝木；加 6/10 虛線 —— 
+  function byId(id){return document.getElementById(id)}
+  function valNum(id, d){ var el=byId(id); var v=+(el&&el.value); return isFinite(v)?v:d; }
+  function sizeScale(){ var f=parseFloat(byId('w5_size')?.value||1.3); return Math.max(0.8,Math.min(1.8,f)); }
+  function values(){ return {火:valNum('w5_huo',6),土:valNum('w5_tu',6),金:valNum('w5_jin',6),水:valNum('w5_shui',6),木:valNum('w5_mu',6)}; }
+  function setMini(id){ var el=byId(id+'Val'); var v=byId(id)?.value; if(el&&v!=null) el.textContent=String(v); }
+
+  // 新版：順時針 ['火','土','金','水','木']；ang0=-90° 讓火在上
+  var ORDER=['火','土','金','水','木'];
+  window.w5_draw = function(){
+    var c=byId('w5_canv'); if(!c) return;
+    var dpr=window.devicePixelRatio||1, W=c.clientWidth||600, H=c.clientHeight||300;
+    c.width=Math.floor(W*dpr); c.height=Math.floor(H*dpr);
+    var ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+
+    var cx=W/2, cy=H/2+6, sc=sizeScale(), R=Math.min(W,H*0.9)/2*0.78*sc, rings=5, ang0=-Math.PI/2;
+    // 背景多邊形
+    ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb';
+    for(var r=1;r<=rings;r++){
+      var rr=R*r/rings; ctx.beginPath();
+      for(var i=0;i<ORDER.length;i++){ var a=ang0+i*(2*Math.PI/ORDER.length), x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+      ctx.closePath(); ctx.stroke();
+    }
+    // 軸線與標籤
+    ctx.font='12px "Noto Sans TC","Microsoft JhengHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#0f172a'; ctx.strokeStyle='#cbd5e1';
+    for(var j=0;j<ORDER.length;j++){
+      var a=ang0+j*(2*Math.PI/ORDER.length), x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
+      ctx.fillText(ORDER[j], x, y-12);
+    }
+    // 6/10 參考虛線圈
+    ctx.setLineDash([5,5]); ctx.lineWidth=1.2; ctx.strokeStyle='#94a3b8';
+    ctx.beginPath();
+    var r6=R*0.6;
+    for(var k=0;k<ORDER.length;k++){ var a2=ang0+k*(2*Math.PI/ORDER.length), x2=cx+r6*Math.cos(a2), y2=cy+r6*Math.sin(a2); k?ctx.lineTo(x2,y2):ctx.moveTo(x2,y2); }
+    ctx.closePath(); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 數值面
+    var COLORS={木:'#16a34a',火:'#ef4444',土:'#f59e0b',金:'#64748b',水:'#3b82f6'};
+    var v=values(), pts=[];
+    for(var t=0;t<ORDER.length;t++){
+      var key=ORDER[t], rr=R*(Math.max(1,Math.min(10,v[key]))/10), a3=ang0+t*(2*Math.PI/ORDER.length);
+      pts.push([cx+rr*Math.cos(a3), cy+rr*Math.sin(a3), v[key], key]);
+    }
+    ctx.beginPath(); pts.forEach(function(p,i){ i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); }); ctx.closePath();
+    ctx.fillStyle='rgba(59,130,246,0.18)'; ctx.strokeStyle='rgba(59,130,246,0.9)'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+    pts.forEach(function(p){ ctx.beginPath(); ctx.arc(p[0],p[1],4,0,Math.PI*2); ctx.fillStyle=COLORS[p[3]]||'#111827'; ctx.fill();
+      ctx.fillStyle='#0f172a'; ctx.fillText(String(p[2]), p[0], p[1]-16); });
+  };
+
+  // 同步顯示數字
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(function(i){
+    var el=byId(i); if(el){ el.addEventListener('input', function(){ setMini(i); window.w5_draw(); if(window.updateTCMAdvice && window.__lastMeElem) try{ window.updateTCMAdvice(window.__lastMeElem); }catch(_){} }); }
+  });
+  window.addEventListener('resize', function(){ try{ window.w5_draw(); }catch(_){} });
+
+  // —— 3) 一鍵估算（依卦）——
+  function setRange(id,v){ var el=byId(id); if(!el) return; el.value=String(v); el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+  function normalize1to10(score){
+    var arr=Object.values(score), mi=Math.min.apply(null,arr), ma=Math.max.apply(null,arr);
+    var out={}; Object.keys(score).forEach(function(k){
+      var x = (mi===ma)? 6 : (1 + (score[k]-mi)*(9)/(ma-mi));
+      out[k] = Math.round(Math.max(1,Math.min(10,x)));
+    }); return out;
+  }
+  function estFromHex(){
+    try{
+      // 取上/下卦與動爻
+      var up = byId('upper')?.value, lo = byId('lower')?.value;
+      if(!up||!lo) return;
+      var baseLines = (window.TRIG && TRIG[lo] && TRIG[up]) ? [].concat(TRIG[lo], TRIG[up]) : [0,0,0,0,0,0];
+      var branches = (window.naJiaBranches)? naJiaBranches(baseLines) : [];
+      var mv = (window.moving && moving.length===6)? moving.slice() : [false,false,false,false,false,false];
+
+      // 卦名/卦宮/類型
+      var gname = (window.guaNameOf)? guaNameOf(up,lo) : (up+'-'+lo);
+      var info  = (window.decideShiYing)? decideShiYing(up,lo,gname,baseLines) : {gong:up,kind:'本宮'};
+      var meElem = window.__lastMeElem || (window.GONG_ELEM && GONG_ELEM[info.gong]) || '土';
+
+      // 初始分：偏中性
+      var S = {木:5,火:5,土:5,金:5,水:5};
+
+      // 上下卦權重
+      if(window.GONG_ELEM){ S[GONG_ELEM[up]]  = (S[GONG_ELEM[up]]||0) + 2; }
+      if(window.GONG_ELEM){ S[GONG_ELEM[lo]]  = (S[GONG_ELEM[lo]]||0) + 2; }
+
+      // 卦宮（世）加權
+      S[meElem] = (S[meElem]||0) + 1.5;
+
+      // 動爻：按納甲地支 → 五行加權
+      for(var i=0;i<6;i++){
+        if(mv[i] && branches[i]){
+          var e = (window.ZHI_ELEM && ZHI_ELEM[branches[i]]) || null;
+          if(e) S[e] = (S[e]||0) + 1.4;
+        }
+      }
+
+      // 月支/日支（若有）
+      try{
+        if(window.pillars && pillars.month && pillars.day){
+          var mE = ZHI_ELEM[pillars.month.charAt(1)]||null;
+          var dE = ZHI_ELEM[pillars.day.charAt(1)]||null;
+          if(mE) S[mE] += 1.0;
+          if(dE) S[dE] += 1.0;
+        }
+      }catch(_){}
+
+      // 一輪相剋微調（避免單行過頭）：木剋土、土剋水、水剋火、火剋金、金剋木
+      (function controlPass(){
+        var CTL={木:'土',土:'水',水:'火',火:'金',金:'木'};
+        var sum=Object.values(S).reduce((a,b)=>a+b,0), avg=sum/5;
+        Object.keys(S).forEach(function(k){
+          if(S[k] > avg + 1){ var c=CTL[k]; S[c] = Math.max(1, S[c]-0.6); }
+        });
+      })();
+
+      // 轉 1–10 並寫回滑桿
+      var V = normalize1to10(S);
+      setRange('w5_mu',  V.木);
+      setRange('w5_huo', V.火);
+      setRange('w5_tu',  V.土);
+      setRange('w5_jin', V.金);
+      setRange('w5_shui',V.水);
+
+      // 重繪＋同步右欄
+      try{ window.w5_draw(); }catch(_){}
+      try{ if(window.updateTCMAdvice) window.updateTCMAdvice(meElem); }catch(_){}
+    }catch(e){
+      var err=document.getElementById('err'); if(err){ err.style.display='block'; err.textContent='⚠️ 一鍵估算失敗：'+(e.message||e); }
+    }
+  }
+
+  var autoBtn=document.getElementById('w5_auto');
+  if(autoBtn) autoBtn.addEventListener('click', estFromHex);
+
+  // —— 4) 首次進入：同步顯示數字＆重畫雷達 —— 
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(setMini);
+  try{ window.w5_draw(); }catch(_){}
+})();
+</script>
+<script>
+/* 移除舊的／重複的「依卦一鍵估算」按鈕，只保留 #w5_auto */
+(function(){
+  function removeLegacyEstimateBtn(){
+    var ctrl = document.getElementById('w5_ctrl');
+    if(!ctrl) return;
+    Array.from(ctrl.querySelectorAll('button')).forEach(function(btn){
+      var txt = (btn.textContent || '').replace(/\s/g,'');
+      // 找到文字長得像「依卦一鍵估算」的舊按鈕，且不是我們的 #w5_auto，就移除
+      if(/依卦一鍵估算/.test(txt) && btn.id !== 'w5_auto'){
+        btn.remove();
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', removeLegacyEstimateBtn);
+  } else {
+    removeLegacyEstimateBtn();
+  }
+})();
+</script>
+<script>
+/* 移除文字為「依卦一鍵估算」的那顆按鈕（安全版：僅跑一次＋補跑一次） */
+(function(){
+  function norm(s){ return (s||'').replace(/\s/g,'').replace(/[()（）]/g,''); }
+  function killOnce(){
+    var btns = Array.from(document.querySelectorAll('button, a, [role="button"]'));
+    btns.forEach(function(el){
+      var t = norm(el.textContent || el.innerText || '');
+      if (t === '依卦一鍵估算') {
+        try { el.remove(); }
+        catch(_){
+          // 移除失敗就停用並隱藏，避免誤觸
+          el.onclick = function(e){ e.preventDefault(); e.stopPropagation(); return false; };
+          el.setAttribute('disabled','disabled');
+          el.style.pointerEvents='none';
+          el.style.opacity='0.4';
+          el.style.display='none';
+          el.title = '已停用';
+        }
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', killOnce);
+  } else { killOnce(); }
+  // 有些按鈕晚一點才插入，保險再補掃一次
+  setTimeout(killOnce, 800);
+})();
+</script>
+<script id="REMOVE_BAD_ESTM_BTN">
+(function(){
+  function norm(s){
+    return (s||'')
+      .replace(/\s+/g,'')                 // 去空白
+      .replace(/[()（）［］【】\[\]{}]/g,'') // 去括號
+      .replace(/[^\p{Script=Han}A-Za-z0-9]/gu,''); // 只留中英數
+  }
+  function kill(){
+    var list = Array.from(document.querySelectorAll('button, [role="button"], a, .btn, .button'));
+    list.forEach(function(el){
+      var t = norm(el.textContent || el.innerText || '');
+      // 只移除文字就是「依卦一鍵估算」的那顆；不會影響「一鍵估算（依卦）」
+      if (t === '依卦一鍵估算') {
+        try { el.remove(); }
+        catch(_){
+          el.disabled = true;
+          el.setAttribute('disabled','disabled');
+          el.style.display='none';
+          el.style.pointerEvents='none';
+          el.title = '已停用';
+        }
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', kill);
+  else kill();
+  setTimeout(kill, 1200); // 保險補掃一次
+})();
+</script>
+<script id="W5_DASH_RING_PATCH">
+(function(){
+  if(window.__W5_DASH_RING_PATCH__) return; window.__W5_DASH_RING_PATCH__=true;
+  var old = window.w5_draw;
+  window.w5_draw = function(){
+    if (typeof old === 'function') old();   // 先畫原本的
+    try{
+      var c = document.getElementById('w5_canv'); if(!c) return;
+      var dpr = window.devicePixelRatio||1, W=c.clientWidth, H=c.clientHeight;
+      var ctx = c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+      var cx=W/2, cy=H/2+6;
+      var sc = parseFloat(document.getElementById('w5_size')?.value || 1.3);
+      var R  = Math.min(W,H*0.9)/2*0.78*sc;
+      var N  = 5, ang0 = -Math.PI/2;
+
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6,6]);           // 虛線樣式
+      ctx.strokeStyle = '#94a3b8';      // 100 分框線顏色
+      ctx.beginPath();
+      for(let i=0;i<N;i++){
+        const a=ang0+i*(2*Math.PI/N);
+        const x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }catch(_){}
+  };
+  // 首次／拉桿變動時都重畫一次
+  window.addEventListener('load', ()=> window.w5_draw && window.w5_draw());
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(id=>{
+    var el=document.getElementById(id);
+    if(el) el.addEventListener('input', ()=> window.w5_draw && window.w5_draw());
+  });
+})();
+</script>
+<script id="PATCH_TOPBTN_DASHRING_v3">
+(function(){
+  if(window.__PATCH_TOPBTN_DASHRING_v3__) return; window.__PATCH_TOPBTN_DASHRING_v3__=true;
+
+  /* ① 只把「最上面」那顆一鍵估算藏起來，保留下面那顆 */
+  function hideTopDup(){
+    try{
+      var cands = Array.from(document.querySelectorAll('button,[role="button"],.btn'))
+        .filter(el => /一鍵估算|依卦/.test(el.textContent||''));
+      if(cands.length < 2) return; // 只有一顆就不動
+      // 依畫面垂直位置排序，隱藏最上面那顆
+      cands.sort((a,b)=>a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+      var topBtn = cands[0];
+      topBtn.style.display = 'none';
+      topBtn.setAttribute('aria-hidden','true');
+      if('disabled' in topBtn) topBtn.disabled = true;
+    }catch(e){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', hideTopDup);
+  else hideTopDup();
+  setTimeout(hideTopDup, 800); // 有延遲載入時再掃一次
+
+  /* ② 在雷達圖最外圈疊 100 分虛線（不改你原本的 w5_draw，只是包一層） */
+  function drawDash(){
+    try{
+      var c=document.getElementById('w5_canv'); if(!c) return;
+      var dpr=window.devicePixelRatio||1, W=c.clientWidth||600, H=c.clientHeight||300;
+      var ctx=c.getContext('2d'); if(!ctx) return;
+      ctx.save();
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      var cx=W/2, cy=H/2+6;
+      var sc=parseFloat(document.getElementById('w5_size')?.value||'1.3')||1.3;
+      var R=Math.min(W,H*0.9)/2*0.78*sc;
+
+      ctx.beginPath();
+      for(var i=0;i<5;i++){
+        var a=-Math.PI/2 + i*(2*Math.PI/5);
+        var x=cx + R*Math.cos(a), y=cy + R*Math.sin(a);
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      }
+      ctx.closePath();
+      ctx.lineWidth=1.2;
+      ctx.setLineDash([6,6]);
+      ctx.strokeStyle='rgba(71,85,105,0.9)'; // 比較明顯的灰
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }catch(e){}
+  }
+
+  // 只包一次，不會造成遞迴
+  function patchDrawOnce(){
+    var w = window.w5_draw;
+    if(typeof w === 'function' && !w.__withDash){
+      var orig = w;
+      var wrapped = function(){ orig.apply(this, arguments); drawDash(); };
+      wrapped.__withDash = true;
+      window.w5_draw = wrapped;
+      try{ window.w5_draw(); }catch(_){ drawDash(); }
+      return true;
+    }
+    return false;
+  }
+  if(!patchDrawOnce()){
+    var t=setInterval(function(){ if(patchDrawOnce()) clearInterval(t); }, 300);
+    setTimeout(function(){ clearInterval(t); }, 4000);
+  }
+
+  // 相關事件時，也補畫一次虛線（在下一個 frame 執行，確保疊在最上層）
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){ el.addEventListener('input', function(){ requestAnimationFrame(drawDash); }); }
+  });
+  window.addEventListener('resize', function(){ requestAnimationFrame(drawDash); });
+
+  if(document.readyState==='complete') requestAnimationFrame(drawDash);
+  else window.addEventListener('load', function(){ requestAnimationFrame(drawDash); });
+})();
+</script>
+<script id="W5_INTERACTIVE_DASH_OVERLAY">
+(function(){
+  if (window.__W5_INTERACTIVE_DASH_OVERLAY__) return;
+  window.__W5_INTERACTIVE_DASH_OVERLAY__ = true;
+
+  // —— 小工具 —— //
+  const $ = s => document.querySelector(s);
+  const id = s => document.getElementById(s);
+
+  // 在控制列加「顯示估算虛線（依卦）」勾選框
+  function ensureToggle(){
+    const ctrl = id('w5_ctrl'); if(!ctrl) return;
+    if(id('w5_show_est')) return;
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="w5_show_est" checked>
+        顯示估算虛線（依卦）
+      </label>`;
+    // 放在「大小」下面
+    const first = ctrl.querySelector('.row');
+    if(first && first.nextSibling) ctrl.insertBefore(row, first.nextSibling);
+    else ctrl.appendChild(row);
+    id('w5_show_est').addEventListener('change', ()=>{ try{ if(window.w5_draw) window.w5_draw(); }catch(_){} });
+  }
+
+  // 讀目前拉桿（供座標計算參考用）
+  function readCurrent(){
+    const g = k => +((id(k)&&id(k).value) || NaN);
+    return {火:g('w5_huo'), 木:g('w5_mu'), 土:g('w5_tu'), 金:g('w5_jin'), 水:g('w5_shui')};
+  }
+
+  // 依卦宮五行給一組「參考值」（不改拉桿，只用來畫虛線）
+  function estimateFromHex(){
+    const me = (window.__lastMeElem || '土').trim(); // 卦宮五行
+    // 以 6 為中位，母/子 +1，本位 +2，被我剋 -1，剋我 +0（你要更強烈可調整）
+    const GEN = {木:'火',火:'土',土:'金',金:'水',水:'木'};      // 生
+    const CTL = {木:'土',土:'水',水:'火',火:'金',金:'木'};      // 我剋
+    const MOTHER = {木:'水',火:'木',土:'火',金:'土',水:'金'};    // 生我
+    const KILLME = {木:'金',火:'水',土:'木',金:'火',水:'土'};    // 剋我
+
+    const v = {木:6, 火:6, 土:6, 金:6, 水:6};
+    v[me] += 2;
+    v[GEN[me]] += 1;
+    v[MOTHER[me]] += 1;
+    v[CTL[me]] -= 1;
+    // KILLME 保持 0（有需要可改成 -0.5 或 +0.5）
+    Object.keys(v).forEach(k=>{
+      v[k] = Math.max(1, Math.min(10, Math.round(v[k])));
+    });
+    return v;
+  }
+
+  // 在現有雷達上疊一層「估算虛線多邊形」
+  function drawDashOverlay(est){
+    const c = id('w5_canv'); if(!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = c.clientWidth || 600, H = c.clientHeight || 300;
+    const ctx = c.getContext('2d'); if(!ctx) return;
+
+    // 幾何參數要跟你的雷達一致
+    const ORDER = ['火','木','土','金','水'];  // 你的繪圖順序
+    const sc = parseFloat(id('w5_size')?.value || '1.3') || 1.3;
+    const cx = W/2, cy = H/2 + 6;
+    const R  = Math.min(W, H*0.9)/2 * 0.78 * sc;
+    const ang0 = -Math.PI/2;
+
+    ctx.save();
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    // 路徑
+    const pts = ORDER.map((k,i)=>{
+      const rr = R * (Math.max(1, Math.min(10, est[k])) / 10);
+      const a  = ang0 + i * (2*Math.PI/ORDER.length);
+      return [cx + rr*Math.cos(a), cy + rr*Math.sin(a)];
+    });
+
+    ctx.beginPath();
+    pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+    ctx.closePath();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,6]);
+    ctx.strokeStyle = 'rgba(51,65,85,0.9)'; // 深灰
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 節點（空心）
+    pts.forEach(([x,y])=>{
+      ctx.beginPath();
+      ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(51,65,85,0.9)';
+      ctx.stroke();
+    });
+
+    // 小標籤（在點的上方顯示數字）
+    ctx.font = '12px "Noto Sans TC","Microsoft JhengHei"';
+    ctx.fillStyle = '#334155';
+    ORDER.forEach((k,i)=>{
+      const rr = R * (est[k]/10);
+      const a  = ang0 + i * (2*Math.PI/ORDER.length);
+      const x  = cx + rr*Math.cos(a), y = cy + rr*Math.sin(a);
+      ctx.fillText(String(est[k]), x, y - 14);
+    });
+
+    ctx.restore();
+  }
+
+  // 包一層 w5_draw：先跑原本 → 如果勾選就畫虛線
+  function patchRadarDraw(){
+    const orig = window.w5_draw;
+    if (typeof orig !== 'function' || orig.__withInteractiveDash) return false;
+    const wrapped = function(){
+      orig.apply(this, arguments);
+      ensureToggle();
+      const on = !!id('w5_show_est') && id('w5_show_est').checked;
+      if (on){
+        const est = estimateFromHex();
+        drawDashOverlay(est);
+      }
+    };
+    wrapped.__withInteractiveDash = true;
+    window.w5_draw = wrapped;
+    // 立即重畫一次
+    try{ window.w5_draw(); }catch(_){}
+    return true;
+  }
+
+  // 初始化：等雷達可用就打補丁
+  function boot(){
+    ensureToggle();
+    if(!patchRadarDraw()){
+      // 還沒掛好就稍後再試
+      let tries = 0;
+      const t = setInterval(()=>{
+        tries++;
+        if(patchRadarDraw() || tries>20) clearInterval(t);
+      }, 200);
+    }
+    // 拉桿改動、大小改動，都重畫
+    ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(k=>{
+      const el = id(k); if(el){ el.addEventListener('input', ()=>{ try{ if(window.w5_draw) window.w5_draw(); }catch(_){} }); }
+    });
+    // 卦宮變了（上卦/下卦或重繪），估算也要跟著變
+    ['upper','lower'].forEach(k=>{
+      const el = id(k); if(el){ el.addEventListener('change', ()=>{ try{ if(window.w5_draw) window.w5_draw(); }catch(_){} }); }
+    });
+    // render() 跑完也保險重畫一次（不呼叫 render，避免互相觸發）
+    try{
+      const R = window.render;
+      if(typeof R==='function' && !R.__trigW5Redraw){
+        const wrap = function(){ R.apply(this, arguments); try{ if(window.w5_draw) window.w5_draw(); }catch(_){} };
+        wrap.__trigW5Redraw = true;
+        window.render = wrap;
+      }
+    }catch(_){}
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.addEventListener('load', ()=>{ try{ if(window.w5_draw) window.w5_draw(); }catch(_){} });
+})();
+</script>
+<script id="W5_APPLY_ESTIMATE">
+(function(){
+  if(window.__W5_APPLY_ESTIMATE__) return; window.__W5_APPLY_ESTIMATE__=true;
+  const $=s=>document.querySelector(s);
+  const id=s=>document.getElementById(s);
+
+  // 依卦宮五行推估（與虛線同邏輯）
+  function estimateFromHex(){
+    const me=(window.__lastMeElem||'土').trim();
+    const GEN={木:'火',火:'土',土:'金',金:'水',水:'木'};
+    const MOM={木:'水',火:'木',土:'火',金:'土',水:'金'};
+    const CTL={木:'土',土:'水',水:'火',火:'金',金:'木'};
+    const v={木:6,火:6,土:6,金:6,水:6};
+    v[me]+=2; v[GEN[me]]+=1; v[MOM[me]]+=1; v[CTL[me]]-=1;
+    for(const k in v){ v[k]=Math.max(1,Math.min(10,Math.round(v[k]))); }
+    return v;
+  }
+  function setSlider(k,val){
+    const el=id(k); if(!el) return;
+    el.value=val;
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  function applyEstimate(){
+    const e=estimateFromHex();
+    setSlider('w5_mu',e['木']); setSlider('w5_huo',e['火']);
+    setSlider('w5_tu',e['土']); setSlider('w5_jin',e['金']); setSlider('w5_shui',e['水']);
+    try{ if(window.w5_draw) window.w5_draw(); }catch(_){}
+  }
+  function resetAvg(){
+    ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui'].forEach(k=>setSlider(k,6));
+    try{ if(window.w5_draw) window.w5_draw(); }catch(_){}
+  }
+
+  // 在雷達控制列加兩顆按鈕（放在「顯示估算虛線」下方；沒有就加在最後）
+  function ensureBtns(){
+    const ctrl=id('w5_ctrl'); if(!ctrl || id('w5_apply_est')) return;
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML='<button id="w5_apply_est">套用估算到拉桿</button> <button id="w5_reset_avg">全部重置為 6</button>';
+    const toggle=id('w5_show_est')?.closest('.row');
+    if(toggle && toggle.nextSibling) ctrl.insertBefore(row, toggle.nextSibling); else ctrl.appendChild(row);
+    id('w5_apply_est').addEventListener('click', applyEstimate);
+    id('w5_reset_avg').addEventListener('click', resetAvg);
+  }
+
+  // 把任何寫著「互動平衡」的東西藏起來（只影響 UI）
+  function hideInteractiveBalance(){
+    const ctrl=id('w5_ctrl'); if(!ctrl) return;
+    Array.from(ctrl.querySelectorAll('button, .row, label, span'))
+      .filter(n=>/互動平衡/.test(n.textContent||''))
+      .forEach(n=>{ n.style.display='none'; });
+  }
+
+  function boot(){ ensureBtns(); hideInteractiveBalance(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  window.addEventListener('load', boot);
+})();
+</script>
+<script id="W5_KILL_EMPTY_BUTTON">
+(function(){
+  if(window.__W5_KILL_EMPTY_BUTTON__) return; window.__W5_KILL_EMPTY_BUTTON__=true;
+
+  function cleanup(){
+    var ctrl = document.getElementById('w5_ctrl');
+    if(!ctrl) return;
+
+    // 1) 移除沒有任何文字的按鈕
+    Array.from(ctrl.querySelectorAll('button')).forEach(function(btn){
+      var txt = (btn.textContent || '').trim();
+      if(txt.length === 0) btn.remove();
+    });
+
+    // 2) 把已經沒有可見內容的 .row 一併移除（避免留下大空白）
+    Array.from(ctrl.querySelectorAll('.row')).forEach(function(row){
+      var hasVisible = Array.from(row.children).some(function(el){
+        var s = window.getComputedStyle(el);
+        var nonEmpty = (el.textContent||'').trim().length > 0;
+        var isInput  = (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'BUTTON' || el.tagName === 'LABEL');
+        return s.display !== 'none' && s.visibility !== 'hidden' && (nonEmpty || isInput);
+      });
+      if(!hasVisible) row.remove();
+    });
+  }
+
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cleanup);
+  } else {
+    cleanup();
+  }
+  window.addEventListener('load', cleanup);
+})();
+</script>
+<script id="W5_EST_LINE_RECOLOR">
+(function(){
+  if (window.__W5_EST_LINE_RECOLOR__) return; window.__W5_EST_LINE_RECOLOR__ = true;
+
+  // 專改 #w5_canv 上的「虛線」筆畫顏色（不影響實線）
+  const targetCanvasId = 'w5_canv';
+  const EST_COLOR = '#CE0000';   // 想改色只改這一行
+
+  const Ctx = CanvasRenderingContext2D.prototype;
+  const _setLineDash = Ctx.setLineDash;
+  const _stroke      = Ctx.stroke;
+
+  let lastDash = [];
+  Ctx.setLineDash = function(arr){
+    lastDash = Array.isArray(arr) ? arr.slice() : [];
+    return _setLineDash.apply(this, arguments);
+  };
+
+  Ctx.stroke = function(){
+    try{
+      // 只針對雷達畫布，且僅限「有虛線」的筆畫（避免動到實線）
+      if (this.canvas && this.canvas.id === targetCanvasId &&
+          lastDash && lastDash.length && (lastDash[0] >= 4)) {
+        const bak = this.strokeStyle;
+        this.strokeStyle = EST_COLOR;
+        const r = _stroke.apply(this, arguments);
+        this.strokeStyle = bak;
+        return r;
+      }
+    }catch(e){}
+    return _stroke.apply(this, arguments);
+  };
+})();
+</script>
+<style>
+/* 假如那顆按鈕的 id 是 #btnAutoEstimate 或文字節點只有「一鍵估算」 */
+#btnAutoEstimate { display:none !important; }
+/* 或者用文字選擇器（保險做法就用上面那個 id 版本就好）*/
+</style>
+<script id="KILL_OLD_ESTIMATE_BTN">
+(function(){
+  if (window.__KILL_OLD_ESTIMATE_BTN__) return;
+  window.__KILL_OLD_ESTIMATE_BTN__ = true;
+
+  // 判斷是否為「舊的一顆沒作用」：文字包含估算關鍵字，且不在雷達區(#w5_sec)內
+  function isOldEstimateBtn(btn){
+    const txt = (btn.textContent || '').replace(/\s/g,'');
+    const inRadar = !!btn.closest('#w5_sec');   // 下面那盒（有效的）都在這裡
+    if (inRadar) return false;                  // 保留有效那兩顆
+    const looksEstimate = /(依卦)?一鍵?估算/.test(txt) || /顯示估算/.test(txt);
+    const isBlank = txt === '';                 // 你說只剩空白那顆也一起清掉
+    return looksEstimate || isBlank;
+  }
+
+  function removeOld(){
+    document.querySelectorAll('button').forEach(b=>{
+      if (isOldEstimateBtn(b)) b.remove();
+    });
+  }
+
+  // 初次執行
+  const once = () => { try{ removeOld(); }catch(e){} };
+  document.addEventListener('DOMContentLoaded', once);
+  window.addEventListener('load', once);
+
+  // 若有程式動態又把舊按鈕插回來，10 秒內自動再清一次
+  const mo = new MutationObserver(()=>removeOld());
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+  setTimeout(()=>mo.disconnect(), 10000);
+})();
+</script>
+<script id="W5_EST_COLOR_PATCH">
+(function(){
+  if (window.__W5_EST_COLOR_PATCH__) return; 
+  window.__W5_EST_COLOR_PATCH__ = true;
+
+  // ←← 想要的顏色改這裡（例如：紫 #8b5cf6、紅 #ef4444、綠 #16a34a）
+  window.W5_EST_COLOR = '#16a34';
+
+  function patch(){
+    var c = document.getElementById('w5_canv');
+    if (!c) return;
+    var ctx = c.getContext('2d');
+    if (!ctx || ctx.__patchedForEst) return;
+
+    ctx.__patchedForEst = true;
+    var origSetDash = ctx.setLineDash.bind(ctx);
+    var origStroke  = ctx.stroke.bind(ctx);
+
+    ctx.__dashOn = false;
+    ctx.setLineDash = function(arr){
+      ctx.__dashOn = Array.isArray(arr) && arr.some(n => n > 0); // 只有設了虛線才標記
+      return origSetDash(arr);
+    };
+
+    ctx.stroke = function(){
+      if (ctx.__dashOn) {
+        var bak = ctx.strokeStyle;
+        ctx.strokeStyle = window.W5_EST_COLOR || bak; // 只有虛線才換色
+        try { return origStroke(); } 
+        finally { ctx.strokeStyle = bak; }
+      }
+      return origStroke();
+    };
+  }
+
+  function redraw(){ try{ if (window.w5_draw) window.w5_draw(); }catch(_){} }
+
+  document.addEventListener('DOMContentLoaded', function(){ patch(); redraw(); });
+  window.addEventListener('load', function(){ patch(); redraw(); });
+
+})();
+</script>
+<script id="W5_ONLY_EST_COLOR">
+(function(){
+  if(window.__W5_ONLY_EST_COLOR__) return; window.__W5_ONLY_EST_COLOR__=true;
+
+  /* —— 設定區 —— */
+  window.W5_EST_COLOR = '#16a34a';   // 估算虛線要換成的顏色
+  window.W5_EST_INDEX = 1;           // 第幾條虛線要染色：1 / 2 / 3  擇一
+  // （進階可用樣式比對：回傳 true 才上色；不需要可不動）
+  window.W5_EST_MATCH = function(dashArray){
+    // 例：若你的估算虛線用 [6,4] 的虛線樣式，就比對它
+    // return Array.isArray(dashArray) && dashArray.length===2 && dashArray[0]===6 && dashArray[1]===4;
+    return true; // 預設不比對樣式，只用索引
+  };
+
+  function patch(){
+    var c=document.getElementById('w5_canv'); if(!c) return;
+    var ctx=c.getContext('2d'); if(!ctx || ctx.__onlyEstPatched) return;
+    ctx.__onlyEstPatched=true;
+
+    var origSetDash=ctx.setLineDash.bind(ctx);
+    var origStroke =ctx.stroke.bind(ctx);
+    var origClear  =ctx.clearRect.bind(ctx);
+
+    ctx.__dashOn=false; ctx.__dashArr=[]; ctx.__dashCount=0;
+
+    ctx.setLineDash=function(arr){
+      ctx.__dashOn=Array.isArray(arr)&&arr.some(n=>n>0);
+      ctx.__dashArr=Array.isArray(arr)?arr.slice():[];
+      return origSetDash(arr);
+    };
+    ctx.clearRect=function(){ ctx.__dashCount=0; return origClear.apply(ctx,arguments); };
+
+    ctx.stroke=function(){
+      if(ctx.__dashOn){
+        ctx.__dashCount++;
+        var isTarget = (ctx.__dashCount===(window.W5_EST_INDEX||1)) &&
+                       (typeof window.W5_EST_MATCH!=='function' || window.W5_EST_MATCH(ctx.__dashArr));
+        if(isTarget){
+          var bak=ctx.strokeStyle;
+          ctx.strokeStyle=window.W5_EST_COLOR||bak;
+          try{ return origStroke(); } finally{ ctx.strokeStyle=bak; }
+        }
+      }
+      return origStroke();
+    };
+  }
+
+  function redraw(){ try{ window.w5_draw && window.w5_draw(); }catch(_){} }
+  document.addEventListener('DOMContentLoaded', function(){ patch(); redraw(); });
+  window.addEventListener('load', function(){ patch(); redraw(); });
+})();
+</script>
+<script id="W5_EST_DASH_COLOR_PATCH">
+(function(){
+  if(window.__W5_EST_DASH_COLOR_PATCH__) return; 
+  window.__W5_EST_DASH_COLOR_PATCH__=true;
+
+  // ← 想要的顏色：紫 (#8b5cf6)。要換色直接改這裡。
+  window.W5_EST_DASH_COLOR = '#8b5cf6';
+
+  const P = CanvasRenderingContext2D.prototype;
+  const _stroke = P.stroke, _setLineDash = P.setLineDash;
+
+  // 標記目前是否在畫「虛線」
+  P.setLineDash = function(arr){
+    this.__dashOn = Array.isArray(arr) && arr.some(n=>n>0);
+    this.__dash = Array.isArray(arr) ? arr.slice() : null;
+    return _setLineDash.apply(this, arguments);
+  };
+
+  // 把任何色字串標準化並轉成 RGB
+  function parseColor(s){
+    try{
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.strokeStyle = s;
+      const cs = (ctx.strokeStyle||'').toString();
+      if(cs.startsWith('#')){
+        let hex = cs.slice(1);
+        if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+        const n = parseInt(hex,16);
+        return {r:(n>>16)&255, g:(n>>8)&255, b:n&255, a:1};
+      }
+      const m = cs.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+      if(m) return {r:+m[1], g:+m[2], b:+m[3], a:m[4]==null?1:+m[4]};
+    }catch(e){}
+    return null;
+  }
+
+  // 判斷是不是「紅色系」
+  function isRedish(c){
+    if(!c) return false;
+    const {r,g,b} = c;
+    return r>=180 && g<=120 && b<=120 && (r - Math.max(g,b) >= 40);
+  }
+
+  // 只在 w5_canv（雷達）或 hexCanvas（卦盤），而且是「虛線」且「紅色系」時，強制改色
+  P.stroke = function(){
+    const onTargetCanvas = this.canvas && (this.canvas.id==='w5_canv' || this.canvas.id==='hexCanvas');
+    if(onTargetCanvas && this.__dashOn){
+      const col = parseColor(this.strokeStyle);
+      if(isRedish(col)){
+        const bak = this.strokeStyle;
+        this.strokeStyle = window.W5_EST_DASH_COLOR || bak;
+        try { return _stroke.apply(this, arguments); }
+        finally { this.strokeStyle = bak; }
+      }
+    }
+    return _stroke.apply(this, arguments);
+  };
+
+  // 立刻重繪一次，讓改色生效
+  function redraw(){ try{ window.w5_draw && window.w5_draw(); }catch(_){}
+                     try{ window.render && window.render(); }catch(_){} }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', redraw);
+  else redraw();
+  window.addEventListener('load', redraw);
+})();
+</script>
+<!-- 估算虛線顏色控制：貼在所有 <script> 之後、</body> 前 -->
+<script id="W5_EST_COLOR_PICKER">
+(function(){
+  if(window.__W5_EST_COLOR_PICKER__) return; 
+  window.__W5_EST_COLOR_PICKER__ = true;
+
+  // 預設色（可改）
+  window.W5_EST_DASH_COLOR = '#8b5cf6';
+
+  // —— 1) 在「顯示估算虛線（依卦）」旁邊加一個 color picker —— //
+  function attachPicker(){
+    // 找到包含此文字的元素（label/button/span/div 都掃）
+    var anchor = Array.from(document.querySelectorAll('label,button,span,div'))
+      .find(el => /顯示估算虛線/.test((el.textContent||'')));
+    // 後備：找不到就插在雷達控制列 #w5_ctrl 標題附近
+    if(!anchor){
+      var ctrl = document.getElementById('w5_ctrl');
+      if(ctrl) anchor = ctrl.querySelector('.row') || ctrl;
+    }
+    if(!anchor || anchor.querySelector('#estColorPickWrap')) return;
+
+    var wrap = document.createElement('span');
+    wrap.id = 'estColorPickWrap';
+    wrap.style.marginLeft = '8px';
+    wrap.innerHTML = 
+      '<input id="estColorPick" type="color" value="'+(window.W5_EST_DASH_COLOR||'#8b5cf6')+'" '+
+      'title="估算虛線顏色" style="width:28px;height:22px;padding:0;border:none;vertical-align:middle;">';
+    anchor.appendChild(wrap);
+
+    var pick = wrap.querySelector('#estColorPick');
+    pick.addEventListener('input', function(e){
+      window.W5_EST_DASH_COLOR = e.target.value || '#8b5cf6';
+      redrawAll();
+    });
+  }
+
+  // —— 2) 只改雷達 canvas 上「虛線」的顏色 —— //
+  // 不需要知道原始程式怎麼畫；只要是 w5_canv 上的虛線，就用選到的顏色描邊
+  var P = CanvasRenderingContext2D.prototype;
+  if(!P.__patched_w5_est_color__){
+    P.__patched_w5_est_color__ = true;
+    var _stroke = P.stroke, _setLineDash = P.setLineDash;
+
+    P.setLineDash = function(arr){
+      this.__dashOn = Array.isArray(arr) && arr.some(n=>n>0);
+      return _setLineDash.apply(this, arguments);
+    };
+
+    P.stroke = function(){
+      // 只影響五行雷達（#w5_canv）且目前是「虛線」的描邊
+      if(this.canvas && this.canvas.id === 'w5_canv' && this.__dashOn){
+        var bak = this.strokeStyle;
+        if(window.W5_EST_DASH_COLOR) this.strokeStyle = window.W5_EST_DASH_COLOR;
+        try{ return _stroke.apply(this, arguments); }
+        finally{ this.strokeStyle = bak; }
+      }
+      return _stroke.apply(this, arguments);
+    };
+  }
+
+  function redrawAll(){
+    try{ window.w5_draw && window.w5_draw(); }catch(_){}
+    try{ window.render && window.render(); }catch(_){}
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachPicker);
+  else attachPicker();
+  window.addEventListener('load', attachPicker);
+})();
+</script>
+<script id="W5_EST_OVERLAY_V4">
+(function(){
+  if(window.__W5_EST_OVERLAY_V4__) return; window.__W5_EST_OVERLAY_V4__=true;
+
+  // 清掉我之前加的顏色列與覆蓋層（若存在）
+  (function cleanup(){
+    try{ document.getElementById('w5_overlay')?.remove(); }catch(e){}
+    try{ document.getElementById('w5_est_color_row')?.remove(); }catch(e){}
+  })();
+
+  const ORDER=['火','木','土','金','水'], ang0=-Math.PI/2;
+  const $id = id => document.getElementById(id);
+
+  // —— 單一控制列（勾選 + 色票） —— //
+  function ensureUnifiedRow(){
+    if($id('w5_est_unified')) return;
+    const host = $id('w5_ctrl') || $id('w5_sec') || document.body;
+
+    // 隱藏舊「顯示估算虛線」那一列，並取消勾選，避免它再畫紅色線
+    Array.from(host.querySelectorAll('.row')).forEach(r=>{
+      if(/顯示估算虛線/.test(r.textContent||'')){
+        const cb=r.querySelector('input[type=checkbox]');
+        if(cb){ cb.checked=false; cb.dispatchEvent(new Event('input',{bubbles:true})); }
+        r.style.display='none';
+      }
+    });
+
+    const row=document.createElement('div');
+    row.className='row'; row.id='w5_est_unified';
+    row.innerHTML=`
+      <label style="display:flex;align-items:center;gap:6px">
+        <input id="w5_est_show" type="checkbox">
+        <span>估算虛線（依卦）</span>
+      </label>
+      <input id="w5_est_color" type="color" style="width:34px;height:22px;padding:0;border:none;margin-left:6px">
+      <span class="miniVal" id="w5_est_color_txt" style="margin-left:6px"></span>`;
+    host.appendChild(row);
+
+    // 狀態初始化
+    const show = localStorage.getItem('w5_est_show')==='1';
+    const col  = localStorage.getItem('w5_est_color') || '#8b5cf6';
+    $id('w5_est_show').checked = show;
+    $id('w5_est_color').value  = col;
+    $id('w5_est_color_txt').textContent = col;
+
+    // 事件
+    $id('w5_est_show').addEventListener('change', ()=>{
+      localStorage.setItem('w5_est_show', $id('w5_est_show').checked?'1':'0');
+      drawOverlay();
+    });
+    $id('w5_est_color').addEventListener('input', ()=>{
+      localStorage.setItem('w5_est_color', $id('w5_est_color').value);
+      $id('w5_est_color_txt').textContent = $id('w5_est_color').value;
+      drawOverlay();
+    });
+  }
+
+  function sizeScale(){ let f=parseFloat($id('w5_size')?.value||'1.3'); return Math.max(0.8,Math.min(1.8,f)); }
+
+  function ensureOverlay(){
+    const base=$id('w5_canv'); if(!base) return null;
+    const wrap=base.parentElement;
+    if(getComputedStyle(wrap).position==='static') wrap.style.position='relative';
+    let ov=$id('w5_overlay');
+    if(!ov){
+      ov=document.createElement('canvas');
+      ov.id='w5_overlay';
+      ov.style.position='absolute'; ov.style.inset='0';
+      ov.style.pointerEvents='none'; ov.style.zIndex='3';
+      wrap.appendChild(ov);
+    }
+    const dpr=window.devicePixelRatio||1, W=base.clientWidth, H=base.clientHeight;
+    ov.width=Math.max(1,Math.floor(W*dpr)); ov.height=Math.max(1,Math.floor(H*dpr));
+    ov.style.width=W+'px'; ov.style.height=H+'px';
+    const ctx=ov.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx,W,H};
+  }
+
+  // 估算資料：__w5_est → w5_estimate() → localStorage('w5_est') →（最後）目前拉桿值
+  function getEstimate(){
+    if (window.__w5_est && typeof window.__w5_est==='object') return window.__w5_est;
+    if (typeof window.w5_estimate==='function'){ try{ const r=window.w5_estimate(); if(r) return r; }catch(_){ } }
+    try{ const s=localStorage.getItem('w5_est'); if(s) return JSON.parse(s); }catch(_){}
+    const v=k=>+($id(k)?.value||NaN); const mu=v('w5_mu'),huo=v('w5_huo'),tu=v('w5_tu'),jin=v('w5_jin'),shui=v('w5_shui');
+    if([mu,huo,tu,jin,shui].every(n=>!isNaN(n))) return {木:mu,火:huo,土:tu,金:jin,水:shui};
+    return null;
+  }
+
+  function drawOverlay(){
+    ensureUnifiedRow(); // 也會把舊列藏起來
+    const pack=ensureOverlay(); if(!pack) return;
+    const {ctx,W,H}=pack;
+    ctx.clearRect(0,0,W,H);
+
+    const show = $id('w5_est_show')?.checked;
+    if(!show) return;
+
+    const est=getEstimate(); if(!est) return;
+    const cx=W/2, cy=H/2+6, R=Math.min(W, H*0.9)/2*0.78*sizeScale();
+    const col=localStorage.getItem('w5_est_color') || '#8b5cf6';
+
+    ctx.save();
+    ctx.setLineDash([8,6]);
+    ctx.lineWidth=3;
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.strokeStyle=col;
+    ctx.beginPath();
+    ORDER.forEach((k,i)=>{
+      const v=Math.max(1,Math.min(10,+est[k]||6));
+      const rr=R*(v/10);
+      const a=ang0 + i*(2*Math.PI/ORDER.length);
+      const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a);
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // 盡可能關閉舊紅線：每次重畫前把舊的 checkbox 取消
+  function disableOldEstimate(){
+    const host=$id('w5_ctrl')||$id('w5_sec')||document.body;
+    Array.from(host.querySelectorAll('.row')).forEach(r=>{
+      if(/顯示估算虛線/.test(r.textContent||'')){
+        const cb=r.querySelector('input[type=checkbox]');
+        if(cb){ cb.checked=false; cb.dispatchEvent(new Event('input',{bubbles:true})); }
+      }
+    });
+  }
+
+  // 掛到你的 w5_draw 後面：先讓原雷達畫完，再關舊紅線，最後畫覆蓋層
+  (function hook(){
+    const orig=window.w5_draw;
+    window.w5_draw=function(){ try{ orig && orig.apply(this, arguments); }catch(_){} disableOldEstimate(); drawOverlay(); };
+  })();
+
+  // 互動事件
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(id=>{ $id(id)?.addEventListener('input', drawOverlay); });
+  window.addEventListener('resize', drawOverlay);
+  document.addEventListener('DOMContentLoaded', ()=>{ disableOldEstimate(); drawOverlay(); });
+  window.addEventListener('load', ()=>{ disableOldEstimate(); drawOverlay(); });
+  document.addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    if(/估算|依卦|套用/i.test((b.textContent||'').trim())) setTimeout(()=>{ disableOldEstimate(); drawOverlay(); }, 30);
+  });
+})();
+</script>
+
 
 </body>
 </html>
