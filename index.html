@@ -189,6 +189,19 @@ const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'}; // 我生
 const WU_KE = {木:'土',土:'水',水:'火',火:'金',金:'木'};    // 我克
 const YS_KIN = ['父母','兄弟','官鬼','妻財','子孫'];
 
+// 【Helper】：獲取六親五行對應關係
+function getYSFiveElementMap(meElem) {
+    // meElem 是卦宮的五行 (兄弟)
+    return {
+      '父母': WU_SHENG[meElem],              // 生我者
+      '兄弟': meElem,                       // 助我者
+      '官鬼': WU_KE[meElem],                // 克我者
+      '妻財': WU_KE[WU_SHENG[meElem]],      // 我克者 (生兄弟者所克)
+      '子孫': WU_SHENG[WU_KE[meElem]]       // 我生者 (克官鬼者)
+    };
+}
+
+
 function trigFromBits(b3){for(const n of TRINAMES){const t=TRIG[n];if(t[0]===b3[0]&&t[1]===b3[1]&&t[2]===b3[2]) return n} return null}
 function upperLowerOf(lines){const lo=trigFromBits([lines[0],lines[1],lines[2]]), up=trigFromBits([lines[3],lines[4],lines[5]]); return {up,lo}}
 function guaNameOf(up,lo){
@@ -372,25 +385,16 @@ function drawBoard(meta,rows){
 }
 
 // 【六爻用神旺弱計算函數】：計算用神及其五行的旺弱評分 (1-10分)
-function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, baseKins, baseBranches, moving) {
+function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseBranches, moving) {
     const defaultScore = 6;
     const scores = {木: defaultScore, 火: defaultScore, 土: defaultScore, 金: defaultScore, 水: defaultScore};
-    if (!yongShen || !YS_KIN.includes(yongShen)) return scores;
+    if (!yongShen || !YS_KIN.includes(yongShen)) return {scores, targetElem: ''};
     
-    // 獲取卦宮五行作為基準 (兄弟)
-    const meElem = window.__lastMeElem || '土'; 
-    
-    // 定義六親與五行對應關係（以卦宮五行為「兄弟」）
-    const ysKinElemMap = {
-      '父母': WU_SHENG[meElem],              // 生我者
-      '兄弟': meElem,                       // 助我者
-      '官鬼': WU_KE[meElem],                // 克我者
-      '妻財': WU_KE[WU_SHENG[meElem]],      // 我克者 (生兄弟者所克)
-      '子孫': WU_SHENG[WU_KE[meElem]]       // 我生者 (克官鬼者)
-    };
+    // 取得五行對應關係和目標五行
+    const ysKinElemMap = getYSFiveElementMap(meElem);
     const targetElem = ysKinElemMap[yongShen];
 
-    if (!targetElem) return scores;
+    if (!targetElem) return {scores, targetElem: ''};
 
     let factor = 0;
     const monthElem = ZHI_ELEM[monthZhi.charAt(1)];
@@ -407,7 +411,6 @@ function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, baseKins, bas
     if (dayElem === targetElem || WU_SHENG[dayElem] === targetElem) { // 日建比和、相生：中旺 (+2)
         factor += 2;
     } else if (WU_KE[dayElem] === targetElem) { // 日建相剋：中衰 (-2)
-    
         factor -= 2;
     }
 
@@ -429,7 +432,7 @@ function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, baseKins, bas
     scores[targetElem] = finalScore;
     E('ysName').textContent = `${yongShen} (五行:${targetElem} 旺度:${finalScore.toFixed(1)})`;
 
-    return scores;
+    return {scores, targetElem}; // 回傳分數與目標五行
 }
 
 // 修正：更新五行雷達圖拉桿數值，接收一個包含 {木:score, 火:score, ...} 的物件
@@ -457,7 +460,7 @@ function updateW5RadarScores(scores) {
 
 function render(){
   const upTri=E('upper').value, loTri=E('lower').value;
-  const yongShen=E('yongShen').value; // 讀取用神
+  const yongShen=E('yongShen').value; 
   
   const baseLines=[...TRIG[loTri], ...TRIG[upTri]]; 
   const q=(E('question').value||'').trim()||'—';
@@ -465,8 +468,8 @@ function render(){
   const gzSix=calcPillarsAndSix();
   const xun=E('gzXun').textContent.replace('旬首：','');
   const kw=E('gzKW').textContent.replace('空亡：','');
-  const monthZhi = E('gzMonth').textContent.replace('月：',''); // 月支
-  const dayZhi = E('gzDay').textContent.replace('日：','');     // 日支
+  const monthZhi = E('gzMonth').textContent.replace('月：',''); 
+  const dayZhi = E('gzDay').textContent.replace('日：','');     
 
   const guaName = guaNameOf(upTri, loTri);
   const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
@@ -480,11 +483,12 @@ function render(){
   let w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6};
   let ysTxt = '';
   if (yongShen) {
-    w5Scores = calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, kins, branches, moving);
-    const targetElem = ysKinElemMap[yongShen];
+    const result = calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, branches, moving);
+    w5Scores = result.scores;
+    const targetElem = result.targetElem; 
+    
     ysTxt = `${yongShen} (五行:${targetElem} 旺度:${w5Scores[targetElem].toFixed(1)})`;
   } else {
-    // 如果未選用神，則雷達圖使用預設值
     E('ysName').textContent = '';
   }
   
@@ -647,7 +651,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   function htmlList(items){ return '<ul>'+items.map(s=>'<li>'+s+'</li>').join('')+'</ul>'; }
   
   // 修正：現在 build 函數接收五行分數物件
-  function build(meElem, w5Scores){
+  window.updateTCMAdvice = function build(meElem, w5Scores){
     const core=$('#tcmCore'), lists=$('#tcmLists'); if(!core||!lists) return;
     const base=MAP[meElem]||MAP['土'];
     const five=pickFive(w5Scores); 
@@ -667,8 +671,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
     // 【茶飲建議】
     const teaList = [];
     if (trend && (trend.hi.length > 0 || trend.lo.length > 0)) {
-        trend.hi.forEach(([k]) => teaList.push(TEA_MAP[`${k}旺`]) );
-        trend.lo.forEach(([k]) => teaList.push(TEA_MAP[`${k}弱`]) );
+        trend.hi.forEach(([k]) => { if (TEA_MAP[`${k}旺`]) teaList.push(TEA_MAP[`${k}旺`]); });
+        trend.lo.forEach(([k]) => { if (TEA_MAP[`${k}弱`]) teaList.push(TEA_MAP[`${k}弱`]); });
     } else {
         // 沒有明顯旺弱，提供通用養生
         teaList.push(TEA_MAP['通用']);
@@ -680,9 +684,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     lists.innerHTML=html;
   }
   // 對外方法：render() 之後會呼叫
-  window.updateTCMAdvice = build;
-
-  // 若外掛雷達存在，拖動即更新 (已在 W5_SAFE_JS 中處理)
+  // window.updateTCMAdvice = build; // 已經在上方定義時賦值
 })();
 </script>
 
@@ -691,6 +693,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 // 讓主 render 結束後會順便更新中醫建議
 (function(){
   const _render = window.render; if(!_render) return;
+  // 這裡的 render 函式已經在主腳本中修正，因此這個 hook 保持原樣（讓 load 後能更新）
   window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice){ window.updateTCMAdvice(window.__lastMeElem, {木:6, 火:6, 土:6, 金:6, 水:6}); } }catch(_){} };
 })();
 </script>
@@ -733,7 +736,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fillStyle='rgba(59,130,246,0.18)'; ctx.strokeStyle='rgba(59,130,246,0.9)'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
     pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],4,0,Math.PI*2); ctx.fillStyle=COLORS[p[3]]||'#111827'; ctx.fill(); ctx.fillStyle='#0f172a'; ctx.fillText(String(p[2]), p[0], p[1]-16); }); }
   window.w5_draw=drawRadar;
-  // 【修正】在拖動滑桿時，也將當前數值傳給 TCM Advice
+  // 在拖動滑桿時，也將當前數值傳給 TCM Advice (即使沒有選用神，也允許手動調整)
   ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(i=>{ const el=id(i); if(el){ el.addEventListener('input',()=>{ const tip=id(i+'Val'); if(tip) tip.textContent=String(el.value); drawRadar(); if(window.updateTCMAdvice && window.__lastMeElem) try{ window.updateTCMAdvice(window.__lastMeElem, values()); }catch(_){} }); }}); 
   window.addEventListener('resize', drawRadar);
   document.addEventListener('DOMContentLoaded', drawRadar);
