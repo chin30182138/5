@@ -61,8 +61,7 @@
       </div>
 
       <div class="row btns hide-print" style="gap:8px">
-        <button id="btnTai">地天泰（坤宮）</button>
-        <button id="btnWeiJi">火水未濟（離宮）</button>
+        <button id="btnRandomHex">隨機起卦</button>
       </div>
 
       <div class="row hide-print" style="gap:14px">
@@ -107,6 +106,7 @@
       <div class="row hide-print" style="gap:10px">
         <button id="redraw">重繪卦象</button>
         <button id="download">匯出 PNG</button>
+        <button id="btnUpdateRadar">更新雷達圖</button>
       </div>
 
       <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
@@ -162,26 +162,6 @@ const NAMES={ '乾':{'乾':'乾為天','兌':'天澤履','離':'天火同人','�
  '巽':{'乾':'風天小畜','兌':'風澤中孚','離':'風火家人','震':'風雷益','巽':'巽為風','坎':'風水渙','艮':'風山漸','坤':'風地觀'},
  '坎':{'乾':'水天需','兌':'水澤節','離':'水火既濟','震':'水雷屯','巽':'水風井','坎':'坎為水','艮':'水山蹇','坤':'水地比'},
  '艮':{'乾':'山天大畜','兌':'山澤損','離':'山火賁','震':'山雷頤','巽':'山風蠱','坎':'山水蒙','艮':'艮為山','坤':'坤為地'} };
-
-/* ===== 64卦：卦宮/類型查表 ===== */
-const GUA_CLASS = {
-  "乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},
-  "風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},
-  "坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},
-  "雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},
-  "震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},
-  "地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},
-  "巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},
-  "天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},
-  "坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},
-  "澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},
-  "離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},
-  "山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},
-  "艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},
-  "火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},
-  "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},
-  "水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
-};
 
 // 【六爻生剋核心常量】
 const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'}; // 我生
@@ -463,6 +443,73 @@ function updateW5RadarScores(scores) {
     }
 }
 
+// 【新增】：隨機起卦函數
+function applyRandomHexagram() {
+    const TRIS = ['乾','兌','離','震','巽','坎','艮','坤'];
+    
+    // 1. Randomize Trigrams
+    const upperTri = TRIS[Math.floor(Math.random() * TRIS.length)];
+    const lowerTri = TRIS[Math.floor(Math.random() * TRIS.length)];
+    E('upper').value = upperTri;
+    E('lower').value = lowerTri;
+    
+    // 2. Randomize Moving Yaos (0-5)
+    let hasMovingYao = false;
+    const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]');
+    
+    mvCtlInputs.forEach(cb => {
+        const isMoving = Math.random() < 0.35; // 35% chance to be a moving line
+        cb.checked = isMoving;
+        if (isMoving) hasMovingYao = true;
+    });
+
+    // 確保至少有一條動爻
+    if (!hasMovingYao && mvCtlInputs.length > 0) {
+        const randomIndex = Math.floor(Math.random() * mvCtlInputs.length);
+        mvCtlInputs[randomIndex].checked = true;
+    }
+    
+    // 3. 更新全局動爻狀態 (moving[])
+    const newMoving = Array.from(mvCtlInputs).map(cb => cb.checked);
+    for (let i = 0; i < 6; i++) {
+        moving[i] = newMoving[i];
+    }
+    
+    // 4. 更新問題文字
+    E('question').value = `隨機起卦：${upperTri}${lowerTri}`;
+
+    // 5. 強制渲染
+    render();
+}
+
+
+// 【新增】手動更新按鈕功能：強制執行一次完整的計算和繪圖
+function forceRadarUpdate() {
+    const upTri=E('upper').value, loTri=E('lower').value;
+    const yongShen=E('yongShen').value; 
+    
+    const baseLines=[...TRIG[loTri], ...TRIG[upTri]]; 
+    const monthZhi = E('gzMonth').textContent.replace('月：',''); 
+    const dayZhi = E('gzDay').textContent.replace('日：','');     
+    const guaName = guaNameOf(upTri, loTri);
+    const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
+    const meElem=GONG_ELEM[gong];
+    const branches=naJiaBranches(baseLines);
+    const kins=branches.map(b=>sixKin(meElem,b));
+
+    let w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6};
+    if (yongShen) {
+      const result = calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, branches, moving);
+      w5Scores = result.scores;
+    }
+    
+    // 呼叫更新函數，傳入計算後的五行分數 (這會強制更新圖表)
+    updateW5RadarScores(w5Scores); 
+    
+    // 手動觸發中醫建議更新，確保建議也更新
+    if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem, w5Scores); } catch(_) { }
+}
+
 
 function render(){
   const upTri=E('upper').value, loTri=E('lower').value;
@@ -567,9 +614,6 @@ function downloadPNG(){
   } else { openFallback(); }
 }
 
-function applyTai(){ E('upper').value='坤'; E('lower').value='乾'; E('question').value='示例：地天泰（坤宮）'; render(); }
-function applyWeiJi(){ E('upper').value='離'; E('lower').value='坎'; E('question').value='示例：火水未濟（離宮）'; render(); }
-
 window.addEventListener('DOMContentLoaded', ()=>{
   const now=new Date(); const z=n=>(n<10?'0'+n:n);
   E('dt').value=`${now.getFullYear()}-${z(now.getMonth()+1)}-${z(now.getDate())}T${z(now.getHours())}:${z(now.getMinutes())}`;
@@ -587,9 +631,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
   ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render)); 
   E('redraw').addEventListener('click',render);
   E('download').addEventListener('click',downloadPNG);
-
-  E('btnTai').addEventListener('click',applyTai);
-  E('btnWeiJi').addEventListener('click',applyWeiJi);
+  
+  // 【新增】按鈕綁定
+  E('btnRandomHex').addEventListener('click',applyRandomHexagram);
+  const btnUpdateRadar = E('btnUpdateRadar');
+  if (btnUpdateRadar) btnUpdateRadar.addEventListener('click', forceRadarUpdate);
 
   render();
 });
