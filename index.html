@@ -98,7 +98,6 @@
       </div>
 
       <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
-<!-- 備註（可列印） -->
 <div id="noteBox" class="noteBox">
   <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
   <textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea>
@@ -118,7 +117,6 @@
     <section class="sec hide-print">
       <div id="headInfo" class="muted" style="font-size:14px">卦名：—　上卦：—　下卦：—　卦宮：—　卦型：—　世：—　應：—</div>
       <pre id="brief" class="rightNote">（這裡會列出六爻摘要）</pre>
-<!-- ★ 中醫系統：放在右欄（可列印） -->
 <div id="tcmBox" class="tcm-box">
   <h3>中醫分科建議</h3>
   <div id="tcmCore"></div>
@@ -406,19 +404,12 @@ function render(){
   if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem); } catch(_) { }
 
   const yaoTxt=(yy,mv)=> mv?(yy?'—○—':'--×--'):(yy?'———':'-- --');
-  let brief=`卦名：${guaName}｜上：${upTri} 下：${loTri}｜卦宮：${gong}｜卦型：${kind}｜世：${shi} 應：${ying}
-`;
-  brief+=`四柱：${y} ${m} ${d} ${h}　（${xun}｜空亡${kw}）
-`;
-  brief+=`問題：${q}
-起卦：${dt.replace('T',' ')}
-
-位次  六獸  伏神    爻象  六親  地支  世應  變六親  變支
-`;
+  let brief=`卦名：${guaName}｜上：${upTri} 下：${loTri}｜卦宮：${gong}｜卦型：${kind}｜世：${shi} 應：${ying}<br>`;
+  brief+=`四柱：${y} ${m} ${d} ${h}　（${xun}｜空亡${kw}）<br>`;
+  brief+=`問題：${q}<br>起卦：${dt.replace('T',' ')}<br><br>位次  六獸  伏神    爻象  六親  地支  世應  變六親  變支<br>`;
   for(let pos=6;pos>=1;pos--){
     const i=pos-1; const fuTxt=fuMap[pos] || '—';
-    brief+=`${pos===6?'上':pos===1?'初':pos}  ${gzSix[i]}  ${fuTxt.padEnd(6,' ')}  ${yaoTxt(baseLines[i],moving[i])}  ${(kins[i]||'').padEnd(2,' ')}  ${(branches[i]||'').padEnd(2,' ')}  ${(pos===shi?'世':(pos===ying?'應':' '))}  ${(moving[i]?kinsC[i]:'').padEnd(2,' ')}  ${moving[i]?branchesC[i]:''}
-`;
+    brief+=`${pos===6?'上':pos===1?'初':pos}  ${gzSix[i]}  ${fuTxt.padEnd(6,' ')}  ${yaoTxt(baseLines[i],moving[i])}  ${(kins[i]||'').padEnd(2,' ')}  ${(branches[i]||'').padEnd(2,' ')}  ${(pos===shi?'世':(pos===ying?'應':' '))}  ${(moving[i]?kinsC[i]:'').padEnd(2,' ')}  ${moving[i]?branchesC[i]:''}<br>`;
   }
   E('headInfo').textContent=`卦名：${guaName}　上卦：${upTri}　下卦：${loTri}　卦宮：${gong}　卦型：${kind}　世：${shi}　應：${ying}`;
   E('brief').textContent=brief;
@@ -654,7 +645,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   function collect(){
     var S={ ver:'v1',
       question:getVal('question'), dt:getVal('dt'), upper:getVal('upper'), lower:getVal('lower'),
-      size:getVal('size'), offx:getVal('offx'), offy=getVal('offy'), gap=getVal('gap'), headgap=getVal('headgap'),
+      size:getVal('size'), offx:getVal('offx'), offy:getVal('offy'), gap:getVal('gap'), headgap:getVal('headgap'), // ⬅️ 已修正
       moving:getMoving(),
       w5:{ size:getVal('w5_size'), 木:getVal('w5_mu'), 火:getVal('w5_huo'), 土:getVal('w5_tu'), 金:getVal('w5_jin'), 水:getVal('w5_shui') },
       tcmHTML:(document.getElementById('tcmBox')||{}).innerHTML||null,
@@ -745,15 +736,15 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
   function buildVault(){
     var wrap=document.createElement('div'); wrap.id='vaultWrap';
-    wrap.innerHTML='\
-      <div class="vhdr">保存庫</div>\
-      <div class="vsec">\
-        <div class="vrow"><span>資料夾</span><select id="vFolderSel"></select><input id="vNewFolder" type="text" placeholder="新增資料夾"><button id="vAddFolder">新增</button></div>\
-        <div class="vrow" style="width:100%"><span>清單</span></div>\
-        <ul id="vList"></ul>\
-        <div class="vrow"><span>檔名</span><input id="vSaveName" type="text" placeholder="另存新檔名稱"><button id="vSaveAs">另存新檔</button><button id="vDel">刪除</button></div>\
-      </div>\
-      <div class="vfoot"><button id="vClose">關閉</button></div>';
+    wrap.innerHTML=''+
+      '<div class="vhdr">保存庫</div>'+
+      '<div class="vsec">'+
+        '<div class="vrow"><span>資料夾</span><select id="vFolderSel"></select><input id="vNewFolder" type="text" placeholder="新增資料夾"><button id="vAddFolder">新增</button></div>'+
+        '<div class="vrow" style="width:100%"><span>清單</span></div>'+
+        '<ul id="vList"></ul>'+
+        '<div class="vrow"><span>檔名</span><input id="vSaveName" type="text" placeholder="另存新檔名稱"><button id="vSaveAs">另存新檔</button><button id="vDel">刪除</button></div>'+
+      '</div>'+
+      '<div class="vfoot"><button id="vClose">關閉</button></div>';
     document.body.appendChild(wrap);
 
     q('#vClose').addEventListener('click', function(){ q('#vaultWrap').style.display='none'; });
@@ -770,4 +761,39 @@ window.addEventListener('DOMContentLoaded', ()=>{
     var list=q('#vList'); list.innerHTML=''; var arr=v.folders[v.currentFolder]||[]; arr.sort(function(a,b){return b.id-a.id});
     arr.forEach(function(item){ var li=document.createElement('li'); li.setAttribute('data-id', item.id); li.innerHTML='<span>'+escapeHtml(item.name)+'</span><span style="color:#64748b">'+item.ts+'</span>';
       li.addEventListener('click', function(){ qa('#vList li').forEach(function(x){x.classList.remove('sel')}); li.classList.add('sel'); q('#vSaveName').value=item.name; });
-      li.addEventListener('dblclick', function(){ try{ applySafe(item.data); q('#vaultWrap').style.display='none'; }catch
+      li.addEventListener('dblclick', function(){ try{ applySafe(item.data); q('#vaultWrap').style.display='none'; }catch(e){ showErr('載入失敗：'+(e.message||e)); } });
+      list.appendChild(li);
+    });
+  }
+
+  // 以下為安全取值/設定
+  function getValSafe(id){ var el=document.getElementById(id); return el?el.value:null; }
+  function setValSafe(id,v){ var el=document.getElementById(id); if(el!=null && v!=null){ el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } }
+  function getMovingSafe(){ var arr=[false,false,false,false,false,false]; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i)) arr[i]=!!cb.checked; }); return arr; }
+  function setMovingSafe(a){ if(!a||!a.length) return; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i) && typeof a[i]!== 'undefined'){ cb.checked=!!a[i]; cb.dispatchEvent(new Event('change',{bubbles:true})); } }); }
+
+  function collectSafe(){
+    var S={ ver:'v1',
+      question:getValSafe('question'), dt:getValSafe('dt'), upper:getValSafe('upper'), lower:getValSafe('lower'),
+      size:getValSafe('size'), offx:getValSafe('offx'), offy:getValSafe('offy'), gap:getValSafe('gap'), headgap:getValSafe('headgap'),
+      moving:getMovingSafe(),
+      w5:{ size:getValSafe('w5_size'), 木:getValSafe('w5_mu'), 火:getValSafe('w5_huo'), 土:getValSafe('w5_tu'), 金:getValSafe('w5_jin'), 水:getValSafe('w5_shui') },
+      note:(document.getElementById('userNote')||{}).value||null
+    };
+    return S;
+  }
+  function applySafe(S){
+    setValSafe('question',S.question); setValSafe('dt',S.dt); setValSafe('upper',S.upper); setValSafe('lower',S.lower);
+    setValSafe('size',S.size); setValSafe('offx',S.offx); setValSafe('offy',S.offy); setValSafe('gap',S.gap); setValSafe('headgap',S.headgap);
+    setMovingSafe(S.moving);
+    if(S.w5){ setValSafe('w5_size',S.w5.size); setValSafe('w5_mu',S.w5.木); setValSafe('w5_huo',S.w5.火); setValSafe('w5_tu',S.w5.土); setValSafe('w5_jin',S.w5.金); setValSafe('w5_shui',S.w5.水); }
+    if(S.note!=null){ var n=document.getElementById('userNote'); if(n) n.value=S.note; }
+    try{ if(window.render) window.render(); }catch(e){}
+    try{ if(window.w5_draw) window.w5_draw(); }catch(e){}
+    toast('已從保存庫套用設定');
+  }
+  function escapeHtml(str){ return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+  document.addEventListener('DOMContentLoaded', ensureExtraButtons);
+  window.addEventListener('load', ensureExtraButtons);
+})();</script>
