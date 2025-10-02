@@ -69,7 +69,19 @@
         <label>問題</label>
         <input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運">
       </div>
-
+      
+      <div class="row hide-print" style="gap:14px">
+        <label>用神</label>
+        <select id="yongShen">
+          <option value="">（未指定）</option>
+          <option value="父母">父母 (學業/文書)</option>
+          <option value="兄弟">兄弟 (競爭/劫財)</option>
+          <option value="官鬼">官鬼 (事業/疾病)</option>
+          <option value="妻財" selected>妻財 (求財/妻子)</option>
+          <option value="子孫">子孫 (福德/解憂)</option>
+        </select>
+        <span id="ysName" class="badge"></span>
+      </div>
       <div class="row hide-print" style="gap:14px">
         <label>時間</label>
         <input id="dt" type="datetime-local">
@@ -171,6 +183,11 @@ const GUA_CLASS = {
   "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},
   "水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
 };
+
+// 【六爻生剋核心常量】
+const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'}; // 我生
+const WU_KE = {木:'土',土:'水',水:'火',火:'金',金:'木'};    // 我克
+const YS_KIN = ['父母','兄弟','官鬼','妻財','子孫'];
 
 function trigFromBits(b3){for(const n of TRINAMES){const t=TRIG[n];if(t[0]===b3[0]&&t[1]===b3[1]&&t[2]===b3[2]) return n} return null}
 function upperLowerOf(lines){const lo=trigFromBits([lines[0],lines[1],lines[2]]), up=trigFromBits([lines[3],lines[4],lines[5]]); return {up,lo}}
@@ -307,7 +324,7 @@ function drawBoard(meta,rows){
   ctx.font='15px "Noto Sans TC","Microsoft JhengHei",sans-serif';
   ctx.fillText(`起卦：${meta.dt}`,12,48);
   ctx.fillText(`四柱：${meta.gzY}　${meta.gzM}　${meta.gzD}　${meta.gzH}　（旬首：${meta.xun}　空亡：${meta.kw}）`,12,70);
-  ctx.fillText(`卦名：${meta.name}　上卦：${meta.up}　下卦：${meta.lo}　卦宮：${meta.gong}　卦型：${meta.kind}　世：${meta.shi}　應：${meta.ying}`,12,92);
+  ctx.fillText(`卦名：${meta.name}　上卦：${meta.up}　下卦：${meta.lo}　卦宮：${meta.gong}　卦型：${meta.kind}　世：${meta.shi}　應：${meta.ying} ${meta.ysTxt ? `｜用神：${meta.ysTxt}` : ''}`,12,92);
 
   const size=+E('size').value, offx=+E('offx').value, offy=+E('offy').value, gap=+E('gap').value;
   const rowOffset=+E('headgap').value || 24;
@@ -354,23 +371,126 @@ function drawBoard(meta,rows){
   ctx.fillText('（初爻在下；動爻：陽○／陰×；伏神＝本卦缺誰→回本宮純卦補誰；世應：固定配對 1↔4、2↔5、3↔6；遊魂世=四，歸魂世=三；飛卦以爻變法求世。）', 12, H-12);
 }
 
+// 【六爻用神旺弱計算函數】：計算用神及其五行的旺弱評分 (1-10分)
+function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, baseKins, baseBranches, moving) {
+    const defaultScore = 6;
+    const scores = {木: defaultScore, 火: defaultScore, 土: defaultScore, 金: defaultScore, 水: defaultScore};
+    if (!yongShen || !YS_KIN.includes(yongShen)) return scores;
+    
+    // 獲取卦宮五行作為基準 (兄弟)
+    const meElem = window.__lastMeElem || '土'; 
+    
+    // 定義六親與五行對應關係（以卦宮五行為「兄弟」）
+    const ysKinElemMap = {
+      '父母': WU_SHENG[meElem],              // 生我者
+      '兄弟': meElem,                       // 助我者
+      '官鬼': WU_KE[meElem],                // 克我者
+      '妻財': WU_KE[WU_SHENG[meElem]],      // 我克者 (生兄弟者所克)
+      '子孫': WU_SHENG[WU_KE[meElem]]       // 我生者 (克官鬼者)
+    };
+    const targetElem = ysKinElemMap[yongShen];
+
+    if (!targetElem) return scores;
+
+    let factor = 0;
+    const monthElem = ZHI_ELEM[monthZhi.charAt(1)];
+    const dayElem = ZHI_ELEM[dayZhi.charAt(1)];
+    
+    // --- 1. 月建對用神五行的影響 (權重高) ---
+    if (monthElem === targetElem || WU_SHENG[monthElem] === targetElem) { // 月建比和、相生：大旺 (+3)
+        factor += 3;
+    } else if (WU_KE[monthElem] === targetElem) { // 月建相剋：大衰 (-3)
+        factor -= 3;
+    } 
+
+    // --- 2. 日辰對用神五行的影響 (權重中) ---
+    if (dayElem === targetElem || WU_SHENG[dayElem] === targetElem) { // 日建比和、相生：中旺 (+2)
+        factor += 2;
+    } else if (WU_KE[dayElem] === targetElem) { // 日建相剋：中衰 (-2)
+    
+        factor -= 2;
+    }
+
+    // --- 3. 動爻對用神五行的影響 (權重中) ---
+    baseBranches.forEach((branch, i) => {
+      if (moving[i]) {
+        const moveElem = ZHI_ELEM[branch];
+        if (moveElem === targetElem || WU_SHENG[moveElem] === targetElem) { // 動爻生扶：小旺 (+1.5)
+            factor += 1.5;
+        } else if (WU_KE[moveElem] === targetElem) { // 動爻相剋：小衰 (-1.5)
+            factor -= 1.5;
+        }
+      }
+    });
+
+    // 將總分應用到目標五行，並限制在 1-10
+    const finalScore = Math.min(10, Math.max(1, defaultScore + factor));
+    
+    scores[targetElem] = finalScore;
+    E('ysName').textContent = `${yongShen} (五行:${targetElem} 旺度:${finalScore.toFixed(1)})`;
+
+    return scores;
+}
+
+// 修正：更新五行雷達圖拉桿數值，接收一個包含 {木:score, 火:score, ...} 的物件
+function updateW5RadarScores(scores) {
+    if (!scores || !Object.keys(scores).length) return;
+    const ELEMENTS = ['木', '火', '土', '金', '水'];
+    ELEMENTS.forEach(e => {
+        const id = `w5_${e.toLowerCase()}`;
+        const el = document.getElementById(id);
+        const score = scores[e];
+
+        if (el && typeof score === 'number') {
+            const newValue = Math.round(score); // 分數四捨五入到整數 1-10
+            
+            if (el.value !== String(newValue)) {
+                el.value = newValue;
+                // 觸發 input/change 事件，讓雷達圖的內建重繪機制被喚醒
+                el.dispatchEvent(new Event('input', {bubbles: true})); 
+                el.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+        }
+    });
+}
+
+
 function render(){
   const upTri=E('upper').value, loTri=E('lower').value;
+  const yongShen=E('yongShen').value; // 讀取用神
+  
   const baseLines=[...TRIG[loTri], ...TRIG[upTri]]; 
   const q=(E('question').value||'').trim()||'—';
   const dt=E('dt').value||toYMDhm(new Date());
   const gzSix=calcPillarsAndSix();
   const xun=E('gzXun').textContent.replace('旬首：','');
   const kw=E('gzKW').textContent.replace('空亡：','');
+  const monthZhi = E('gzMonth').textContent.replace('月：',''); // 月支
+  const dayZhi = E('gzDay').textContent.replace('日：','');     // 日支
 
   const guaName = guaNameOf(upTri, loTri);
   const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
   const meElem=GONG_ELEM[gong];
   window.__lastMeElem = meElem;
-
+  
   const branches=naJiaBranches(baseLines);
   const kins=branches.map(b=>sixKin(meElem,b));
 
+  // 【核心計算】用神計算，並傳入五行分數
+  let w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6};
+  let ysTxt = '';
+  if (yongShen) {
+    w5Scores = calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, kins, branches, moving);
+    const targetElem = ysKinElemMap[yongShen];
+    ysTxt = `${yongShen} (五行:${targetElem} 旺度:${w5Scores[targetElem].toFixed(1)})`;
+  } else {
+    // 如果未選用神，則雷達圖使用預設值
+    E('ysName').textContent = '';
+  }
+  
+  // 呼叫更新函數，傳入計算後的五行分數
+  updateW5RadarScores(w5Scores); 
+  
   const chLines=changedLines(baseLines,moving);
   const branchesC=naJiaBranches(chLines);
   const kinsC=branchesC.map(b=>sixKin(meElem,b));
@@ -397,21 +517,23 @@ function render(){
   drawBoard({
     q, dt:dt.replace('T',' '),
     gzY:y, gzM:m, gzD:d, gzH:h,
-    xun, kw, name:guaName, up:upTri, lo:loTri, gong, shi, ying, kind
+    xun, kw, name:guaName, up:upTri, lo:loTri, gong, shi, ying, kind, ysTxt 
   }, rows);
 
   // 更新右欄中醫建議（若有載入）
-  if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem); } catch(_) { }
+  if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem, w5Scores); } catch(_) { }
 
   const yaoTxt=(yy,mv)=> mv?(yy?'—○—':'--×--'):(yy?'———':'-- --');
   let brief=`卦名：${guaName}｜上：${upTri} 下：${loTri}｜卦宮：${gong}｜卦型：${kind}｜世：${shi} 應：${ying}<br>`;
   brief+=`四柱：${y} ${m} ${d} ${h}　（${xun}｜空亡${kw}）<br>`;
-  brief+=`問題：${q}<br>起卦：${dt.replace('T',' ')}<br><br>位次  六獸  伏神    爻象  六親  地支  世應  變六親  變支<br>`;
+  brief+=`問題：${q}`;
+  if(yongShen) brief+=`｜用神：${ysTxt}`; 
+  brief+=`<br>起卦：${dt.replace('T',' ')}<br><br>位次  六獸  伏神    爻象  六親  地支  世應  變六親  變支<br>`;
   for(let pos=6;pos>=1;pos--){
     const i=pos-1; const fuTxt=fuMap[pos] || '—';
     brief+=`${pos===6?'上':pos===1?'初':pos}  ${gzSix[i]}  ${fuTxt.padEnd(6,' ')}  ${yaoTxt(baseLines[i],moving[i])}  ${(kins[i]||'').padEnd(2,' ')}  ${(branches[i]||'').padEnd(2,' ')}  ${(pos===shi?'世':(pos===ying?'應':' '))}  ${(moving[i]?kinsC[i]:'').padEnd(2,' ')}  ${moving[i]?branchesC[i]:''}<br>`;
   }
-  E('headInfo').textContent=`卦名：${guaName}　上卦：${upTri}　下卦：${loTri}　卦宮：${gong}　卦型：${kind}　世：${shi}　應：${ying}`;
+  E('headInfo').textContent=`卦名：${guaName}　上卦：${upTri}　下卦：${loTri}　卦宮：${gong}　卦型：${kind}　世：${shi}　應：${ying}${yongShen ? `｜用神：${yongShen}` : ''}`;
   E('brief').textContent=brief;
 }
 
@@ -452,7 +574,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   mvCtl.addEventListener('change',e=>{const i=+e.target.getAttribute('data-mv'); if(!isNaN(i)){moving[i]=e.target.checked; render();}});
 
   const bind=(id,fn)=>{const el=E(id);['input','change'].forEach(ev=>el&&el.addEventListener(ev,fn));};
-  ['upper','lower','question','dt','size','offx','offy','gap','headgap'].forEach(id=>bind(id,render));
+  ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render)); 
   E('redraw').addEventListener('click',render);
   E('download').addEventListener('click',downloadPNG);
 
@@ -462,6 +584,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   render();
 });
 </script>
+
+
 <style id="TCM_BOX_CSS">
 /* 右欄：中醫建議區（可列印） */
 #tcmBox{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0}
@@ -478,6 +602,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 #brief{display:none!important}
 #headInfo{display:none!important}
 </style>
+
 <script id="TCM_BOX_JS">
 (function(){
   if(window.__TCM_BOX__) return; window.__TCM_BOX__=true;
@@ -489,50 +614,87 @@ window.addEventListener('DOMContentLoaded', ()=>{
     '金':{zang:'肺',fu:'大腸',dept:['呼吸過敏','皮膚','耳鼻喉'],patterns:['肺氣虛','肺陰虛','風寒/風熱犯肺'],self:['避免過敏源','適度蒸氣/保濕','早睡早起、練呼吸']},
     '水':{zang:'腎',fu:'膀胱',dept:['腎泌尿','內科體質'],patterns:['腎陽虛','腎陰虛','腎氣不足'],self:['保暖腰腹與足部','規律作息、早睡','溫和伸展與補水']}
   };
-  function pickFive(){
-    // 優先讀「w5_」拉桿（外掛雷達），找不到就略過
+  
+  // 【新增】茶飲/湯品數據
+  const TEA_MAP = {
+      '通用': '安迪湯（補氣養血，增強體力）',
+      '木旺': '菊花枸杞茶（清肝明目，疏肝解鬱）',
+      '木弱': '桂圓紅棗茶（養血柔肝，改善睡眠）',
+      '火旺': '蓮子心茶／竹葉茶（清心降火，幫助安神）',
+      '火弱': '酸棗仁湯（滋陰養血，寧心安神）',
+      '土弱': '四神湯／紅豆薏仁水（健脾祛濕，利水消腫）',
+      '金弱': '銀耳雪梨湯（潤肺生津，止咳化痰）',
+      '水弱': '黑豆杜仲茶（補腎益精，強腰補骨）'
+  };
+
+  function pickFive(w5Scores){
+    if (w5Scores && Object.values(w5Scores).some(x => typeof x === 'number' && !isNaN(x))) {
+        return w5Scores;
+    }
     const get=id=>{const el=document.getElementById(id); return el?Number(el.value):null};
     const v={木:get('w5_mu'),火:get('w5_huo'),土:get('w5_tu'),金:get('w5_jin'),水:get('w5_shui')};
     const has=Object.values(v).some(x=>typeof x==='number' && !isNaN(x));
     return has?v:null;
   }
-  function hiLo(v){ if(!v) return null; const arr=Object.entries(v); arr.sort((a,b)=>b[1]-a[1]); return {hi:arr.slice(0,2), lo:arr.slice(-2)}; }
+  function hiLo(v){ 
+    if(!v) return null; 
+    const arr=Object.entries(v); 
+    arr.sort((a,b)=>b[1]-a[1]); 
+    const hi=arr.slice(0,3).filter(x=>x[1] > 7.5); // 旺度 > 7.5 視為偏旺
+    const lo=arr.slice(-3).filter(x=>x[1] < 4.5); // 旺度 < 4.5 視為偏弱
+    return {hi, lo}; 
+  }
   function htmlList(items){ return '<ul>'+items.map(s=>'<li>'+s+'</li>').join('')+'</ul>'; }
-  function build(meElem){
+  
+  // 修正：現在 build 函數接收五行分數物件
+  function build(meElem, w5Scores){
     const core=$('#tcmCore'), lists=$('#tcmLists'); if(!core||!lists) return;
     const base=MAP[meElem]||MAP['土'];
-    const five=pickFive(); const trend=hiLo(five);
+    const five=pickFive(w5Scores); 
+    const trend=hiLo(five);
+    
     let tags=`<span class="tag">卦宮五行：${meElem}</span><span class="tag">臟腑：${base.zang}／${base.fu}</span>`;
-    if(trend){ tags+=trend.hi.length? `<span class="tag">偏旺：${trend.hi.map(x=>x[0]+x[1]).join('、')}</span>`:''; tags+=trend.lo.length? `<span class="tag">偏弱：${trend.lo.map(x=>x[0]+x[1]).join('、')}</span>`:''; }
+    if(trend){ 
+        tags+=trend.hi.length? `<span class="tag">偏旺：${trend.hi.map(x=>x[0]+'('+x[1].toFixed(0)+')').join('、')}</span>`:''; 
+        tags+=trend.lo.length? `<span class="tag">偏弱：${trend.lo.map(x=>x[0]+'('+x[1].toFixed(0)+')').join('、')}</span>`:''; 
+    }
     core.innerHTML=tags;
 
     let html='';
     html+=`<div class="blk"><h4>建議就診科別</h4>${htmlList(base.dept)}</div>`;
     html+=`<div class="blk"><h4>常見體質／症候（參考）</h4>${htmlList(base.patterns)}</div>`;
+    
+    // 【茶飲建議】
+    const teaList = [];
+    if (trend && (trend.hi.length > 0 || trend.lo.length > 0)) {
+        trend.hi.forEach(([k]) => teaList.push(TEA_MAP[`${k}旺`]) );
+        trend.lo.forEach(([k]) => teaList.push(TEA_MAP[`${k}弱`]) );
+    } else {
+        // 沒有明顯旺弱，提供通用養生
+        teaList.push(TEA_MAP['通用']);
+    }
+    html+=`<div class="blk"><h4>養生茶飲／湯品</h4>${htmlList(teaList)}</div>`;
+
     html+=`<div class="blk"><h4>日常調養建議</h4>${htmlList(base.self)}</div>`;
 
-    // 若五行拉桿有讀到偏旺/偏弱，給加權提示
-    if(trend){
-      const hiTxt = trend.hi.length? ('偏旺提示：'+trend.hi.map(([k])=>({木:'疏肝解鬱',火:'清心養陰',土:'健脾祛濕',金:'潤肺養陰',水:'溫腎固本'}[k])).join('、')):'';
-      const loTxt = trend.lo.length? ('偏弱提示：'+trend.lo.map(([k])=>({木:'養血柔肝',火:'補心健脾',土:'培土健脾',金:'益氣潤肺',水:'滋補腎陰/溫腎陽'}[k])).join('、')):'';
-      if(hiTxt||loTxt){ html+=`<div class="blk"><h4>五行傾向</h4><ul>${hiTxt?'<li>'+hiTxt+'</li>':''}${loTxt?'<li>'+loTxt+'</li>':''}</ul></div>`; }
-    }
     lists.innerHTML=html;
   }
   // 對外方法：render() 之後會呼叫
   window.updateTCMAdvice = build;
 
-  // 若外掛雷達存在，拖動即更新
-  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', ()=>{ try{ build(window.__lastMeElem||'土'); }catch(_){} }); }});
+  // 若外掛雷達存在，拖動即更新 (已在 W5_SAFE_JS 中處理)
 })();
 </script>
+
+
 <script id="TCM_HOOK_RENDER">
 // 讓主 render 結束後會順便更新中醫建議
 (function(){
   const _render = window.render; if(!_render) return;
-  window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice){ window.updateTCMAdvice(window.__lastMeElem||'土'); } }catch(_){} };
+  window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice){ window.updateTCMAdvice(window.__lastMeElem, {木:6, 火:6, 土:6, 金:6, 水:6}); } }catch(_){} };
 })();
 </script>
+
 <style id="W5_SAFE_CSS">
   #w5_sec{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0}
   #w5_canv{display:block;width:100%;height:300px}
@@ -540,6 +702,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   #w5_ctrl input[type=range]{flex:1}
   @media print{#w5_canv{height:260px!important}}
 </style>
+
 <script id="W5_SAFE_JS">
 (function(){
   if(window.__W5_SAFE__) return; window.__W5_SAFE__=true;
@@ -570,12 +733,36 @@ window.addEventListener('DOMContentLoaded', ()=>{
     ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fillStyle='rgba(59,130,246,0.18)'; ctx.strokeStyle='rgba(59,130,246,0.9)'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
     pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],4,0,Math.PI*2); ctx.fillStyle=COLORS[p[3]]||'#111827'; ctx.fill(); ctx.fillStyle='#0f172a'; ctx.fillText(String(p[2]), p[0], p[1]-16); }); }
   window.w5_draw=drawRadar;
-  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(i=>{ const el=id(i); if(el){ el.addEventListener('input',()=>{ const tip=id(i+'Val'); if(tip) tip.textContent=String(el.value); drawRadar(); if(window.updateTCMAdvice && window.__lastMeElem) try{ window.updateTCMAdvice(window.__lastMeElem); }catch(_){} }); }});
+  // 【修正】在拖動滑桿時，也將當前數值傳給 TCM Advice
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(i=>{ const el=id(i); if(el){ el.addEventListener('input',()=>{ const tip=id(i+'Val'); if(tip) tip.textContent=String(el.value); drawRadar(); if(window.updateTCMAdvice && window.__lastMeElem) try{ window.updateTCMAdvice(window.__lastMeElem, values()); }catch(_){} }); }}); 
   window.addEventListener('resize', drawRadar);
   document.addEventListener('DOMContentLoaded', drawRadar);
   window.addEventListener('load', ()=>{ drawRadar(); setTimeout(drawRadar,150); });
 })();
 </script>
+
+
+<script id="PRINT_W5_TCM_JS">(function(){
+  if(window.__PRINT_W5_TCM__) return; window.__PRINT_W5_TCM__=true;
+  const $=s=>document.querySelector(s);
+  function markRight(){
+    const grid=$('.grid'); if(!grid) return null;
+    const secs=[...grid.querySelectorAll(':scope > .sec, :scope > section.sec')];
+    const right=secs[1]||secs[secs.length-1]||null; if(!right) return null;
+    if(!right.id) right.id='printRight';
+    right.classList.remove('hide-print');
+    return right;
+  }
+  function ensure(){ markRight(); }
+  document.addEventListener('DOMContentLoaded', ensure);
+  window.addEventListener('load', ensure);
+  function preprint(){ try{ if(window.w5_draw) window.w5_draw(); }catch(_){}
+                       try{ if(window.render) window.render(); }catch(_){} }
+  if('onbeforeprint' in window){ window.addEventListener('beforeprint', preprint); }
+  try{ var mq=window.matchMedia('print'); if(mq&&mq.addListener){ mq.addListener(function(m){ if(m.matches) preprint(); }); } }catch(_){ }
+})();</script>
+
+
 <style id="PRINT_W5_TCM_CSS">
 /* 讓「五行雷達圖 + 中醫建議」能列印 */
 @media print{
@@ -587,28 +774,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   #tcmBox{display:block!important}
 }
 </style>
-<script id="PRINT_W5_TCM_JS">(function(){
-  if(window.__PRINT_W5_TCM__) return; window.__PRINT_W5_TCM__=true;
-  const $=s=>document.querySelector(s);
-  function markRight(){
-    // 把「第二欄」加上固定 id，並移除 hide-print（或至少在列印時可覆蓋）
-    const grid=$('.grid'); if(!grid) return null;
-    const secs=[...grid.querySelectorAll(':scope > .sec, :scope > section.sec')];
-    const right=secs[1]||secs[secs.length-1]||null; if(!right) return null;
-    if(!right.id) right.id='printRight';
-    // 永久拿掉 hide-print，避免被整欄隱藏
-    right.classList.remove('hide-print');
-    return right;
-  }
-  function ensure(){ markRight(); }
-  document.addEventListener('DOMContentLoaded', ensure);
-  window.addEventListener('load', ensure);
-  // 列印前重繪一次雷達與卦盤，確保畫面入稿
-  function preprint(){ try{ if(window.w5_draw) window.w5_draw(); }catch(_){}
-                       try{ if(window.render) window.render(); }catch(_){} }
-  if('onbeforeprint' in window){ window.addEventListener('beforeprint', preprint); }
-  try{ var mq=window.matchMedia('print'); if(mq&&mq.addListener){ mq.addListener(function(m){ if(m.matches) preprint(); }); } }catch(_){ }
-})();</script>
+
+
 <style id="SAVE_BAR_V1_CSS">
 /* —— 存檔工具列（右上角，列印隱藏） —— */
 #saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
@@ -616,6 +783,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 #saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
 @media print{#saveBarTop{display:none!important}}
 </style>
+
 <script id="SAVE_BAR_V1_JS">(function(){
   if(window.__SAVE_BAR_V1__) return; window.__SAVE_BAR_V1__=true;
   function q(s){return document.querySelector(s)}
@@ -644,8 +812,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
   function collect(){
     var S={ ver:'v1',
-      question:getVal('question'), dt:getVal('dt'), upper:getVal('upper'), lower:getVal('lower'),
-      size:getVal('size'), offx:getVal('offx'), offy:getVal('offy'), gap:getVal('gap'), headgap:getVal('headgap'), // ⬅️ 已修正
+      question:getVal('question'), dt:getVal('dt'), upper:getVal('upper'), lower:getVal('lower'), yongShen:getVal('yongShen'),
+      size:getVal('size'), offx:getVal('offx'), offy:getVal('offy'), gap:getVal('gap'), headgap:getVal('headgap'),
       moving:getMoving(),
       w5:{ size:getVal('w5_size'), 木:getVal('w5_mu'), 火:getVal('w5_huo'), 土:getVal('w5_tu'), 金:getVal('w5_jin'), 水:getVal('w5_shui') },
       tcmHTML:(document.getElementById('tcmBox')||{}).innerHTML||null,
@@ -654,7 +822,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     return S;
   }
   function apply(S){ try{
-    setVal('question',S.question); setVal('dt',S.dt); setVal('upper',S.upper); setVal('lower',S.lower);
+    setVal('question',S.question); setVal('dt',S.dt); setVal('upper',S.upper); setVal('lower',S.lower); setVal('yongShen',S.yongShen);
     setVal('size',S.size); setVal('offx',S.offx); setVal('offy',S.offy); setVal('gap',S.gap); setVal('headgap',S.headgap);
     setMoving(S.moving);
     if(S.w5){ setVal('w5_size',S.w5.size); setVal('w5_mu',S.w5.木); setVal('w5_huo',S.w5.火); setVal('w5_tu',S.w5.土); setVal('w5_jin',S.w5.金); setVal('w5_shui',S.w5.水); }
@@ -685,36 +853,15 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
     // 自動保存：重要互動 1.2 秒後寫入
     var t=null; function autosave(){ clearTimeout(t); t=setTimeout(saveLocal, 1200); }
-    var ids=['upper','lower','question','dt','size','offx','offy','gap','headgap','w5_size','w5_mu','w5_huo','w5_tu','w5_jin','w5_shui'];
+    var ids=['upper','lower','question','dt','size','offx','offy','gap','headgap','w5_size','w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','yongShen'];
     for(var i=0;i<ids.length;i++){ var el=document.getElementById(ids[i]); if(el){ ['input','change'].forEach(function(ev){ el.addEventListener(ev, autosave); }); } }
     qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ cb.addEventListener('change', autosave); });
   }
   document.addEventListener('DOMContentLoaded', bind);
   window.addEventListener('load', bind);
 })();</script>
-<style id="SAVE_BAR_V1_TWEAK">#saveBarTop{right:12px}</style>
-<style id="NOTE_PRINT_VAULT_CSS">
-/* 備註區塊 */
-#noteBox{margin:8px 0 4px}
-#userNote{width:100%;min-height:110px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:14px;resize:vertical}
-/* 列印調整：隱藏五行拉桿、工具列與舊列印鈕 */
-@media print{
-  #w5_ctrl, #saveBarTop, #vaultWrap, #btnPrint{display:none!important}
-}
-/* 保存庫面板 */
-#vaultWrap{position:fixed;top:50px;right:12px;z-index:10003;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);width:360px;max-height:70vh;display:none;overflow:auto}
-#vaultWrap .vhdr{font-weight:600;padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a}
-#vaultWrap .vsec{padding:10px 12px}
-#vaultWrap .vrow{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
-#vaultWrap input[type=text]{flex:1;min-width:120px;border:1px solid #cbd5e1;border-radius:8px;height:30px;padding:0 8px}
-#vaultWrap select{height:30px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px}
-#vaultWrap button{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer}
-#vaultWrap ul{list-style:none;margin:6px 0 0 0;padding:0;border:1px solid #e5e7eb;border-radius:8px;max-height:36vh;overflow:auto}
-#vaultWrap li{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer}
-#vaultWrap li:last-child{border-bottom:none}
-#vaultWrap li.sel{background:#f1f5f9}
-#vaultWrap .vfoot{padding:10px 12px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px}
-</style>
+
+
 <script id="SAVE_BAR_VAULT_JS">(function(){
   if(window.__SAVE_BAR_VAULT__) return; window.__SAVE_BAR_VAULT__=true;
   function q(s){return document.querySelector(s)} function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
@@ -774,7 +921,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
   function collectSafe(){
     var S={ ver:'v1',
-      question:getValSafe('question'), dt:getValSafe('dt'), upper:getValSafe('upper'), lower:getValSafe('lower'),
+      question:getValSafe('question'), dt:getValSafe('dt'), upper:getValSafe('upper'), lower:getValSafe('lower'), yongShen:getValSafe('yongShen'),
       size:getValSafe('size'), offx:getValSafe('offx'), offy:getValSafe('offy'), gap:getValSafe('gap'), headgap:getValSafe('headgap'),
       moving:getMovingSafe(),
       w5:{ size:getValSafe('w5_size'), 木:getValSafe('w5_mu'), 火:getValSafe('w5_huo'), 土:getValSafe('w5_tu'), 金:getValSafe('w5_jin'), 水:getValSafe('w5_shui') },
@@ -783,7 +930,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     return S;
   }
   function applySafe(S){
-    setValSafe('question',S.question); setValSafe('dt',S.dt); setValSafe('upper',S.upper); setValSafe('lower',S.lower);
+    setValSafe('question',S.question); setValSafe('dt',S.dt); setValSafe('upper',S.upper); setValSafe('lower',S.lower); setValSafe('yongShen',S.yongShen);
     setValSafe('size',S.size); setValSafe('offx',S.offx); setValSafe('offy',S.offy); setValSafe('gap',S.gap); setValSafe('headgap',S.headgap);
     setMovingSafe(S.moving);
     if(S.w5){ setValSafe('w5_size',S.w5.size); setValSafe('w5_mu',S.w5.木); setValSafe('w5_huo',S.w5.火); setValSafe('w5_tu',S.w5.土); setValSafe('w5_jin',S.w5.金); setValSafe('w5_shui',S.w5.水); }
@@ -797,3 +944,30 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('DOMContentLoaded', ensureExtraButtons);
   window.addEventListener('load', ensureExtraButtons);
 })();</script>
+
+
+<style id="SAVE_BAR_V1_TWEAK">#saveBarTop{right:12px}</style>
+<style id="NOTE_PRINT_VAULT_CSS">
+/* 備註區塊 */
+#noteBox{margin:8px 0 4px}
+#userNote{width:100%;min-height:110px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:14px;resize:vertical}
+/* 列印調整：隱藏五行拉桿、工具列與舊列印鈕 */
+@media print{
+  #w5_ctrl, #saveBarTop, #vaultWrap, #btnPrint{display:none!important}
+}
+/* 保存庫面板 */
+#vaultWrap{position:fixed;top:50px;right:12px;z-index:10003;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);width:360px;max-height:70vh;display:none;overflow:auto}
+#vaultWrap .vhdr{font-weight:600;padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a}
+#vaultWrap .vsec{padding:10px 12px}
+#vaultWrap .vrow{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+#vaultWrap input[type=text]{flex:1;min-width:120px;border:1px solid #cbd5e1;border-radius:8px;height:30px;padding:0 8px}
+#vaultWrap select{height:30px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px}
+#vaultWrap button{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer}
+#vaultWrap ul{list-style:none;margin:6px 0 0 0;padding:0;border:1px solid #e5e7eb;border-radius:8px;max-height:36vh;overflow:auto}
+#vaultWrap li{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+#vaultWrap li:last-child{border-bottom:none}
+#vaultWrap li.sel{background:#f1f5f9}
+#vaultWrap .vfoot{padding:10px 12px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px}
+</style>
+</body>
+</html>
