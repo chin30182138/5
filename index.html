@@ -435,10 +435,12 @@ function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseB
     return {scores, targetElem}; // 回傳分數與目標五行
 }
 
-// 修正：更新五行雷達圖拉桿數值，接收一個包含 {木:score, 火:score, ...} 的物件
+// 【修正：強制重繪雷達圖】
 function updateW5RadarScores(scores) {
     if (!scores || !Object.keys(scores).length) return;
     const ELEMENTS = ['木', '火', '土', '金', '水'];
+    let needsRedraw = false; // 追蹤是否有值變動
+
     ELEMENTS.forEach(e => {
         const id = `w5_${e.toLowerCase()}`;
         const el = document.getElementById(id);
@@ -449,12 +451,18 @@ function updateW5RadarScores(scores) {
             
             if (el.value !== String(newValue)) {
                 el.value = newValue;
-                // 觸發 input/change 事件，讓雷達圖的內建重繪機制被喚醒
+                needsRedraw = true; // 數值變動
+                // 觸發 input/change 事件，以更新數字顯示
                 el.dispatchEvent(new Event('input', {bubbles: true})); 
                 el.dispatchEvent(new Event('change', {bubbles: true}));
             }
         }
     });
+    
+    // 【關鍵修正點】：檢查是否有變動，並直接呼叫雷達圖繪製函數
+    if (needsRedraw && window.w5_draw) {
+        window.w5_draw(); 
+    }
 }
 
 
@@ -595,7 +603,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 #tcmBox{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0}
 #tcmBox h3{margin:0 0 10px;font-size:16px;color:#0f172a}
 #tcmCore{font-size:14px;color:#0f172a;line-height:1.6}
-#tcmCore .tag{display:inline-block;margin-right:8px;margin-bottom:6px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#1e3a8a;font-size:12px}
+#tcmCore .tag{display:inline-block;margin-right:8px;margin-bottom:6px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px}
 #tcmLists{margin-top:8px}
 #tcmLists .blk{margin:8px 0}
 #tcmLists .blk h4{margin:6px 0;font-size:14px;color:#334155}
@@ -683,8 +691,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
     lists.innerHTML=html;
   }
-  // 對外方法：render() 之後會呼叫
-  // window.updateTCMAdvice = build; // 已經在上方定義時賦值
 })();
 </script>
 
@@ -693,7 +699,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
 // 讓主 render 結束後會順便更新中醫建議
 (function(){
   const _render = window.render; if(!_render) return;
-  // 這裡的 render 函式已經在主腳本中修正，因此這個 hook 保持原樣（讓 load 後能更新）
   window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice){ window.updateTCMAdvice(window.__lastMeElem, {木:6, 火:6, 土:6, 金:6, 水:6}); } }catch(_){} };
 })();
 </script>
