@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（0901-V1）- 已修正</title>
+<title>仙人指路六爻排盤（1006-V2-穩定版）</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -22,7 +22,7 @@
   canvas{display:block;width:100%;height:560px}
   .yaoCtl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
   .yaoCtl>label{display:flex;align-items:center;gap:6px;justify-content:center;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;font-size:14px}
-  #err{position:fixed;right:12px;top:12px;max-width:60ch;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px;display:none}
+  #err{position:fixed;right:12px;top:12px;z-index:9999;max-width:60ch;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px;display:none}
   .miniVal{font-variant-numeric:tabular-nums;color:#475569;font-size:13px}
   .btns button{height:32px}
   .pillars{display:flex;gap:10px;flex-wrap:wrap}
@@ -41,7 +41,7 @@
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（0901-V1）- 已修正</h1>
+  <h1>仙人指路六爻排盤（1006-V2-穩定版）</h1>
   <div id="err"></div>
 
   <div class="grid">
@@ -126,7 +126,7 @@
       <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
     </section>
 
-    <section class="sec hide-print">
+    <section class="sec">
       <div id="headInfo" class="muted" style="font-size:14px">卦名：—　上卦：—　下卦：—　卦宮：—　卦型：—　世：—　應：—</div>
       <pre id="brief" class="rightNote">（這裡會列出六爻摘要）</pre>
 <div id="tcmBox" class="tcm-box">
@@ -435,95 +435,64 @@ function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseB
     return {scores, targetElem}; // 回傳分數與目標五行
 }
 
-// =========================================================================
-// 【 Gemini 修正處 】：這是唯一修改的函數
-// =========================================================================
 function updateW5RadarScores(scores) {
     if (!scores || !Object.keys(scores).length) return;
 
-    // 【修正】: 建立一個中文到英文 ID 的對照表
-    const elemToIdMap = {
-      '木': 'mu',
-      '火': 'huo',
-      '土': 'tu',
-      '金': 'jin',
-      '水': 'shui'
-    };
-
+    const elemToIdMap = { '木': 'mu', '火': 'huo', '土': 'tu', '金': 'jin', '水': 'shui' };
     const ELEMENTS = ['木', '火', '土', '金', '水'];
-    let needsRedraw = false;
 
     ELEMENTS.forEach(e => {
-        // 【修正】: 使用對照表來取得正確的 ID，例如 'w5_mu'
         const id = `w5_${elemToIdMap[e]}`;
         const el = document.getElementById(id);
         const score = scores[e];
 
         if (el && typeof score === 'number') {
-            const newValue = Math.round(score); // 分數四捨五入到整數 1-10
+            const newValue = Math.round(score);
             
             if (el.value !== String(newValue)) {
                 el.value = newValue;
-                needsRedraw = true; // 數值變動
-                // 觸發 input/change 事件，以更新數字顯示
                 el.dispatchEvent(new Event('input', {bubbles: true})); 
                 el.dispatchEvent(new Event('change', {bubbles: true}));
             }
-        } else {
-            console.error(`找不到元素 #${id} 或者分數有問題`);
         }
     });
     
-    // 這裡的邏輯是正確的：在更新完滑桿數值後，呼叫繪圖函數
     if (window.w5_draw) {
         window.w5_draw(); 
     }
 }
-// =========================================================================
-// 【 修正結束 】
-// =========================================================================
 
-// 【新增】：隨機起卦函數
 function applyRandomHexagram() {
     const TRIS = ['乾','兌','離','震','巽','坎','艮','坤'];
     
-    // 1. Randomize Trigrams
     const upperTri = TRIS[Math.floor(Math.random() * TRIS.length)];
     const lowerTri = TRIS[Math.floor(Math.random() * TRIS.length)];
     E('upper').value = upperTri;
     E('lower').value = lowerTri;
     
-    // 2. Randomize Moving Yaos (0-5)
     let hasMovingYao = false;
     const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]');
     
     mvCtlInputs.forEach(cb => {
-        const isMoving = Math.random() < 0.35; // 35% chance to be a moving line
+        const isMoving = Math.random() < 0.35;
         cb.checked = isMoving;
         if (isMoving) hasMovingYao = true;
     });
 
-    // 確保至少有一條動爻
     if (!hasMovingYao && mvCtlInputs.length > 0) {
         const randomIndex = Math.floor(Math.random() * mvCtlInputs.length);
         mvCtlInputs[randomIndex].checked = true;
     }
     
-    // 3. 更新全局動爻狀態 (moving[])
     const newMoving = Array.from(mvCtlInputs).map(cb => cb.checked);
     for (let i = 0; i < 6; i++) {
         moving[i] = newMoving[i];
     }
     
-    // 4. 更新問題文字
     E('question').value = `隨機起卦：${upperTri}${lowerTri}`;
-
-    // 5. 強制渲染
     render();
 }
 
-
-// 【新增】手動更新按鈕功能：強制執行一次完整的計算和繪圖
 function forceRadarUpdate() {
     const upTri=E('upper').value, loTri=E('lower').value;
     const yongShen=E('yongShen').value; 
@@ -532,10 +501,9 @@ function forceRadarUpdate() {
     const monthZhi = E('gzMonth').textContent.replace('月：',''); 
     const dayZhi = E('gzDay').textContent.replace('日：','');     
     const guaName = guaNameOf(upTri, loTri);
-    const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
+    const { gong } = decideShiYing(upTri, loTri, guaName, baseLines);
     const meElem=GONG_ELEM[gong];
     const branches=naJiaBranches(baseLines);
-    const kins=branches.map(b=>sixKin(meElem,b));
 
     let w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6};
     if (yongShen) {
@@ -543,10 +511,8 @@ function forceRadarUpdate() {
       w5Scores = result.scores;
     }
     
-    // 呼叫更新函數，傳入計算後的五行分數 (這會強制更新圖表)
     updateW5RadarScores(w5Scores); 
     
-    // 手動觸發中醫建議更新，確保建議也更新
     if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem, w5Scores); } catch(_) { }
 }
 
@@ -572,7 +538,6 @@ function render(){
   const branches=naJiaBranches(baseLines);
   const kins=branches.map(b=>sixKin(meElem,b));
 
-  // 【核心計算】用神計算，並傳入五行分數
   let w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6};
   let ysTxt = '';
   if (yongShen) {
@@ -585,7 +550,6 @@ function render(){
     E('ysName').textContent = '';
   }
   
-  // 呼叫更新函數，傳入計算後的五行分數
   updateW5RadarScores(w5Scores); 
   
   const chLines=changedLines(baseLines,moving);
@@ -617,7 +581,6 @@ function render(){
     xun, kw, name:guaName, up:upTri, lo:loTri, gong, shi, ying, kind, ysTxt 
   }, rows);
 
-  // 更新右欄中醫建議（若有載入）
   if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem, w5Scores); } catch(_) { }
 
   const yaoTxt=(yy,mv)=> mv?(yy?'—○—':'--×--'):(yy?'———':'-- --');
@@ -672,10 +635,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
   E('redraw').addEventListener('click',render);
   E('download').addEventListener('click',downloadPNG);
   
-  // 【新增】按鈕綁定
   E('btnRandomHex').addEventListener('click',applyRandomHexagram);
   const btnUpdateRadar = E('btnUpdateRadar');
-  if (btnUpdateRadar) btnUpdateRadar.addEventListener('click', forceRadarUpdate);
+  // 【修正處】統一更新流程，讓更新雷達圖按鈕也呼叫主渲染函數 render()
+  if (btnUpdateRadar) btnUpdateRadar.addEventListener('click', render);
 
   render();
 });
@@ -711,7 +674,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
     '水':{zang:'腎',fu:'膀胱',dept:['腎泌尿','內科體質'],patterns:['腎陽虛','腎陰虛','腎氣不足'],self:['保暖腰腹與足部','規律作息、早睡','溫和伸展與補水']}
   };
   
-  // 【新增】茶飲/湯品數據
   const TEA_MAP = {
       '通用': '安迪湯（補氣養血，增強體力）',
       '木旺': '菊花枸杞茶（清肝明目，疏肝解鬱）',
@@ -736,14 +698,12 @@ window.addEventListener('DOMContentLoaded', ()=>{
     if(!v) return null; 
     const arr=Object.entries(v); 
     arr.sort((a,b)=>b[1]-a[1]); 
-    // 【修正點】：放寬觸發門檻 (7.5 -> 7.0, 4.5 -> 5.0)
-    const hi=arr.slice(0,3).filter(x=>x[1] > 7.0); // 旺度 > 7.0 視為偏旺
-    const lo=arr.slice(-3).filter(x=>x[1] < 5.0); // 旺度 < 5.0 視為偏弱
+    const hi=arr.slice(0,3).filter(x=>x[1] > 7.0);
+    const lo=arr.slice(-3).filter(x=>x[1] < 5.0);
     return {hi, lo}; 
   }
   function htmlList(items){ return '<ul>'+items.map(s=>'<li>'+s+'</li>').join('')+'</ul>'; }
   
-  // 修正：現在 build 函數接收五行分數物件
   window.updateTCMAdvice = function build(meElem, w5Scores){
     const core=$('#tcmCore'), lists=$('#tcmLists'); if(!core||!lists) return;
     const base=MAP[meElem]||MAP['土'];
@@ -761,13 +721,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
     html+=`<div class="blk"><h4>建議就診科別</h4>${htmlList(base.dept)}</div>`;
     html+=`<div class="blk"><h4>常見體質／症候（參考）</h4>${htmlList(base.patterns)}</div>`;
     
-    // 【茶飲建議】
     const teaList = [];
     if (trend && (trend.hi.length > 0 || trend.lo.length > 0)) {
         trend.hi.forEach(([k]) => { if (TEA_MAP[`${k}旺`]) teaList.push(TEA_MAP[`${k}旺`]); });
         trend.lo.forEach(([k]) => { if (TEA_MAP[`${k}弱`]) teaList.push(TEA_MAP[`${k}弱`]); });
     } else {
-        // 沒有明顯旺弱，提供通用養生
         teaList.push(TEA_MAP['通用']);
     }
     html+=`<div class="blk"><h4>養生茶飲／湯品</h4>${htmlList(teaList)}</div>`;
@@ -781,7 +739,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script id="TCM_HOOK_RENDER">
-// 讓主 render 結束後會順便更新中醫建議
 (function(){
   const _render = window.render; if(!_render) return;
   window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice){ window.updateTCMAdvice(window.__lastMeElem, {木:6, 火:6, 土:6, 金:6, 水:6}); } }catch(_){} };
@@ -800,7 +757,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 (function(){
   if(window.__W5_SAFE__) return; window.__W5_SAFE__=true;
   const $=s=>document.querySelector(s);
-  function rightSec(){ const g=$('.grid'); if(!g) return null; const secs=[...g.querySelectorAll(':scope > .sec, :scope > section.sec')]; return secs[1]||secs[secs.length-1]||null; }
+  function rightSec(){ const g=$('.grid'); if(!g) return null; const secs=[...g.querySelectorAll(':scope > .sec, :scope > section.sec')]; return secs.length > 1 ? secs[1] : null; }
   const host=rightSec(); if(host){ const sec=document.createElement('div'); sec.id='w5_sec'; sec.className='sec'; sec.innerHTML=`
       <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行雷達圖</h3>
       <div class="canvasWrap"><canvas id="w5_canv"></canvas></div>
@@ -813,7 +770,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
         <div class="row"><label>水</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div>
       </div>`; host.insertBefore(sec, host.firstChild||null); }
 
-  // 畫圖
   const COLORS={木:'#16a34a',火:'#ef4444',土:' #f59e0b',金:'#64748b',水:'#3b82f6'}; const ORDER=['火','木','土','金','水'];
   const id=s=>document.getElementById(s), val=(i,d=6)=>{const el=id(i); const v=Number(el&&el.value); return isFinite(v)?v:d;};
   function sizeScale(){ const el=id('w5_size'); let f=parseFloat(el&&el.value)||1.3; f=Math.max(0.8,Math.min(1.8,f)); const tip=id('w5_sizeVal'); if(tip) tip.textContent=f.toFixed(2); return f; }
@@ -826,11 +782,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
     ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fillStyle='rgba(59,130,246,0.18)'; ctx.strokeStyle='rgba(59,130,246,0.9)'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
     pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],4,0,Math.PI*2); ctx.fillStyle=COLORS[p[3]]||'#111827'; ctx.fill(); ctx.fillStyle='#0f172a'; ctx.fillText(String(p[2]), p[0], p[1]-16); }); }
   window.w5_draw=drawRadar;
-  // 在拖動滑桿時，也將當前數值傳給 TCM Advice (即使沒有選用神，也允許手動調整)
   ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(i=>{ const el=id(i); if(el){ el.addEventListener('input',()=>{ const tip=id(i+'Val'); if(tip) tip.textContent=String(el.value); drawRadar(); if(window.updateTCMAdvice && window.__lastMeElem) try{ window.updateTCMAdvice(window.__lastMeElem, values()); }catch(_){} }); }}); 
   window.addEventListener('resize', drawRadar);
   document.addEventListener('DOMContentLoaded', drawRadar);
-  window.addEventListener('load', ()=>{ drawRadar(); setTimeout(drawRadar,150); });
+  window.addEventListener('load', ()=>{ setTimeout(drawRadar,150); });
 })();
 </script>
 
@@ -841,7 +796,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   function markRight(){
     const grid=$('.grid'); if(!grid) return null;
     const secs=[...grid.querySelectorAll(':scope > .sec, :scope > section.sec')];
-    const right=secs[1]||secs[secs.length-1]||null; if(!right) return null;
+    const right=secs.length > 1 ? secs[1] : null; if(!right) return null;
     if(!right.id) right.id='printRight';
     right.classList.remove('hide-print');
     return right;
@@ -857,20 +812,15 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 
 <style id="PRINT_W5_TCM_CSS">
-/* 讓「五行雷達圖 + 中醫建議」能列印 */
 @media print{
-  /* 右欄容器若原本有 hide-print，一律在列印時顯示 */
   .grid > .sec.hide-print#printRight, .grid > section.sec.hide-print#printRight{display:block!important}
-  /* 確保雷達圖高度、避免被全域 canvas 規則覆蓋 */
   #w5_canv{height:260px!important;width:100%!important;display:block!important}
-  /* 中醫建議完整顯示 */
   #tcmBox{display:block!important}
 }
 </style>
 
 
 <style id="SAVE_BAR_V1_CSS">
-/* —— 存檔工具列（右上角，列印隱藏） —— */
 #saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
 #saveBarTop button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
 #saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
@@ -944,7 +894,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
     q('#btnPNGHex').addEventListener('click', function(){ try{ if(window.render) window.render(); }catch(e){} canvasToPNG('hexCanvas','hexagram_'+ts()+'.png'); });
     q('#btnPNGRadar').addEventListener('click', function(){ try{ if(window.w5_draw) window.w5_draw(); }catch(e){} canvasToPNG('w5_canv','radar_'+ts()+'.png'); });
 
-    // 自動保存：重要互動 1.2 秒後寫入
     var t=null; function autosave(){ clearTimeout(t); t=setTimeout(saveLocal, 1200); }
     var ids=['upper','lower','question','dt','size','offx','offy','gap','headgap','w5_size','w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','yongShen'];
     for(var i=0;i<ids.length;i++){ var el=document.getElementById(ids[i]); if(el){ ['input','change'].forEach(function(ev){ el.addEventListener(ev, autosave); }); } }
@@ -958,7 +907,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <script id="SAVE_BAR_VAULT_JS">(function(){
   if(window.__SAVE_BAR_VAULT__) return; window.__SAVE_BAR_VAULT__=true;
   function q(s){return document.querySelector(s)} function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
-  // ——— 增加右上角：列印、保存庫 ———
   function ensureExtraButtons(){
     var bar=q('#saveBarTop'); if(!bar) return;
     function addBtn(id,txt,ttl){ if(q('#'+id)) return; var b=document.createElement('button'); b.id=id; b.textContent=txt; if(ttl) b.title=ttl; bar.insertBefore(b, bar.firstChild); }
@@ -968,7 +916,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
     q('#btnVault').addEventListener('click', function(){ var w=q('#vaultWrap'); if(!w){ buildVault(); w=q('#vaultWrap'); } if(!w) return; w.style.display = (w.style.display==='none'||!w.style.display)?'block':'none'; refreshVaultUI(); });
   }
 
-  // ——— 保存庫（localStorage） ———
   function vread(){ try{ return JSON.parse(localStorage.getItem('hex_vault_v1')||'{}'); }catch(e){ return {}; } }
   function vwrite(v){ try{ localStorage.setItem('hex_vault_v1', JSON.stringify(v)); }catch(e){} }
   function ensureVault(){ var v=vread(); if(!v.folders) v.folders={}; if(!v.currentFolder) v.currentFolder='預設'; if(!v.folders[v.currentFolder]) v.folders[v.currentFolder]=[]; vwrite(v); return v; }
@@ -994,10 +941,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
     q('#vDel').addEventListener('click', function(){ var v=ensureVault(); var li=q('#vList li.sel'); if(!li) return; var id=Number(li.getAttribute('data-id')); var arr=v.folders[v.currentFolder]; v.folders[v.currentFolder]=arr.filter(function(x){return x.id!==id}); vwrite(v); refreshVaultUI(); });
   }
 
-  function refreshVaultUI(){ var v=ensureVault(); var sel=q('#vFolderSel'); if(!sel) return; // modal 未建好
-    // folders
+  function refreshVaultUI(){ var v=ensureVault(); var sel=q('#vFolderSel'); if(!sel) return;
     sel.innerHTML=''; Object.keys(v.folders).forEach(function(name){ var opt=document.createElement('option'); opt.value=name; opt.textContent=name; sel.appendChild(opt); }); sel.value=v.currentFolder;
-    // list
     var list=q('#vList'); list.innerHTML=''; var arr=v.folders[v.currentFolder]||[]; arr.sort(function(a,b){return b.id-a.id});
     arr.forEach(function(item){ var li=document.createElement('li'); li.setAttribute('data-id', item.id); li.innerHTML='<span>'+escapeHtml(item.name)+'</span><span style="color:#64748b">'+item.ts+'</span>';
       li.addEventListener('click', function(){ qa('#vList li').forEach(function(x){x.classList.remove('sel')}); li.classList.add('sel'); q('#vSaveName').value=item.name; });
@@ -1006,7 +951,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
-  // 以下為安全取值/設定
   function getValSafe(id){ var el=document.getElementById(id); return el?el.value:null; }
   function setValSafe(id,v){ var el=document.getElementById(id); if(el!=null && v!=null){ el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } }
   function getMovingSafe(){ var arr=[false,false,false,false,false,false]; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i)) arr[i]=!!cb.checked; }); return arr; }
