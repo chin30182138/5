@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（1006-V4-功能還原穩定版）</title>
+<title>仙人指路六爻排盤（1006-V5-最終修正版）</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -12,7 +12,6 @@
   h1{margin:0 0 10px;font-size:22px}
   .grid{
     display:grid;
-    /* 【版面優化】: 使用 minmax 讓網格佈局更穩定，不易被超寬內容撐開 */
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     gap:12px
   }
@@ -28,10 +27,9 @@
     border-radius:10px;
     background:#fff;
     padding:8px;
-    /* 【主要修正】: 當內容超寬時，顯示水平滾動條，避免版面撐開 */
     overflow-x: auto;
   }
-  canvas{display:block;min-width:600px;width:100%;height:560px} /* 增加 min-width 確保初始顯示正常 */
+  canvas{display:block;min-width:600px;width:100%;height:560px}
   .yaoCtl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
   .yaoCtl>label{display:flex;align-items:center;gap:6px;justify-content:center;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;font-size:14px}
   #err{position:fixed;right:12px;top:12px;z-index:9999;max-width:60ch;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px;display:none}
@@ -53,7 +51,7 @@
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（1006-V4-功能還原穩定版）</h1>
+  <h1>仙人指路六爻排盤（1006-V5-最終修正版）</h1>
   <div id="err"></div>
 
   <div class="grid">
@@ -170,133 +168,63 @@ const SIX_START_BY_GAN={甲:0,乙:0,丙:1,丁:1,戊:2,己:3,庚:4,辛:4,壬:5,�
 
 /* ===== 64卦：卦宮/類型查表 ===== */
 const GUA_CLASS = {
-  "乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},
-  "風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},
-  "坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},
-  "雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},
-  "震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},
-  "地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},
-  "巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},
-  "天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},
-  "坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},
-  "澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},
-  "離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},
-  "山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},
-  "艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},
-  "火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},
-  "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},
-  "水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
+  "乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},"風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},
+  "坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},"雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},
+  "震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},"地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},
+  "巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},"天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},
+  "坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},"澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},
+  "離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},"山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},
+  "艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},"火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},
+  "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},"水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
 };
 
-// 【六爻生剋核心常量】
-const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'}; // 我生
-const WU_KE = {木:'土',土:'水',水:'火',火:'金',金:'木'};    // 我克
+const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'};
+const WU_KE = {木:'土',土:'水',水:'火',火:'金',金:'木'};
 const YS_KIN = ['父母','兄弟','官鬼','妻財','子孫'];
 
 function getYSFiveElementMap(meElem) {
     return {
-      '父母': WU_SHENG[meElem],
-      '兄弟': meElem,
-      '官鬼': WU_KE[meElem],
-      '妻財': WU_KE[WU_SHENG[meElem]],
-      '子孫': WU_SHENG[WU_KE[meElem]]
+      '父母': WU_SHENG[meElem], '兄弟': meElem, '官鬼': WU_KE[meElem],
+      '妻財': WU_KE[WU_SHENG[meElem]], '子孫': WU_SHENG[WU_KE[meElem]]
     };
 }
 
 function trigFromBits(b3){for(const n of TRINAMES){const t=TRIG[n];if(t[0]===b3[0]&&t[1]===b3[1]&&t[2]===b3[2]) return n} return null}
-function upperLowerOf(lines){const lo=trigFromBits([lines[0],lines[1],lines[2]]), up=trigFromBits([lines[3],lines[4],lines[5]]); return {up,lo}}
-function guaNameOf(up,lo){
-  const N={'乾':{'乾':'乾為天','兌':'天澤履','離':'天火同人','震':'天雷無妄','巽':'天風姤','坎':'天水訟','艮':'天山遁','坤':'天地否'},
-           '兌':{'乾':'澤天夬','兌':'兌為澤','離':'澤火革','震':'澤雷隨','巽':'澤風大過','坎':'澤水困','艮':'澤山咸','坤':'澤地萃'},
-           '離':{'乾':'火天大有','兌':'火澤睽','離':'離為火','震':'火雷噬嗑','巽':'火風鼎','坎':'火水未濟','艮':'火山旅','坤':'火地晉'},
-           '震':{'乾':'雷天大壯','兌':'雷澤歸妹','離':'雷火豐','震':'震為雷','巽':'雷風恆','坎':'雷水解','艮':'雷山小過','坤':'雷地豫'},
-           '巽':{'乾':'風天小畜','兌':'風澤中孚','離':'風火家人','震':'風雷益','巽':'巽為風','坎':'風水渙','艮':'風山漸','坤':'風地觀'},
-           '坎':{'乾':'水天需','兌':'水澤節','離':'水火既濟','震':'水雷屯','巽':'水風井','坎':'坎為水','艮':'水山蹇','坤':'水地比'},
-           '艮':{'乾':'山天大畜','兌':'山澤損','離':'山火賁','震':'山雷頤','巽':'山風蠱','坎':'山水蒙','艮':'艮為山','坤':'坤為地'},
-           '坤':{'乾':'地天泰','兌':'地澤臨','離':'地火明夷','震':'地雷復','巽':'地風升','坎':'地水師','艮':'地山謙','坤':'坤為地'} };
-  return (N[up]&&N[up][lo])?N[up][lo]:`${up}上·${lo}下`;
-}
-
+function upperLowerOf(lines){const lo=trigFromBits(lines.slice(0,3)), up=trigFromBits(lines.slice(3,6)); return {up,lo}}
+function guaNameOf(up,lo){ const N={'乾':{'乾':'乾為天','兌':'天澤履','離':'天火同人','震':'天雷無妄','巽':'天風姤','坎':'天水訟','艮':'天山遁','坤':'天地否'},'兌':{'乾':'澤天夬','兌':'兌為澤','離':'澤火革','震':'澤雷隨','巽':'澤風大過','坎':'澤水困','艮':'澤山咸','坤':'澤地萃'},'離':{'乾':'火天大有','兌':'火澤睽','離':'離為火','震':'火雷噬嗑','巽':'火風鼎','坎':'火水未濟','艮':'火山旅','坤':'火地晉'},'震':{'乾':'雷天大壯','兌':'雷澤歸妹','離':'雷火豐','震':'震為雷','巽':'雷風恆','坎':'雷水解','艮':'雷山小過','坤':'雷地豫'},'巽':{'乾':'風天小畜','兌':'風澤中孚','離':'風火家人','震':'風雷益','巽':'巽為風','坎':'風水渙','艮':'風山漸','坤':'風地觀'},'坎':{'乾':'水天需','兌':'水澤節','離':'水火既濟','震':'水雷屯','巽':'水風井','坎':'坎為水','艮':'水山蹇','坤':'水地比'},'艮':{'乾':'山天大畜','兌':'山澤損','離':'山火賁','震':'山雷頤','巽':'山風蠱','坎':'山水蒙','艮':'艮為山','坤':'坤為地'},'坤':{'乾':'地天泰','兌':'地澤臨','離':'地火明夷','震':'地雷復','巽':'地風升','坎':'地水師','艮':'地山謙','坤':'坤為地'} }; return (N[up]&&N[up][lo])?N[up][lo]:`${up}上·${lo}下`;}
 const toYMDhm=d=>{const z=n=>(n<10?'0'+n:n);return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;};
-function threeBranchesOfTrigram(tri,inner){
-  const start=inner?INNER_START[tri]:OUTER_START[tri];
-  const seq=YANG_TRIG.has(tri)?SEQ_YANG:SEQ_YIN;
-  const i0=seq.indexOf(start); return [seq[i0%6],seq[(i0+1)%6],seq[(i0+2)%6]];
-}
+function threeBranchesOfTrigram(tri,inner){ const start=inner?INNER_START[tri]:OUTER_START[tri]; const seq=YANG_TRIG.has(tri)?SEQ_YANG:SEQ_YIN; const i0=seq.indexOf(start); return [seq[i0%6],seq[(i0+1)%6],seq[(i0+2)%6]];}
 function naJiaBranches(lines){const {up,lo}=upperLowerOf(lines); return [...threeBranchesOfTrigram(lo,true), ...threeBranchesOfTrigram(up,false)]}
-function sixKin(meElem,branch){
-  const e=ZHI_ELEM[branch]||'土';
-  const GEN={木:'火',火:'土',土:'金',金:'水',水:'木'};
-  const CTL={木:'土',土:'水',水:'火',火:'金',金:'木'};
-  if(e===meElem) return '兄弟';
-  if(CTL[e]===meElem) return '官鬼';
-  if(CTL[meElem]===e) return '妻財';
-  if(GEN[e]===meElem) return '父母';
-  if(GEN[meElem]===e) return '子孫';
-  return '兄弟';
-}
+function sixKin(meElem,branch){ const e=ZHI_ELEM[branch]||'土'; if(e===meElem) return '兄弟'; if(WU_KE[e]===meElem) return '官鬼'; if(WU_KE[meElem]===e) return '妻財'; if(WU_SHENG[e]===meElem) return '父母'; if(WU_SHENG[meElem]===e) return '子孫'; return '兄弟';}
 function changedLines(lines,moving){ return lines.map((v,i)=> moving[i] ? (v?0:1) : v); }
 
-let pillars=null, dayGan='甲', dayZhi='子';
+let pillars=null;
 function calcPillarsAndSix(){
   const s=E('dt').value; const dt=s?new Date(s):new Date();
   const lunar=Lunar.fromDate(dt);
   pillars={year:lunar.getYearInGanZhiExact(),month:lunar.getMonthInGanZhiExact(),day:lunar.getDayInGanZhiExact(),hour:lunar.getTimeInGanZhi()};
-  dayGan=pillars.day.charAt(0); dayZhi=pillars.day.charAt(1);
-  const dayCycleIndex = lunar.getDayGanIndex() + 1 + lunar.getDayZhiIndex() * 12; // A way to get a unique index for the day
-  const xun首Start = Math.floor(lunar.getDayGanIndex() / 10) * 10;
-  const xun首Gan = GAN[lunar.getDayGanIndex() % 10];
-  const xun首Zhi = ZHI[lunar.getDayZhiIndex() % 12];
-  const xun首 = xun首Gan + xun首Zhi; // This logic needs review
-  const kw1=ZHI[ (lunar.getDayZhiIndex() + 10)%12 ], kw2=ZHI[ (lunar.getDayZhiIndex() + 11)%12 ];
+  const dayGan=pillars.day.charAt(0);
+  const dayZhi=pillars.day.charAt(1);
+  const dayInGanZhi = lunar.getDayInGanZhi();
+  const xun = dayInGanZhi.substring(0, dayInGanZhi.length - 1);
+  const kongWang = lunar.getDayXunKong();
   E('gzYear').textContent=`年：${pillars.year}`; E('gzMonth').textContent=`月：${pillars.month}`;
   E('gzDay').textContent=`日：${pillars.day}`; E('gzHour').textContent=`時：${pillars.hour}`;
-  E('gzXun').textContent=`旬首：${xun首}`;
-  E('gzKW').textContent=`空亡：${kw1}${kw2}`;
+  E('gzXun').textContent=`旬首：${xun}`;
+  E('gzKW').textContent=`空亡：${kongWang}`;
   const startIdx=SIX_START_BY_GAN[dayGan]??0;
   return [0,1,2,3,4,5].map(i=> SIX[(startIdx+i)%6]);
 }
 
-function purePalaceRows(palace){
-  const lines=[...TRIG[palace], ...TRIG[palace]];
-  const branches=naJiaBranches(lines);
-  const elem=GONG_ELEM[palace];
-  return {branches, kins: branches.map(b=>sixKin(elem,b))};
-}
-function buildFuShenForCurrent(gong,currentKins){
-  const needed=new Set(YS_KIN); currentKins.forEach(k=>needed.delete(k));
-  if(needed.size===0) return {};
-  const {branches, kins}=purePalaceRows(gong); const fuMap={};
-  needed.forEach(miss=>{ const idx=kins.indexOf(miss); if(idx!==-1) fuMap[idx+1]=`${branches[idx]} ${miss}`; });
-  return fuMap;
-}
-function decideShiYing(upTri, loTri, guaName, lines){
-  const info = GUA_CLASS[guaName];
-  const findShi=()=>{ for(let i=0;i<6;i++){ const tmp=[...lines]; tmp[i]=1-tmp[i]; if(trigFromBits(tmp.slice(0,3))===trigFromBits(tmp.slice(3,6))) return i+1; } return 6; };
-  const shi = (info&&info.type==='本宮')?6:(info&&info.type==='遊魂')?4:(info&&info.type==='歸魂')?3:findShi();
-  const ying = shi>3 ? shi-3 : shi+3;
-  return {shi, ying, gong: info?info.gong:upTri, kind: info?info.type:'飛'};
-}
+function purePalaceRows(palace){ const lines=[...TRIG[palace], ...TRIG[palace]]; const branches=naJiaBranches(lines); const elem=GONG_ELEM[palace]; return {branches, kins: branches.map(b=>sixKin(elem,b))};}
+function buildFuShenForCurrent(gong,currentKins){ const needed=new Set(YS_KIN); currentKins.forEach(k=>needed.delete(k)); if(needed.size===0) return {}; const {branches, kins}=purePalaceRows(gong); const fuMap={}; needed.forEach(miss=>{ const idx=kins.indexOf(miss); if(idx!==-1) fuMap[idx+1]=`${branches[idx]} ${miss}`; }); return fuMap;}
+function decideShiYing(upTri, loTri, guaName, lines){ const info = GUA_CLASS[guaName]; const findShi=()=>{ for(let i=0;i<6;i++){ const tmp=[...lines]; tmp[i]=1-tmp[i]; if(trigFromBits(tmp.slice(0,3))===trigFromBits(tmp.slice(3,6))) return i+1; } return 6; }; const shi = (info&&info.type==='本宮')?6:(info&&info.type==='遊魂')?4:(info&&info.type==='歸魂')?3:findShi(); const ying = shi>3 ? shi-3 : shi+3; return {shi, ying, gong: info?info.gong:upTri, kind: info?info.type:'飛'};}
 let moving=[false,false,false,false,false,false];
 let cvs,ctx,DPR=1;
-function setupCanvas(){
-  cvs=E('hexCanvas'); ctx=cvs.getContext('2d');
-  DPR=window.devicePixelRatio||1;
-  cvs.width=Math.max(1,Math.floor(cvs.clientWidth*DPR));
-  cvs.height=Math.max(1,Math.floor(cvs.clientHeight*DPR));
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-}
-function drawWhiteTag(x,y,text){
-  ctx.font='14px "Noto Sans TC","Microsoft JhengHei"';
-  const pad=6, h=20, w=ctx.measureText(text).width+pad*2;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillStyle='rgba(255,255,255,.96)'; ctx.fillRect(x-w/2, y-h/2, w, h);
-  ctx.fillStyle='#0f172a'; ctx.fillText(text, x, y+1);
-}
+function setupCanvas(){ cvs=E('hexCanvas'); ctx=cvs.getContext('2d'); DPR=window.devicePixelRatio||1; cvs.width=Math.max(1,Math.floor(cvs.clientWidth*DPR)); cvs.height=Math.max(1,Math.floor(cvs.clientHeight*DPR)); ctx.setTransform(DPR,0,0,DPR,0,0);}
+function drawWhiteTag(x,y,text){ ctx.font='14px "Noto Sans TC","Microsoft JhengHei"'; const pad=6, h=20, w=ctx.measureText(text).width+pad*2; const pa=ctx.textAlign, pb=ctx.textBaseline; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='rgba(255,255,255,.96)'; ctx.fillRect(x-w/2, y-h/2, w, h); ctx.fillStyle='#0f172a'; ctx.fillText(text, x, y+1); ctx.textAlign=pa; ctx.textBaseline=pb;}
 function drawBoard(meta,rows){
-  setupCanvas(); const W=cvs.clientWidth, H=cvs.clientHeight;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0f172a';
+  setupCanvas(); const W=cvs.clientWidth, H=cvs.clientHeight; ctx.clearRect(0,0,W,H); ctx.fillStyle='#0f172a';
   ctx.font='bold 18px "Noto Sans TC","Microsoft JhengHei",sans-serif'; ctx.fillText(`問題：${meta.q}`,12,26);
   ctx.font='15px "Noto Sans TC","Microsoft JhengHei",sans-serif'; ctx.fillText(`起卦：${meta.dt}`,12,48);
   ctx.fillText(`四柱：${meta.gzY}　${meta.gzM}　${meta.gzD}　${meta.gzH}　（旬首：${meta.xun}　空亡：${meta.kw}）`,12,70);
@@ -305,55 +233,16 @@ function drawBoard(meta,rows){
   const size=+E('size').value, offx=+E('offx').value, offy=+E('offy').value, gap=+E('gap').value, rowOffset=+E('headgap').value;
   E('sizeVal').textContent=size; E('offxVal').textContent=offx; E('offyVal').textContent=offy; E('gapVal').textContent=gap; E('headgapVal').textContent=rowOffset;
 
-  const x0=16+offx, y0=120+offy, headerY=y0-8;
-  const yaoX1=x0+120, yaoX2=yaoX1+size;
-  const col={six:x0, fu:x0+76, yao:yaoX1, kin:yaoX2+30, zhi:yaoX2+98, mark:yaoX2+160, kinc:yaoX2+220, zhic:yaoX2+290};
-
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle='#475569'; ctx.font='bold 13px "Noto Sans TC","Microsoft JhengHei"';
+  const x0=16+offx, y0=120+offy, headerY=y0-8; const yaoX1=x0+120, yaoX2=yaoX1+size; const col={six:x0, fu:x0+76, yao:yaoX1, kin:yaoX2+30, zhi:yaoX2+98, mark:yaoX2+160, kinc:yaoX2+220, zhic:yaoX2+290};
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle='#475569'; ctx.font='bold 13px "Noto Sans TC","Microsoft JhengHei"';
   Object.entries({六獸:col.six,伏神:col.fu,爻象:col.yao,六親:col.kin,地支:col.zhi,世應:col.mark,變六親:col.kinc,變支:col.zhic}).forEach(([k,v])=>ctx.fillText(k,v,headerY));
-
-  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(x0, headerY+8); ctx.lineTo(yaoX2+320, headerY+8); ctx.stroke();
-
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, headerY+8); ctx.lineTo(yaoX2+320, headerY+8); ctx.stroke();
   ctx.lineWidth=6; ctx.strokeStyle='#111827'; ctx.fillStyle='#0f172a';
-  rows.forEach((r,idx)=>{
-    const y=y0 + rowOffset + idx*gap;
-    ctx.font='14px "Noto Sans TC","Microsoft JhengHei"';
-    ctx.fillText(r.six||'—', col.six, y+5);
-    ctx.textAlign = 'center'; ctx.fillText(r.fu?'':'—', col.fu, y+5); ctx.textAlign = 'left';
-    if(r.yy===1){ ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+size, y); ctx.stroke(); }
-    else{ const g=size*0.22, seg=(size-g)/2; ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+seg, y); ctx.moveTo(col.yao+seg+g, y); ctx.lineTo(col.yao+size, y); ctx.stroke(); }
-    if(r.mv) ctx.fillText(r.yy===1?'○':'×', col.yao+size+12, y+6);
-    ctx.fillText(r.kin||'—', col.kin, y+5);
-    ctx.fillText(r.zhi||'—', col.zhi, y+5);
-    if(r.fu) drawWhiteTag(col.fu, y, r.fu);
-    if(r.mark) drawWhiteTag(col.mark, y, r.mark);
-    if(r.kinc) drawWhiteTag(col.kinc, y, r.kinc);
-    if(r.zhic) drawWhiteTag(col.zhic, y, r.zhic);
-  });
+  rows.forEach((r,idx)=>{ const y=y0 + rowOffset + idx*gap; ctx.font='14px "Noto Sans TC","Microsoft JhengHei"'; ctx.fillText(r.six||'—', col.six, y+5); ctx.textAlign = 'center'; ctx.fillText(r.fu?'':'—', col.fu, y+5); ctx.textAlign = 'left'; if(r.yy===1){ ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+size, y); ctx.stroke(); } else{ const g=size*0.22, seg=(size-g)/2; ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+seg, y); ctx.moveTo(col.yao+seg+g, y); ctx.lineTo(col.yao+size, y); ctx.stroke(); } if(r.mv) ctx.fillText(r.yy===1?'○':'×', col.yao+size+12, y+6); ctx.fillText(r.kin||'—', col.kin, y+5); ctx.fillText(r.zhi||'—', col.zhi, y+5); if(r.fu) drawWhiteTag(col.fu, y, r.fu); if(r.mark) drawWhiteTag(col.mark, y, r.mark); if(r.kinc) drawWhiteTag(col.kinc, y, r.kinc); if(r.zhic) drawWhiteTag(col.zhic, y, r.zhic); });
 }
 
 function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseBranches, moving) {
-    const scores = {木:6, 火:6, 土:6, 金:6, 水:6};
-    const ysKinElemMap = getYSFiveElementMap(meElem);
-    const targetElem = ysKinElemMap[yongShen];
-    if (!targetElem) return {scores, targetElem: ''};
-    let factor = 0;
-    const monthElem = ZHI_ELEM[monthZhi.charAt(1)];
-    const dayElem = ZHI_ELEM[dayZhi.charAt(1)];
-    if (monthElem === targetElem || WU_SHENG[monthElem] === targetElem) factor += 3;
-    else if (WU_KE[monthElem] === targetElem) factor -= 3;
-    if (dayElem === targetElem || WU_SHENG[dayElem] === targetElem) factor += 2;
-    else if (WU_KE[dayElem] === targetElem) factor -= 2;
-    baseBranches.forEach((branch, i) => { if(moving[i]){
-        const moveElem = ZHI_ELEM[branch];
-        if (moveElem === targetElem || WU_SHENG[moveElem] === targetElem) factor += 1.5;
-        else if (WU_KE[moveElem] === targetElem) factor -= 1.5;
-    }});
-    scores[targetElem] = Math.min(10, Math.max(1, 6 + factor));
-    E('ysName').textContent = `${yongShen} (${targetElem} ${scores[targetElem].toFixed(1)})`;
-    return {scores, targetElem};
+    const scores = {木:6, 火:6, 土:6, 金:6, 水:6}; const ysKinElemMap = getYSFiveElementMap(meElem); const targetElem = ysKinElemMap[yongShen]; if (!targetElem) return {scores, targetElem: ''}; let factor = 0; const monthElem = ZHI_ELEM[monthZhi.charAt(1)]; const dayElem = ZHI_ELEM[dayZhi.charAt(1)]; if (monthElem === targetElem || WU_SHENG[monthElem] === targetElem) factor += 3; else if (WU_KE[monthElem] === targetElem) factor -= 3; if (dayElem === targetElem || WU_SHENG[dayElem] === targetElem) factor += 2; else if (WU_KE[dayElem] === targetElem) factor -= 2; baseBranches.forEach((branch, i) => { if(moving[i]){ const moveElem = ZHI_ELEM[branch]; if (moveElem === targetElem || WU_SHENG[moveElem] === targetElem) factor += 1.5; else if (WU_KE[moveElem] === targetElem) factor -= 1.5; }}); scores[targetElem] = Math.min(10, Math.max(1, 6 + factor)); E('ysName').textContent = `${yongShen} (${targetElem} ${scores[targetElem].toFixed(1)})`; return {scores, targetElem};
 }
 
 function updateW5RadarScores(scores) {
@@ -370,38 +259,34 @@ function updateW5RadarScores(scores) {
             }
         }
     });
-    if (window.w5_draw) {
-        window.w5_draw();
-    }
+    if (window.w5_draw) { window.w5_draw(); }
+}
+
+// 【功能還原】: 重新加入「隨機起卦」的函數
+function applyRandomHexagram() {
+    const TRIS = ['乾','兌','離','震','巽','坎','艮','坤'];
+    E('upper').value = TRIS[Math.floor(Math.random() * TRIS.length)];
+    E('lower').value = TRIS[Math.floor(Math.random() * TRIS.length)];
+    let hasMovingYao = false;
+    const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]');
+    mvCtlInputs.forEach(cb => {
+        const isMoving = Math.random() < 0.35; // 35% 的機率成為動爻
+        cb.checked = isMoving;
+        if (isMoving) hasMovingYao = true;
+    });
+    if (!hasMovingYao && mvCtlInputs.length > 0) { // 確保至少有一條動爻
+        const randomIndex = Math.floor(Math.random() * mvCtlInputs.length);
+        mvCtlInputs[randomIndex].checked = true;
+    }
+    document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]').forEach((cb,i)=>{
+      moving[i] = cb.checked;
+    });
+    E('question').value = `隨機起卦`;
+    render();
 }
 
 function render(){
-  const upTri=E('upper').value, loTri=E('lower').value, yongShen=E('yongShen').value;
-  const baseLines=[...TRIG[loTri], ...TRIG[upTri]];
-  const gzSix=calcPillarsAndSix();
-  const guaName = guaNameOf(upTri, loTri);
-  const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
-  const meElem=GONG_ELEM[gong];
-  window.__lastMeElem = meElem;
-  const branches=naJiaBranches(baseLines);
-  const kins=branches.map(b=>sixKin(meElem,b));
-  let w5s={木:6,火:6,土:6,金:6,水:6}, ysTxt='';
-  if(yongShen){
-    const res=calculateYongShenWuxingScores(yongShen,pillars.month,pillars.day,meElem,branches,moving);
-    w5s=res.scores; ysTxt=`${yongShen}(${res.targetElem} ${w5s[res.targetElem].toFixed(1)})`;
-  }
-  updateW5RadarScores(w5s);
-  const chLines=changedLines(baseLines,moving);
-  const branchesC=naJiaBranches(chLines), kinsC=branchesC.map(b=>sixKin(meElem,b));
-  const fuMap=buildFuShenForCurrent(gong,kins);
-  const rows=[];
-  for(let pos=6;pos>=1;pos--){
-    const i=pos-1;
-    rows.push({six:gzSix[i],fu:fuMap[pos]||'',yy:baseLines[i],mv:moving[i],kin:kins[i],zhi:branches[i],kinc:moving[i]?kinsC[i]:'',zhic:moving[i]?branchesC[i]:'',mark:(pos===shi)?'世':(pos===ying)?'應':''});
-  }
-  const dtVal=(E('dt').value||'').replace('T',' ');
-  drawBoard({q:E('question').value||'—',dt:dtVal,gzY:pillars.year,gzM:pillars.month,gzD:pillars.day,gzH:pillars.hour,xun:E('gzXun').textContent.substr(3),kw:E('gzKW').textContent.substr(3),name:guaName,up:upTri,lo:loTri,gong,shi,ying,kind,ysTxt},rows);
-  if(window.updateTCMAdvice) try{window.updateTCMAdvice(meElem,w5s);}catch(e){}
+  const upTri=E('upper').value, loTri=E('lower').value, yongShen=E('yongShen').value; const baseLines=[...TRIG[loTri], ...TRIG[upTri]]; const gzSix=calcPillarsAndSix(); const guaName = guaNameOf(upTri, loTri); const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines); const meElem=GONG_ELEM[gong]; window.__lastMeElem = meElem; const branches=naJiaBranches(baseLines); const kins=branches.map(b=>sixKin(meElem,b)); let w5s={木:6,火:6,土:6,金:6,水:6}, ysTxt=''; if(yongShen){ const res=calculateYongShenWuxingScores(yongShen,pillars.month,pillars.day,meElem,branches,moving); w5s=res.scores; ysTxt=`${yongShen}(${res.targetElem} ${w5s[res.targetElem].toFixed(1)})`; } updateW5RadarScores(w5s); const chLines=changedLines(baseLines,moving); const branchesC=naJiaBranches(chLines), kinsC=branchesC.map(b=>sixKin(meElem,b)); const fuMap=buildFuShenForCurrent(gong,kins); const rows=[]; for(let pos=6;pos>=1;pos--){ const i=pos-1; rows.push({six:gzSix[i],fu:fuMap[pos]||'',yy:baseLines[i],mv:moving[i],kin:kins[i],zhi:branches[i],kinc:moving[i]?kinsC[i]:'',zhic:moving[i]?branchesC[i]:'',mark:(pos===shi)?'世':(pos===ying)?'應':''}); } const dtVal=(E('dt').value||'').replace('T',' '); drawBoard({q:E('question').value||'—',dt:dtVal,gzY:pillars.year,gzM:pillars.month,gzD:pillars.day,gzH:pillars.hour,xun:E('gzXun').textContent.substr(3),kw:E('gzKW').textContent.substr(3),name:guaName,up:upTri,lo:loTri,gong,shi,ying,kind,ysTxt},rows); if(window.updateTCMAdvice) try{window.updateTCMAdvice(meElem,w5s);}catch(e){}
 }
 
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -409,17 +294,50 @@ window.addEventListener('DOMContentLoaded', ()=>{
   E('btnNow').addEventListener('click', ()=>{ E('dt').value = toYMDhm(new Date()); render(); });
   E('btnPrint').addEventListener('click', ()=>window.print());
   const mvCtl=E('mvCtl');
-  mvCtl.innerHTML=[6,5,4,3,2,1].map(p=>`<label><input type="checkbox" data-mv="${p-1}"> ${p===6?'上':p===1?'初':p}爻</label>`).join('');
+  mvCtl.innerHTML=[6,5,4,3,2,1].map(p=>`<label><input type="checkbox" data-mv="${p-1}"> ${p===6?'上':p===1?'初':p}爻動</label>`).join('');
   mvCtl.addEventListener('change',e=>{ const i=e.target.dataset.mv; if(i){ moving[i]=e.target.checked; render(); }});
   const bind=(id,fn)=>{const el=E(id);['input','change'].forEach(ev=>el&&el.addEventListener(ev,fn));};
   ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render));
   E('redraw').addEventListener('click',render);
+  // 【功能還原】: 重新綁定「隨機起卦」按鈕的點擊事件
+  E('btnRandomHex').addEventListener('click', applyRandomHexagram);
   E('btnUpdateRadar').addEventListener('click', render);
   render();
 });
 </script>
 
-<script id="W5_SAFE_JS">/* ... Unchanged ... */</script>
+<script id="W5_SAFE_JS">
+(function(){
+  if(window.__W5_SAFE__) return; window.__W5_SAFE__=true;
+  const $=s=>document.querySelector(s);
+  function rightSec(){ const g=$('.grid'); if(!g) return null; const secs=[...g.querySelectorAll(':scope > .sec, :scope > section.sec')]; return secs.length > 1 ? secs[1] : null; }
+  const host=rightSec(); if(host){ const sec=document.createElement('div'); sec.id='w5_sec'; sec.className='sec'; sec.innerHTML=`
+      <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行雷達圖</h3>
+      <div class="canvasWrap" style="overflow-x:visible;"><canvas id="w5_canv" style="min-width:auto;"></canvas></div>
+      <div id="w5_ctrl">
+        <div class="row"><label>木</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div>
+        <div class="row"><label>火</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div>
+        <div class="row"><label>土</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div>
+        <div class="row"><label>金</label><input id="w5_jin" type="range" min="1" max="10" step="1" value="6"><span id="w5_jinVal" class="miniVal">6</span></div>
+        <div class="row"><label>水</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div>
+      </div>`; host.insertBefore(sec, host.firstChild||null); }
+  const COLORS={木:'#16a34a',火:'#ef4444',土:'#f59e0b',金:'#64748b',水:'#3b82f6'}, ORDER=['火','木','土','金','水'];
+  const id=s=>document.getElementById(s), val=i=>Number(id(i)&&id(i).value)||6;
+  function values(){ return {火:val('w5_huo'),木:val('w5_mu'),土:val('w5_tu'),金:val('w5_jin'),水:val('w5_shui')}; }
+  function drawRadar(){ const c=id('w5_canv'); if(!c) return; const dpr=window.devicePixelRatio||1; const W=c.clientWidth, H=c.clientHeight; c.width=Math.floor(W*dpr); c.height=Math.floor(H*dpr); const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    const cx=W/2, cy=H/2, R=Math.min(W,H)/2*0.7, rings=5, ang0=-Math.PI/2;
+    ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb'; for(let r=1;r<=rings;r++){ const rr=R*r/rings; ctx.beginPath(); for(let i=0;i<ORDER.length;i++){ const a=ang0+i*(2*Math.PI/ORDER.length); i?ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a)):ctx.moveTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));} ctx.closePath(); ctx.stroke(); }
+    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ORDER.forEach((k,i)=>{ const a=ang0+i*(2*Math.PI/ORDER.length), x=cx+(R+18)*Math.cos(a), y=cy+(R+18)*Math.sin(a); ctx.fillStyle=COLORS[k]; ctx.fillText(k,x,y); });
+    const v=values(), pts=[]; ORDER.forEach((k,i)=>{ const rr=R*Math.max(0.1,Math.min(1,v[k]/10)), a=ang0+i*(2*Math.PI/ORDER.length); pts.push([cx+rr*Math.cos(a), cy+rr*Math.sin(a)]); });
+    ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fillStyle='rgba(59,130,246,0.2)'; ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+ }
+  window.w5_draw=drawRadar;
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui'].forEach(i=>{ const el=id(i); if(el){ el.addEventListener('input',()=>{ const tip=id(i+'Val'); if(tip) tip.textContent=el.value; drawRadar(); if(window.updateTCMAdvice && window.__lastMeElem) try{window.updateTCMAdvice(window.__lastMeElem, values());}catch(_){} }); }}); 
+  window.addEventListener('resize', drawRadar);
+  document.addEventListener('DOMContentLoaded', drawRadar);
+  window.addEventListener('load', ()=>{ setTimeout(drawRadar,150); });
+})();
+</script>
 <style id="TCM_BOX_CSS"> /* ... Unchanged ... */ </style>
 <script id="TCM_BOX_JS"> /* ... Unchanged ... */ </script>
 <script id="TCM_HOOK_RENDER"> /* ... Unchanged ... */ </script>
