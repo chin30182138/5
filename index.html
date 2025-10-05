@@ -113,7 +113,7 @@
       <div class="row hide-print" style="gap:10px">
         <button id="redraw">重繪卦象</button>
         <button id="download">匯出 PNG</button>
-        </div>
+      </div>
 
       <div id="noteBox" class="noteBox">
   <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
@@ -132,9 +132,9 @@
   <div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div>
 </div>
 <div id="w5_sec" class="sec">
-  <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行雷達圖 (數值核心)</h3>
+  <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行旺弱核心數值</h3>
   <div id="w5_ctrl">
-    <p class="muted">圖表功能已移除，下方僅顯示核心數值：</p>
+    <p class="muted">圖表功能已移除，下方顯示六爻計算的核心數值：</p>
     <div class="row"><label>木 (6)</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div>
     <div class="row"><label>火 (6)</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div>
     <div class="row"><label>土 (6)</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div>
@@ -414,8 +414,6 @@ function applyRandomHexagram() {
 }
 
 
-// 【移除】forceRadarUpdate 函數，因為它專門用於繪圖同步
-
 function render(){
   const upTri=E('upper').value, loTri=E('lower').value;
   const yongShen=E('yongShen').value; 
@@ -431,7 +429,7 @@ function render(){
 
   const guaName = guaNameOf(upTri, loTri);
   const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines);
-  const meElem=GONG_ELEM[gong];
+  const meElem=GONG_GLEM[gong];
   window.__lastMeElem = meElem;
   
   const branches=naJiaBranches(baseLines);
@@ -447,6 +445,7 @@ function render(){
     
     ysTxt = `${yongShen} (五行:${targetElem} 旺度:${w5Scores[targetElem].toFixed(1)})`;
   } else {
+    // 【修復點】：如果沒有選用神，確保 TCM 建議使用預設分數
     E('ysName').textContent = '';
     w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6}; 
   }
@@ -521,6 +520,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   E('download').addEventListener('click',downloadPNG);
   
   E('btnRandomHex').addEventListener('click',applyRandomHexagram);
+  // 移除 btnUpdateRadar 綁定
 
   render();
 });
