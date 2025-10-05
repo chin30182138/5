@@ -10,7 +10,7 @@
   body{margin:0;background:#f6f7fb;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui}
   main{max-width:1180px;margin:18px auto;padding:0 12px}
   h1{margin:0 0 10px;font-size:22px}
-  /* 簡化佈局：改為彈性佈局，確保內容流暢顯示 */
+  /* 【版面修正】：確保內容流暢顯示 */
   .grid{display:flex;gap:12px;flex-wrap:wrap;} 
   .grid>section:nth-child(1) {flex: 1 1 55%;} /* 左側控制台佔大頭 */
   .grid>section:nth-child(2) {flex: 1 1 35%;} /* 右側顯示區佔小頭 */
@@ -34,6 +34,7 @@
   #tcmBox h3{margin:0 0 10px;font-size:16px;color:#0f172a}
   #tcmBox .tcm-note{margin-top:8px;color:#64748b;font-size:12px}
   #brief{display:block!important;font-size:12px;} /* 確保卦象摘要可以顯示 */
+  #w5_sec {display: none;} /* 隱藏雷達圖區域 */
 
   @media print {
     @page { size: A4 portrait; margin: 12mm; }
@@ -112,7 +113,7 @@
       <div class="row hide-print" style="gap:10px">
         <button id="redraw">重繪卦象</button>
         <button id="download">匯出 PNG</button>
-      </div>
+        </div>
 
       <div id="noteBox" class="noteBox">
   <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
@@ -129,6 +130,17 @@
   <div id="tcmCore"></div>
   <div id="tcmLists"></div>
   <div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div>
+</div>
+<div id="w5_sec" class="sec">
+  <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行雷達圖 (數值核心)</h3>
+  <div id="w5_ctrl">
+    <p class="muted">圖表功能已移除，下方僅顯示核心數值：</p>
+    <div class="row"><label>木 (6)</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div>
+    <div class="row"><label>火 (6)</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div>
+    <div class="row"><label>土 (6)</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div>
+    <div class="row"><label>金 (6)</label><input id="w5_jin" type="range" min="1" max="10" step="1" value="6"><span id="w5_jinVal" class="miniVal">6</span></div>
+    <div class="row"><label>水 (6)</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div>
+  </div>
 </div>
 </section>
   </div>
@@ -282,7 +294,9 @@ function buildFuShenForCurrent(meElem,palace,currentKins){
   }
   return fuMap;
 }
-function yingFromShi_fixed(shi){const y=shi+3;return y>6?y-6:y;}
+// 【最終修復】：將 y 改為 ying_pos
+function yingFromShi_fixed(shi){const ying_pos=shi+3;return ying_pos>6?ying_pos-6:ying_pos;} 
+
 function findShiByYaoBian(lines){
   const eqTri = arr => { const {up,lo}=upperLowerOf(arr); return (up===lo)?up:null; };
   const flipAt=(arr,i)=>{const t=[...arr]; t[i]=t[i]?0:1; return t;};
@@ -305,7 +319,7 @@ function decideShiYing(upTri, loTri, guaName, lines){
   return {shi, ying:yingFromShi_fixed(shi), gong:info.gong, kind:'飛（保險）'};
 }
 let moving=[false,false,false,false,false,false];
-// 移除所有 Canvas 繪圖相關的全局變量和函數
+// 繪圖變數和 Canvas 設置已移除
 
 // 【六爻用神旺弱計算函數】：計算用神及其五行的旺弱評分 (1-10分)
 function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseBranches, moving) {
@@ -346,22 +360,25 @@ function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseB
     return {scores, targetElem}; // 回傳分數與目標五行
 }
 
-// 【移除 Canvas 依賴，轉為文字輸出】
+// 【修正：移除繪圖依賴，只更新滑桿數值】
 function updateW5RadarScores(scores) {
-    // 由於雷達圖繪製已被移除，這裡只執行滑桿數值更新 (如果滑桿仍存在，供用戶手動參考)
+    if (!scores || !Object.keys(scores).length) return;
     const ELEMENTS = ['木', '火', '土', '金', '水'];
     ELEMENTS.forEach(e => {
         const id = `w5_${e.toLowerCase()}`;
         const el = document.getElementById(id);
         const score = scores[e];
+
         if (el && typeof score === 'number') {
-            const newValue = Math.round(score);
+            const newValue = Math.round(score); 
             if (el.value !== String(newValue)) {
                 el.value = newValue;
+                // 更新滑桿旁邊的數字顯示
+                const valEl = document.getElementById(`${id}Val`);
+                if(valEl) valEl.textContent = String(newValue); 
             }
         }
     });
-    // 移除 window.w5_draw 呼叫
 }
 
 // 【新增】：隨機起卦函數
@@ -377,7 +394,7 @@ function applyRandomHexagram() {
     const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]');
     
     mvCtlInputs.forEach(cb => {
-        const isMoving = Math.random() < 0.35;
+        const isMoving = Math.random() < 0.35; // 35% chance to be a moving line
         cb.checked = isMoving;
         if (isMoving) hasMovingYao = true;
     });
@@ -434,7 +451,7 @@ function render(){
     w5Scores = {木:6, 火:6, 土:6, 金:6, 水:6}; 
   }
   
-  // 移除雷達圖更新，只執行滑桿數值更新 (如果存在)
+  // 呼叫更新函數，傳入計算後的五行分數 (只更新文字和滑桿)
   updateW5RadarScores(w5Scores); 
   
   const chLines=changedLines(baseLines,moving);
@@ -450,7 +467,6 @@ function render(){
       six:gzSix[i],
       fu: fuMap[pos] || '',
       yy: baseLines[i],
-      mv: moving[i],
       kin: kins[i],
       zhi: branches[i],
       kinc: moving[i]? kinsC[i] : '',
@@ -458,6 +474,8 @@ function render(){
       mark:(pos===shi)?'世':(pos===ying)?'應':''
     });
   }
+
+  const y=pillars.year, m=pillars.month, d=pillars.day, h=pillars.hour;
   
   // 卦象文字摘要輸出
   const yaoTxt=(yy,mv)=> mv?(yy?'—○—':'--×--'):(yy?'———':'-- --');
@@ -479,6 +497,11 @@ function render(){
   if (window.updateTCMAdvice) try{ window.updateTCMAdvice(meElem, w5Scores); } catch(_) { }
 }
 
+function downloadPNG(){
+  // 移除 Canvas 依賴
+  alert('匯出 PNG 功能已被禁用，請使用瀏覽器列印功能。');
+}
+
 window.addEventListener('DOMContentLoaded', ()=>{
   const now=new Date(); const z=n=>(n<10?'0'+n:n);
   E('dt').value=`${now.getFullYear()}-${z(now.getMonth()+1)}-${z(now.getDate())}T${z(now.getHours())}:${z(now.getMinutes())}`;
@@ -495,13 +518,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const bind=(id,fn)=>{const el=E(id);['input','change'].forEach(ev=>el&&el.addEventListener(ev,fn));};
   ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render)); 
   E('redraw').addEventListener('click',render);
-  E('download').addEventListener('click',() => { /* 移除 PNG 匯出功能 */ });
+  E('download').addEventListener('click',downloadPNG);
   
   E('btnRandomHex').addEventListener('click',applyRandomHexagram);
-  
-  // 移除 btnUpdateRadar 綁定
-  const btnUpdateRadar = document.getElementById('btnUpdateRadar');
-  if (btnUpdateRadar) btnUpdateRadar.remove(); 
 
   render();
 });
@@ -535,10 +554,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
     if (w5Scores && Object.values(w5Scores).some(x => typeof x === 'number' && !isNaN(x))) {
         return w5Scores;
     }
-    const get=id=>{const el=document.getElementById(id); return el?Number(el.value):null};
-    const v={木:get('w5_mu'),火:get('w5_huo'),土:get('w5_tu'),金:get('w5_jin'),水:get('w5_shui')};
-    const has=Object.values(v).some(x=>typeof x==='number' && !isNaN(x));
-    return has?v:null;
+    // 繪圖功能已移除，所以這裡只需要一個預設值
+    return {木:6, 火:6, 土:6, 金:6, 水:6};
   }
   function hiLo(v){ 
     if(!v) return null; 
@@ -571,13 +588,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
     
     // 【茶飲建議】
     const teaList = [];
-    // 【關鍵修復點】：確保即使沒有強烈 trend，也會顯示通用建議
     if (trend && (trend.hi.length > 0 || trend.lo.length > 0)) {
         trend.hi.forEach(([k]) => { if (TEA_MAP[`${k}旺`]) teaList.push(TEA_MAP[`${k}旺`]); });
         trend.lo.forEach(([k]) => { if (TEA_MAP[`${k}弱`]) teaList.push(TEA_MAP[`${k}弱`]); });
     }
     if (teaList.length === 0) {
-        // 沒有明顯旺弱，提供通用養生
         teaList.push(TEA_MAP['通用']);
     }
     html+=`<div class="blk"><h4>養生茶飲／湯品</h4>${htmlList(teaList)}</div>`;
@@ -598,9 +613,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
-<script id="W5_SAFE_JS">
-// 這是繪圖邏輯腳本，內容已移除以確保核心功能正常。
-</script>
+<script id="W5_SAFE_JS"></script>
 
 <style id="PRINT_W5_TCM_CSS">
 /* 讓「五行雷達圖 + 中醫建議」能列印 */
