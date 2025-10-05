@@ -10,7 +10,6 @@
   body{margin:0;background:#f6f7fb;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui}
   main{max-width:1180px;margin:18px auto;padding:0 12px}
   h1{margin:0 0 10px;font-size:22px}
-  /* 【版面修正】：將左欄比例從 1.2fr 擴大到 1.5fr，讓卦象有更多空間 */
   .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:12px}
   .sec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
@@ -82,6 +81,7 @@
         </select>
         <span id="ysName" class="badge"></span>
       </div>
+
       <div class="row hide-print" style="gap:14px">
         <label>時間</label>
         <input id="dt" type="datetime-local">
@@ -135,6 +135,18 @@
   <div id="tcmCore"></div>
   <div id="tcmLists"></div>
   <div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div>
+</div>
+<div id="w5_sec" class="sec">
+  <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行雷達圖</h3>
+  <div class="canvasWrap"><canvas id="w5_canv"></canvas></div>
+  <div id="w5_ctrl">
+    <div class="row"><span>大小</span><input id="w5_size" type="range" min="0.8" max="1.8" step="0.05" value="1.30"><span id="w5_sizeVal" class="miniVal">1.30</span></div>
+    <div class="row"><label>木</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div>
+    <div class="row"><label>火</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div>
+    <div class="row"><label>土</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div>
+    <div class="row"><label>金</label><input id="w5_jin" type="range" min="1" max="10" step="1" value="6"><span id="w5_jinVal" class="miniVal">6</span></div>
+    <div class="row"><label>水</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div>
+  </div>
 </div>
 </section>
   </div>
@@ -607,8 +619,313 @@ function render(){
   E('headInfo').textContent=`卦名：${guaName}　上卦：${upTri}　下卦：${loTri}　卦宮：${gong}　卦型：${kind}　世：${shi}　應：${ying}${yongShen ? `｜用神：${yongShen}` : ''}`;
   E('brief').textContent=brief;
 }
+
+function downloadPNG(){
+  const canvas=E('hexCanvas'); const filename='hexagram.png';
+  function openFallback(){
+    const data=canvas.toDataURL('image/png');
+    const win=window.open('about:blank','_blank');
+    if (win) { win.document.title='另存圖片'; win.document.body.style.margin='0'; const img=new Image(); img.src=data; win.document.body.appendChild(img); }
+    else { const a=document.createElement('a'); a.href=data; a.download=filename; document.body.appendChild(a);
+      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); a.remove(); }
+  }
+  if (canvas.toBlob) {
+    canvas.toBlob(blob=>{
+      if(!blob){ openFallback(); return; }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a);
+      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+      setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
+    });
+  } else { openFallback(); }
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  const now=new Date(); const z=n=>(n<10?'0'+n:n);
+  E('dt').value=`${now.getFullYear()}-${z(now.getMonth()+1)}-${z(now.getDate())}T${z(now.getHours())}:${z(now.getMinutes())}`;
+
+  E('btnNow').addEventListener('click', ()=>{ const t=new Date(); const z=n=>(n<10?'0'+n:n);
+    E('dt').value=`${t.getFullYear()}-${z(t.getMonth()+1)}-${z(t.getDate())}T${z(t.getHours())}:${z(t.getMinutes())}`; render(); });
+  E('btnPrint').addEventListener('click', ()=>{ window.print(); });
+
+  const mvCtl=E('mvCtl'); mvCtl.innerHTML='';
+  for(let pos=1;pos<=6;pos++){ const i=pos-1; const lab=document.createElement('label');
+    lab.innerHTML=`<input type="checkbox" data-mv="${i}"> ${pos===6?'上':pos===1?'初':pos}爻動`; mvCtl.appendChild(lab); }
+  mvCtl.addEventListener('change',e=>{const i=+e.target.getAttribute('data-mv'); if(!isNaN(i)){moving[i]=e.target.checked; render();}});
+
+  const bind=(id,fn)=>{const el=E(id);['input','change'].forEach(ev=>el&&el.addEventListener(ev,fn));};
+  ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render)); 
+  E('redraw').addEventListener('click',render);
+  E('download').addEventListener('click',downloadPNG);
+  
+  // 【新增】按鈕綁定
+  E('btnRandomHex').addEventListener('click',applyRandomHexagram);
+  const btnUpdateRadar = E('btnUpdateRadar');
+  if (btnUpdateRadar) btnUpdateRadar.addEventListener('click', forceRadarUpdate);
+
+  render();
+});
 </script>
 
----
 
-請您再次執行**強制重新整理**，然後**先點擊「隨機起卦」**，再點擊**「更新雷達圖」**。我們相信這能讓您的系統恢復正常。
+<style id="TCM_BOX_CSS">
+/* 右欄：中醫建議區（可列印） */
+#tcmBox{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0}
+#tcmBox h3{margin:0 0 10px;font-size:16px;color:#0f172a}
+#tcmCore{font-size:14px;color:#0f172a;line-height:1.6}
+#tcmCore .tag{display:inline-block;margin-right:8px;margin-bottom:6px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px}
+#tcmLists{margin-top:8px}
+#tcmLists .blk{margin:8px 0}
+#tcmLists .blk h4{margin:6px 0;font-size:14px;color:#334155}
+#tcmLists ul{margin:4px 0 8px 18px;padding:0}
+#tcmLists li{margin:2px 0}
+#tcmBox .tcm-note{margin-top:8px;color:#64748b;font-size:12px}
+/* 隱藏六爻摘要，但保留節點避免報錯 */
+#brief{display:none!important}
+#headInfo{display:none!important}
+</style>
+
+<script id="TCM_BOX_JS">
+(function(){
+  if(window.__TCM_BOX__) return; window.__TCM_BOX__=true;
+  const $=s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
+  const MAP={
+    '木':{zang:'肝',fu:'膽',dept:['肝膽科','情志/睡眠','骨傷/筋膜'],patterns:['肝氣鬱結','肝火上炎','肝血不足','肝腎陰虛'],self:['規律作息、舒展拉筋','少酒辣與熬夜','情志舒解（散步、冥想）']},
+    '火':{zang:'心',fu:'小腸',dept:['心血管','身心/睡眠'],patterns:['心火亢盛','心脾兩虛','心陰不足'],self:['少咖啡酒精','減少熬夜與重鹹','午間小憩、清心安神']},
+    '土':{zang:'脾',fu:'胃',dept:['脾胃消化','內分泌/代謝'],patterns:['脾胃虛弱','濕困脾胃','胃氣上逆'],self:['少冰冷甜膩','三餐定時少量多餐','腹式呼吸、飯後步行']},
+    '金':{zang:'肺',fu:'大腸',dept:['呼吸過敏','皮膚','耳鼻喉'],patterns:['肺氣虛','肺陰虛','風寒/風熱犯肺'],self:['避免過敏源','適度蒸氣/保濕','早睡早起、練呼吸']},
+    '水':{zang:'腎',fu:'膀胱',dept:['腎泌尿','內科體質'],patterns:['腎陽虛','腎陰虛','腎氣不足'],self:['保暖腰腹與足部','規律作息、早睡','溫和伸展與補水']}
+  };
+  
+  // 【新增】茶飲/湯品數據
+  const TEA_MAP = {
+      '通用': '安迪湯（補氣養血，增強體力）',
+      '木旺': '菊花枸杞茶（清肝明目，疏肝解鬱）',
+      '木弱': '桂圓紅棗茶（養血柔肝，改善睡眠）',
+      '火旺': '蓮子心茶／竹葉茶（清心降火，幫助安神）',
+      '火弱': '酸棗仁湯（滋陰養血，寧心安神）',
+      '土弱': '四神湯／紅豆薏仁水（健脾祛濕，利水消腫）',
+      '金弱': '銀耳雪梨湯（潤肺生津，止咳化痰）',
+      '水弱': '黑豆杜仲茶（補腎益精，強腰補骨）'
+  };
+
+  function pickFive(w5Scores){
+    if (w5Scores && Object.values(w5Scores).some(x => typeof x === 'number' && !isNaN(x))) {
+        return w5Scores;
+    }
+    const get=id=>{const el=document.getElementById(id); return el?Number(el.value):null};
+    const v={木:get('w5_mu'),火:get('w5_huo'),土:get('w5_tu'),金:get('w5_jin'),水:get('w5_shui')};
+    const has=Object.values(v).some(x=>typeof x==='number' && !isNaN(x));
+    return has?v:null;
+  }
+  function hiLo(v){ 
+    if(!v) return null; 
+    const arr=Object.entries(v); 
+    arr.sort((a,b)=>b[1]-a[1]); 
+    // 【修正點】：放寬觸發門檻 (7.5 -> 7.0, 4.5 -> 5.0)
+    const hi=arr.slice(0,3).filter(x=>x[1] > 7.0); // 旺度 > 7.0 視為偏旺
+    const lo=arr.slice(-3).filter(x=>x[1] < 5.0); // 旺度 < 5.0 視為偏弱
+    return {hi, lo}; 
+  }
+  function htmlList(items){ return '<ul>'+items.map(s=>'<li>'+s+'</li>').join('')+'</ul>'; }
+  
+  // 修正：現在 build 函數接收五行分數物件
+  window.updateTCMAdvice = function build(meElem, w5Scores){
+    const core=$('#tcmCore'), lists=$('#tcmLists'); if(!core||!lists) return;
+    const base=MAP[meElem]||MAP['土'];
+    const five=pickFive(w5Scores); 
+    const trend=hiLo(five);
+    
+    let tags=`<span class="tag">卦宮五行：${meElem}</span><span class="tag">臟腑：${base.zang}／${base.fu}</span>`;
+    if(trend){ 
+        tags+=trend.hi.length? `<span class="tag">偏旺：${trend.hi.map(x=>x[0]+'('+x[1].toFixed(0)+')').join('、')}</span>`:''; 
+        tags+=trend.lo.length? `<span class="tag">偏弱：${trend.lo.map(x=>x[0]+'('+x[1].toFixed(0)+')').join('、')}</span>`:''; 
+    }
+    core.innerHTML=tags;
+
+    let html='';
+    html+=`<div class="blk"><h4>建議就診科別</h4>${htmlList(base.dept)}</div>`;
+    html+=`<div class="blk"><h4>常見體質／症候（參考）</h4>${htmlList(base.patterns)}</div>`;
+    
+    // 【茶飲建議】
+    const teaList = [];
+    // 【關鍵修復點】：確保即使沒有強烈 trend，也會顯示通用建議
+    if (trend && (trend.hi.length > 0 || trend.lo.length > 0)) {
+        trend.hi.forEach(([k]) => { if (TEA_MAP[`${k}旺`]) teaList.push(TEA_MAP[`${k}旺`]); });
+        trend.lo.forEach(([k]) => { if (TEA_MAP[`${k}弱`]) teaList.push(TEA_MAP[`${k}弱`]); });
+    }
+    if (teaList.length === 0) {
+        // 沒有明顯旺弱，提供通用養生
+        teaList.push(TEA_MAP['通用']);
+    }
+    html+=`<div class="blk"><h4>養生茶飲／湯品</h4>${htmlList(teaList)}</div>`;
+
+    html+=`<div class="blk"><h4>日常調養建議</h4>${htmlList(base.self)}</div>`;
+
+    lists.innerHTML=html;
+  }
+})();
+</script>
+
+
+<script id="TCM_HOOK_RENDER">
+// 讓主 render 結束後會順便更新中醫建議
+(function(){
+  const _render = window.render; if(!_render) return;
+  window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice){ window.updateTCMAdvice(window.__lastMeElem, {木:6, 火:6, 土:6, 金:6, 水:6}); } }catch(_){} };
+})();
+</script>
+
+<style id="W5_SAFE_CSS">
+  #w5_sec{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0}
+  #w5_canv{display:block;width:100%;height:300px}
+  #w5_ctrl .row{display:flex;gap:10px;align-items:center;margin:6px 0}
+  #w5_ctrl input[type=range]{flex:1}
+  @media print{#w5_canv{height:260px!important}}
+</style>
+
+<script id="W5_SAFE_JS">
+(function(){
+  if(window.__W5_SAFE__) return; window.__W5_SAFE__=true;
+  const $=s=>document.querySelector(s);
+  
+  // 畫圖核心邏輯 (為簡化，將 W5_SAFE_JS 的 DOM 建立邏輯移到 HTML body，只保留繪圖)
+  const COLORS={木:'#16a34a',火:'#ef4444',土:' #f59e0b',金:'#64748b',水:'#3b82f6'}; const ORDER=['火','木','土','金','水'];
+  const id=s=>document.getElementById(s), val=(i,d=6)=>{const el=id(i); const v=Number(el&&el.value); return isFinite(v)?v:d;};
+  
+  function sizeScale(){ const el=id('w5_size'); let f=parseFloat(el&&el.value)||1.3; f=Math.max(0.8,Math.min(1.8,f)); const tip=id('w5_sizeVal'); if(tip) tip.textContent=f.toFixed(2); return f; }
+  
+  function values(){ return {火:val('w5_huo'),木:val('w5_mu'),土:val('w5_tu'),金:val('w5_jin'),水:val('w5_shui')}; }
+  
+  // 核心繪圖函數
+  function drawRadar(){ 
+    const c=id('w5_canv'); if(!c) return; 
+    const dpr=window.devicePixelRatio||1; 
+    const W=c.clientWidth||600, H=c.clientHeight||300; 
+    c.width=Math.floor(W*dpr); c.height=Math.floor(H*dpr); 
+    const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    
+    const cx=W/2, cy=H/2+6, sc=sizeScale(); 
+    const R=Math.min(W,H*0.9)/2*0.78*sc, rings=5, ang0=-Math.PI/2;
+    
+    ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb'; 
+    for(let r=1;r<=rings;r++){ const rr=R*r/rings; ctx.beginPath(); for(let i=0;i<ORDER.length;i++){ const a=ang0+i*(2*Math.PI/ORDER.length); const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath(); ctx.stroke(); }
+    
+    ctx.font='12px "Noto Sans TC","Microsoft JhengHei"'; ctx.textAlign='center'; ctx.textBaseline='middle'; 
+    ORDER.forEach((k,i)=>{ 
+      const a=ang0+i*(2*Math.PI/ORDER.length); 
+      const x=cx+R*Math.cos(a), y=cy+R*Math.sin(a); 
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke(); 
+      ctx.fillStyle=COLORS[k]||'#334155'; ctx.fillText(k,x,y-12); 
+    });
+    
+    const v=values(), pts=[]; 
+    ORDER.forEach((k,i)=>{ 
+      const rr=R*(Math.max(1,Math.min(10,v[k]))/10), 
+      a=ang0+i*(2*Math.PI/ORDER.length); 
+      pts.push([cx+rr*Math.cos(a), cy+rr*Math.sin(a), v[k], k]); 
+    });
+    
+    ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); 
+    ctx.fillStyle='rgba(59,130,246,0.18)'; ctx.strokeStyle='rgba(59,130,246,0.9)'; ctx.lineWidth=2; 
+    ctx.fill(); ctx.stroke();
+    
+    pts.forEach(p=>{ 
+      ctx.beginPath(); ctx.arc(p[0],p[1],4,0,Math.PI*2); ctx.fillStyle=COLORS[p[3]]||'#111827'; ctx.fill(); 
+      ctx.fillStyle='#0f172a'; ctx.fillText(String(p[2]), p[0], p[1]-16); 
+    }); 
+  }
+  
+  // 對外暴露繪圖函數
+  window.w5_draw=drawRadar;
+  
+  // 綁定滑桿事件，讓用戶拖動時也能更新
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','w5_size'].forEach(i=>{ 
+      const el=id(i); 
+      if(el){ 
+          el.addEventListener('input',()=>{ 
+              const tip=id(i+'Val'); 
+              if(tip) tip.textContent=String(el.value); 
+              drawRadar(); // 拖動時直接呼叫繪圖
+          }); 
+      }
+  }); 
+  
+  // 頁面載入時初始繪圖
+  document.addEventListener('DOMContentLoaded', drawRadar);
+  window.addEventListener('load', ()=>{ drawRadar(); setTimeout(drawRadar,150); });
+})();
+</script>
+
+
+<script id="PRINT_W5_TCM_JS">(function(){
+  if(window.__PRINT_W5_TCM__) return; window.__PRINT_W5_TCM__=true;
+  const $=s=>document.querySelector(s);
+  function markRight(){
+    const grid=$('.grid'); if(!grid) return null;
+    const secs=[...grid.querySelectorAll(':scope > .sec, :scope > section.sec')];
+    const right=secs[1]||secs[secs.length-1]||null; if(!right) return null;
+    if(!right.id) right.id='printRight';
+    right.classList.remove('hide-print');
+    return right;
+  }
+  function ensure(){ markRight(); }
+  document.addEventListener('DOMContentLoaded', ensure);
+  window.addEventListener('load', ensure);
+  function preprint(){ try{ if(window.w5_draw) window.w5_draw(); }catch(_){}
+                       try{ if(window.render) window.render(); }catch(_){} }
+  if('onbeforeprint' in window){ window.addEventListener('beforeprint', preprint); }
+  try{ var mq=window.matchMedia('print'); if(mq&&mq.addListener){ mq.addListener(function(m){ if(m.matches) preprint(); }); } }catch(_){ }
+})();</script>
+
+
+<style id="PRINT_W5_TCM_CSS">
+/* 讓「五行雷達圖 + 中醫建議」能列印 */
+@media print{
+  /* 右欄容器若原本有 hide-print，一律在列印時顯示 */
+  .grid > .sec.hide-print#printRight, .grid > section.sec.hide-print#printRight{display:block!important}
+  /* 確保雷達圖高度、避免被全域 canvas 規則覆蓋 */
+  #w5_canv{height:260px!important;width:100%!important;display:block!important}
+  /* 中醫建議完整顯示 */
+  #tcmBox{display:block!important}
+}
+</style>
+
+
+<style id="SAVE_BAR_V1_CSS">
+/* —— 存檔工具列（右上角，列印隱藏） —— */
+#saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
+#saveBarTop button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
+#saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+@media print{#saveBarTop{display:none!important}}
+</style>
+
+<script id="SAVE_BAR_V1_JS"></script>
+<script id="SAVE_BAR_VAULT_JS"></script>
+
+
+<style id="SAVE_BAR_V1_TWEAK">#saveBarTop{right:12px}</style>
+<style id="NOTE_PRINT_VAULT_CSS">
+/* 備註區塊 */
+#noteBox{margin:8px 0 4px}
+#userNote{width:100%;min-height:110px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:14px;resize:vertical}
+/* 列印調整：隱藏五行拉桿、工具列與舊列印鈕 */
+@media print{
+  #w5_ctrl, #saveBarTop, #vaultWrap, #btnPrint{display:none!important}
+}
+/* 保存庫面板 */
+#vaultWrap{position:fixed;top:50px;right:12px;z-index:10003;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);width:360px;max-height:70vh;display:none;overflow:auto}
+#vaultWrap .vhdr{font-weight:600;padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a}
+#vaultWrap .vsec{padding:10px 12px}
+#vaultWrap .vrow{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+#vaultWrap input[type=text]{flex:1;min-width:120px;border:1px solid #cbd5e1;border-radius:8px;height:30px;padding:0 8px}
+#vaultWrap select{height:30px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px}
+#vaultWrap button{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer}
+#vaultWrap ul{list-style:none;margin:6px 0 0 0;padding:0;border:1px solid #e5e7eb;border-radius:8px;max-height:36vh;overflow:auto}
+#vaultWrap li{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+#vaultWrap li:last-child{border-bottom:none}
+#vaultWrap li.sel{background:#f1f5f9}
+#vaultWrap .vfoot{padding:10px 12px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px}
+</style>
+</body>
+</html>
