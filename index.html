@@ -619,53 +619,11 @@ function render(){
   E('headInfo').textContent=`卦名：${guaName}　上卦：${upTri}　下卦：${loTri}　卦宮：${gong}　卦型：${kind}　世：${shi}　應：${ying}${yongShen ? `｜用神：${yongShen}` : ''}`;
   E('brief').textContent=brief;
 }
-
-function downloadPNG(){
-  const canvas=E('hexCanvas'); const filename='hexagram.png';
-  function openFallback(){
-    const data=canvas.toDataURL('image/png');
-    const win=window.open('about:blank','_blank');
-    if (win) { win.document.title='另存圖片'; win.document.body.style.margin='0'; const img=new Image(); img.src=data; win.document.body.appendChild(img); }
-    else { const a=document.createElement('a'); a.href=data; a.download=filename; document.body.appendChild(a);
-      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); a.remove(); }
-  }
-  if (canvas.toBlob) {
-    canvas.toBlob(blob=>{
-      if(!blob){ openFallback(); return; }
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a);
-      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
-      setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
-    });
-  } else { openFallback(); }
-}
-
-window.addEventListener('DOMContentLoaded', ()=>{
-  const now=new Date(); const z=n=>(n<10?'0'+n:n);
-  E('dt').value=`${now.getFullYear()}-${z(now.getMonth()+1)}-${z(now.getDate())}T${z(now.getHours())}:${z(now.getMinutes())}`;
-
-  E('btnNow').addEventListener('click', ()=>{ const t=new Date(); const z=n=>(n<10?'0'+n:n);
-    E('dt').value=`${t.getFullYear()}-${z(t.getMonth()+1)}-${z(t.getDate())}T${z(t.getHours())}:${z(t.getMinutes())}`; render(); });
-  E('btnPrint').addEventListener('click', ()=>{ window.print(); });
-
-  const mvCtl=E('mvCtl'); mvCtl.innerHTML='';
-  for(let pos=1;pos<=6;pos++){ const i=pos-1; const lab=document.createElement('label');
-    lab.innerHTML=`<input type="checkbox" data-mv="${i}"> ${pos===6?'上':pos===1?'初':pos}爻動`; mvCtl.appendChild(lab); }
-  mvCtl.addEventListener('change',e=>{const i=+e.target.getAttribute('data-mv'); if(!isNaN(i)){moving[i]=e.target.checked; render();}});
-
-  const bind=(id,fn)=>{const el=E(id);['input','change'].forEach(ev=>el&&el.addEventListener(ev,fn));};
-  ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render)); 
-  E('redraw').addEventListener('click',render);
-  E('download').addEventListener('click',downloadPNG);
-  
-  // 【新增】按鈕綁定
-  E('btnRandomHex').addEventListener('click',applyRandomHexagram);
-  const btnUpdateRadar = E('btnUpdateRadar');
-  if (btnUpdateRadar) btnUpdateRadar.addEventListener('click', forceRadarUpdate);
-
-  render();
-});
 </script>
+
+---
+
+請您再次執行**強制重新整理**，並點擊 **隨機起卦** 或 **更新雷達圖**。我希望這次能看到它正常運作！
 
 
 <style id="TCM_BOX_CSS">
