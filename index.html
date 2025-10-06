@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -13,7 +12,7 @@
     h1{margin:0 0 10px;font-size:22px}
     .grid{
       display:grid;
-      grid-template-columns: 1.5fr 1fr; /* 左寬右窄的兩欄佈局 */
+      grid-template-columns: 1.5fr 1fr;
       gap:12px
     }
     .sec{
@@ -22,7 +21,7 @@
       border-radius:12px;
       padding:12px;
       margin:10px 0;
-      overflow-x: auto; /* 強制內容超出時，顯示自己的滾動條 */
+      overflow-x: auto;
     }
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
     input[type=text]{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:8px;height:36px;padding:0 10px;font-size:14px}
@@ -45,44 +44,28 @@
     .pillars{display:flex;gap:10px;flex-wrap:wrap}
     .pillars span{background:#eef2ff;color:#1e3a8a;border-radius:8px;padding:4px 10px;font-size:13px}
     .rightNote{white-space:pre-wrap;margin-top:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:14px}
-
-    /* 右側欄位精修：明確分為雷達圖在上，中醫建議在下 */
     .grid > .sec:nth-child(2) {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      height: fit-content; /* 確保右側高度自適應內容 */
+      height: fit-content;
     }
     #w5_sec, #tcmBox {
       margin: 0;
-      flex: 1; /* 讓兩個區塊平均分配空間 */
+      flex: 1;
     }
     #w5_sec h3, #tcmBox h3 {
       margin-top: 0;
       padding-bottom: 10px;
       border-bottom: 1px solid #e5e7eb;
     }
-    #w5_sec {
-      order: 1; /* 雷達圖在上 */
-    }
-    #tcmBox {
-      order: 2; /* 中醫建議在下 */
-    }
-
-    /* 響應式佈局: 當螢幕寬度小於 1024px 時 */
+    #w5_sec { order: 1; }
+    #tcmBox { order: 2; }
     @media (max-width: 1024px) {
-      .grid {
-        grid-template-columns: 1fr; /* 變為單欄 */
-      }
-      .grid > .sec:nth-child(2) {
-        flex-direction: column; /* 確保小螢幕下仍保持垂直排列 */
-      }
-      #w5_sec, #tcmBox {
-        flex: none; /* 取消 flex 分配，改用自然高度 */
-      }
+      .grid { grid-template-columns: 1fr; }
+      .grid > .sec:nth-child(2) { flex-direction: column; }
+      #w5_sec, #tcmBox { flex: none; }
     }
-
-    /* 列印樣式 */
     @media print {
       @page { size: A4 portrait; margin: 12mm; }
       .grid { display:block; }
@@ -93,8 +76,6 @@
       #w5_canv { height:260px !important; width:100% !important; display:block !important; }
       #tcmBox { display:block !important; }
     }
-
-    /* TCM 樣式 */
     #tcmBox{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
     #tcmBox h3{margin:0 0 10px;font-size:16px;color:#0f172a}
     #tcmCore{font-size:14px;color:#0f172a;line-height:1.6}
@@ -105,8 +86,6 @@
     #tcmLists ul{margin:4px 0 8px 18px;padding:0}
     #tcmLists li{margin:2px 0}
     #tcmBox .tcm-note{margin-top:8px;color:#64748b;font-size:12px}
-
-    /* 儲存列樣式 */
     #saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
     #saveBarTop button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
     #saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
@@ -142,7 +121,14 @@
   </main>
 
   <script>
-    const E = (id) => { const el = document.getElementById(id); if (!el) { const b = document.getElementById('err'); if (b) { b.style.display = 'block'; b.textContent = '⚠️ 缺少元素 #' + id; } } return el; };
+    const E = (id) => { 
+      const el = document.getElementById(id); 
+      if (!el) { 
+        const b = document.getElementById('err'); 
+        if (b) { b.style.display = 'block'; b.textContent = '⚠️ 缺少元素 #' + id; } 
+      } 
+      return el; 
+    };
     (function() {
       const box = E('err'); if (!box) return;
       const show = msg => { box.style.display = 'block'; box.textContent = '⚠️ 發生錯誤：' + msg; };
@@ -374,6 +360,37 @@
                         '<button id="btnPNGRadar" title="匯出雷達 PNG">雷達PNG</button>' +
                         '<input id="fileImportJSON" type="file" accept="application/json" style="display:none">';
         document.body.appendChild(bar);
+        // 在 ensureBar 內綁定事件，確保按鈕存在
+        const buttons = [
+          { id: 'btnSaveLocal', handler: saveLocal },
+          { id: 'btnLoadLocal', handler: loadLocal },
+          { id: 'btnExportJSON', handler: exportJSON },
+          { id: 'btnImportJSON', handler: importJSON, event: 'change' },
+          { id: 'btnPNGHex', handler: downloadPNG },
+          { id: 'btnPNGRadar', handler: () => {
+            const canvas = q('#w5_canv');
+            if (canvas) {
+              canvas.toBlob(blob => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a'); a.href = url; a.download = 'radar.png';
+                  document.body.appendChild(a); a.click();
+                  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+                } else {
+                  showErr('無法匯出雷達圖');
+                }
+              });
+            }
+          }}
+        ];
+        buttons.forEach(({ id, handler, event = 'click' }) => {
+          const btn = q(`#${id}`);
+          if (btn) {
+            btn.addEventListener(event, handler);
+          } else {
+            showErr(`找不到按鈕 #${id}`);
+          }
+        });
       }
       function toast(msg) { try { var box = q('#err'); if (box) { box.style.display = 'block'; box.textContent = '✔ ' + msg; setTimeout(function() { box.style.display = 'none'; }, 1400); } else { alert(msg); } } catch (e) {} }
       function showErr(msg) { var box = q('#err'); if (box) { box.style.display = 'block'; box.textContent = '⚠️ ' + msg; } else { alert(msg); } }
@@ -477,44 +494,22 @@
           showErr('匯入失敗：' + e.message);
         }
       }
-      document.addEventListener('DOMContentLoaded', () => {
-        ensureBar();
-        q('#btnSaveLocal').addEventListener('click', saveLocal);
-        q('#btnLoadLocal').addEventListener('click', loadLocal);
-        q('#btnExportJSON').addEventListener('click', exportJSON);
-        q('#btnImportJSON').addEventListener('change', importJSON);
-        q('#btnPNGHex').addEventListener('click', downloadPNG);
-        q('#btnPNGRadar').addEventListener('click', () => {
-          const canvas = q('#w5_canv');
-          if (canvas) {
-            canvas.toBlob(blob => {
-              if (blob) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'radar.png';
-                document.body.appendChild(a); a.click();
-                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
-              } else {
-                showErr('無法匯出雷達圖');
-              }
-            });
-          }
-        });
-      });
+      document.addEventListener('DOMContentLoaded', ensureBar);
     })();
 
     window.addEventListener('DOMContentLoaded', () => {
       E('dt').value = toYMDhm(new Date());
-      E('btnNow').addEventListener('click', () => { E('dt').value = toYMDhm(new Date()); render(); });
-      E('btnPrint').addEventListener('click', () => window.print());
+      E('btnNow')?.addEventListener('click', () => { E('dt').value = toYMDhm(new Date()); render(); });
+      E('btnPrint')?.addEventListener('click', () => window.print());
       const mvCtl = E('mvCtl');
       mvCtl.innerHTML = [6, 5, 4, 3, 2, 1].map(p => `<label><input type="checkbox" data-mv="${p-1}"> ${p === 6 ? '上' : p === 1 ? '初' : p}爻動</label>`).join('');
       mvCtl.addEventListener('change', e => { const i = e.target.dataset.mv; if (i != null) { moving[i] = e.target.checked; render(); } });
       const bind = (id, fn) => { const el = E(id); if (el) { ['input', 'change'].forEach(ev => el.addEventListener(ev, fn)); } };
       ['upper', 'lower', 'question', 'dt', 'size', 'offx', 'offy', 'gap', 'headgap', 'yongShen'].forEach(id => bind(id, render));
-      E('redraw').addEventListener('click', render);
-      E('download').addEventListener('click', downloadPNG);
-      E('btnRandomHex').addEventListener('click', applyRandomHexagram);
-      E('btnUpdateRadar').addEventListener('click', render);
+      E('redraw')?.addEventListener('click', render);
+      E('download')?.addEventListener('click', downloadPNG);
+      E('btnRandomHex')?.addEventListener('click', applyRandomHexagram);
+      E('btnUpdateRadar')?.addEventListener('click', render);
       render();
     });
   </script>
