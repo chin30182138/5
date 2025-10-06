@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（1006-V6-最終完美版）</title>
+<title>仙人指路六爻排盤（1006-V7-響應式最終版）</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -38,6 +38,15 @@
   .pillars{display:flex;gap:10px;flex-wrap:wrap}
   .pillars span{background:#eef2ff;color:#1e3a8a;border-radius:8px;padding:4px 10px;font-size:13px}
   .rightNote{white-space:pre-wrap;margin-top:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:14px}
+
+  /* 【響應式佈局修正】 */
+  @media (max-width: 1024px) {
+    .grid {
+      /* 在窄螢幕上，變為單欄佈局 */
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media print {
     @page { size: A4 portrait; margin: 12mm; }
     .grid { display:block; }
@@ -51,7 +60,7 @@
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（1006-V6-最終完美版）</h1>
+  <h1>仙人指路六爻排盤（1006-V7-響應式最終版）</h1>
   <div id="err"></div>
 
   <div class="grid">
@@ -153,7 +162,6 @@
 const E=(id)=>{const el=document.getElementById(id);if(!el){const b=document.getElementById('err');b.style.display='block';b.textContent='⚠️ 缺少元素 #'+id;}return el;};
 (function(){const box=E('err');const show=msg=>{box.style.display='block';box.textContent='⚠️ 發生錯誤：'+msg};window.addEventListener('error',e=>show(e.message||e.error));window.addEventListener('unhandledrejection',e=>show(e.reason&&e.reason.message?e.reason:String(e.reason)));})();
 
-/* ===== 常量 ===== */
 const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
 const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
 const ZHI_ELEM={子:'水',丑:'土',寅:'木',卯:'木',辰:'土',巳:'火',午:'火',未:'土',申:'金',酉:'金',戌:'土',亥:'水'};
@@ -166,18 +174,7 @@ const SEQ_YANG=['子','寅','辰','午','申','戌']; const SEQ_YIN=['亥','酉'
 const SIX=['青龍','朱雀','勾陳','螣蛇','白虎','玄武'];
 const SIX_START_BY_GAN={甲:0,乙:0,丙:1,丁:1,戊:2,己:3,庚:4,辛:4,壬:5,癸:5};
 
-/* ===== 64卦：卦宮/類型查表 ===== */
-const GUA_CLASS = {
-  "乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},"風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},
-  "坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},"雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},
-  "震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},"地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},
-  "巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},"天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},
-  "坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},"澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},
-  "離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},"山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},
-  "艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},"火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},
-  "兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},"水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}
-};
-
+const GUA_CLASS = {"乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},"風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},"坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},"雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},"震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},"地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},"巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},"天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},"坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},"澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},"離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},"山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},"艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},"火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},"兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},"水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}};
 const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'};
 const WU_KE = {木:'土',土:'水',水:'火',火:'金',金:'木'};
 const YS_KIN = ['父母','兄弟','官鬼','妻財','子孫'];
@@ -193,16 +190,13 @@ function sixKin(meElem,branch){ const e=ZHI_ELEM[branch]||'土'; if(e===meElem) 
 function changedLines(lines,moving){ return lines.map((v,i)=> moving[i] ? (v?0:1) : v); }
 
 let pillars=null;
-// 【最終修正】: 修正了計算旬首(Xun)和空亡(KongWang)的邏輯，這是導致 render 中斷的根源
 function calcPillarsAndSix(){
   const s=E('dt').value; const dt=s?new Date(s):new Date();
   const lunar=Lunar.fromDate(dt);
   pillars={year:lunar.getYearInGanZhiExact(),month:lunar.getMonthInGanZhiExact(),day:lunar.getDayInGanZhiExact(),hour:lunar.getTimeInGanZhi()};
   const dayGan=pillars.day.charAt(0);
-  E('gzYear').textContent=`年：${pillars.year}`;
-  E('gzMonth').textContent=`月：${pillars.month}`;
-  E('gzDay').textContent=`日：${pillars.day}`;
-  E('gzHour').textContent=`時：${pillars.hour}`;
+  E('gzYear').textContent=`年：${pillars.year}`; E('gzMonth').textContent=`月：${pillars.month}`;
+  E('gzDay').textContent=`日：${pillars.day}`; E('gzHour').textContent=`時：${pillars.hour}`;
   E('gzXun').textContent=`旬首：${lunar.getDayXun()}`;
   E('gzKW').textContent=`空亡：${lunar.getDayXunKong()}`;
   const startIdx=SIX_START_BY_GAN[dayGan]??0;
@@ -222,10 +216,8 @@ function drawBoard(meta,rows){
   ctx.font='15px "Noto Sans TC","Microsoft JhengHei",sans-serif'; ctx.fillText(`起卦：${meta.dt}`,12,48);
   ctx.fillText(`四柱：${meta.gzY}　${meta.gzM}　${meta.gzD}　${meta.gzH}　（旬首：${meta.xun}　空亡：${meta.kw}）`,12,70);
   ctx.fillText(`卦名：${meta.name}　上卦：${meta.up}　下卦：${meta.lo}　卦宮：${meta.gong}　卦型：${meta.kind}　世：${meta.shi}　應：${meta.ying} ${meta.ysTxt ? `｜用神：${meta.ysTxt}` : ''}`,12,92);
-
   const size=+E('size').value, offx=+E('offx').value, offy=+E('offy').value, gap=+E('gap').value, rowOffset=+E('headgap').value;
   E('sizeVal').textContent=size; E('offxVal').textContent=offx; E('offyVal').textContent=offy; E('gapVal').textContent=gap; E('headgapVal').textContent=rowOffset;
-
   const x0=16+offx, y0=120+offy, headerY=y0-8; const yaoX1=x0+120, yaoX2=yaoX1+size; const col={six:x0, fu:x0+76, yao:yaoX1, kin:yaoX2+30, zhi:yaoX2+98, mark:yaoX2+160, kinc:yaoX2+220, zhic:yaoX2+290};
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle='#475569'; ctx.font='bold 13px "Noto Sans TC","Microsoft JhengHei"';
   Object.entries({六獸:col.six,伏神:col.fu,爻象:col.yao,六親:col.kin,地支:col.zhi,世應:col.mark,變六親:col.kinc,變支:col.zhic}).forEach(([k,v])=>ctx.fillText(k,v,headerY));
@@ -286,6 +278,5 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <script id="SAVE_BAR_VAULT_JS"> /* ... Unchanged ... */ </script>
 <style id="SAVE_BAR_V1_TWEAK"> /* ... Unchanged ... */ </style>
 <style id="NOTE_PRINT_VAULT_CSS"> /* ... Unchanged ... */ </style>
-
 </body>
 </html>
