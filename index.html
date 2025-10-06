@@ -1,331 +1,384 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>仙人指路六爻排盤（教學優化版）</title>
-  <style>
-    /* ======== 課堂教學優化 CSS ======== */
-    :root {
-      --bg: #f7f8fb;
-      --card: #ffffff;
-      --line: #e2e8f0;
-      --accent: #3b82f6;
-      --muted: #64748b;
-      --text: #0f172a;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif;
-      color: var(--text);
-      line-height: 1.6;
-    }
-    main {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 16px 40px;
-    }
-    h1 {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      margin: 20px 0 24px;
-      text-align: center;
-      color: var(--text);
-    }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>仙人指路六爻排盤 - 最終完成版</title>
+<style>
+  :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
+  *{box-sizing:border-box}
+  body{margin:0;background:#f6f7fb;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui}
+  main{max-width:1180px;margin:18px auto;padding:0 12px}
+  h1{margin:0 0 10px;font-size:22px}
+  .grid{
+    display:grid;
+    grid-template-columns: 1.5fr 1fr; /* 基礎兩欄佈局 */
+    gap:12px
+  }
+  .sec{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px;
+    margin:10px 0;
+    overflow-x: auto; /* 強制內容超出時，顯示自己的滾動條 */
+  }
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  input[type=text]{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:8px;height:36px;padding:0 10px;font-size:14px}
+  input[type=datetime-local], select, button{height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;font-size:14px}
+  button{cursor:pointer}
+  .muted{color:var(--muted);font-size:13px}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px}
+  .canvasWrap{
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    padding:8px;
+    /* 移除這裡的 overflow-x，交給父層 .sec 處理 */
+  }
+  canvas{display:block;min-width:600px;width:100%;height:560px}
+  .yaoCtl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .yaoCtl>label{display:flex;align-items:center;gap:6px;justify-content:center;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;font-size:14px}
+  #err{position:fixed;right:12px;top:12px;z-index:9999;max-width:60ch;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px;display:none}
+  .miniVal{font-variant-numeric:tabular-nums;color:#475569;font-size:13px}
+  .btns button{height:32px}
+  .pillars{display:flex;gap:10px;flex-wrap:wrap}
+  .pillars span{background:#eef2ff;color:#1e3a8a;border-radius:8px;padding:4px 10px;font-size:13px}
+  .rightNote{white-space:pre-wrap;margin-top:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:14px}
 
-    /* 上方固定工具列 */
-    #saveBarTop {
-      position: sticky;
-      top: 0;
-      background: #fff;
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-      padding: 8px 16px;
-      border-bottom: 1px solid var(--line);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      z-index: 10;
-    }
-    #saveBarTop button {
-      height: 34px;
-      padding: 0 12px;
-      font-size: 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #f1f5f9;
-      cursor: pointer;
-      transition: all .2s;
-    }
-    #saveBarTop button:hover {
-      background: #e2e8f0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    }
+  /* 響應式佈局: 當螢幕寬度小於 1024px 時 */
+  @media (max-width: 1024px) {
+    .grid {
+      grid-template-columns: 1fr; /* 變為單欄 */
+    }
+  }
 
-    /* 兩欄格線 */
-    .grid {
-      display: grid;
-      grid-template-columns: 1.25fr 0.75fr;
-      gap: 20px;
-      align-items: start;
-    }
+  /* 右側欄位精修 */
+  .grid > .sec:nth-child(2) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #w5_sec, #tcmBox {
+    margin: 0;
+  }
+  #w5_sec h3,
+  #tcmBox h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+  }
 
-    /* 卡片樣式 */
-    .sec {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      transition: box-shadow 0.2s ease;
-    }
-    .sec:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
-    /* 分區標題 */
-    .sec h3 {
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--text);
-      border-left: 4px solid var(--accent);
-      padding-left: 10px;
-      margin: 0 0 14px;
-    }
-
-    /* 表單列與元件 */
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 10px 0;
-      align-items: center;
-    }
-    input[type=text], input[type=datetime-local], select {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 14px;
-      height: 36px;
-      flex: 1;
-      min-width: 200px;
-    }
-    button {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0 12px;
-      height: 36px;
-      background: #f8fafc;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #e2e8f0;
-    }
-
-    /* 標籤與說明 */
-    .badge {
-      background: #eef2ff;
-      color: #4338ca;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-    }
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    /* 畫布容器 */
-    .canvasWrap {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fafafa;
-      padding: 12px;
-      overflow-x: auto;
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.03);
-    }
-    canvas {
-      width: 100%;
-      height: 560px;
-      display: block;
-      min-width: 640px;
-    }
-
-    /* 右側欄排列 */
-    .grid > .sec:nth-child(2) {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* 雷達與中醫建議 */
-    #w5_sec, #tcmBox {
-      margin: 0;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      background: #ffffff;
-    }
-    #tcmBox h3, #w5_sec h3 {
-      margin-top: 0;
-    }
-
-    /* 手機版響應式 */
-    @media (max-width: 1024px) {
-      .grid { grid-template-columns: 1fr; }
-      h1 { font-size: 24px; }
-      .sec { padding: 12px 14px; }
-      #saveBarTop { justify-content: center; }
-    }
-  </style>
-
-  <!-- 引入 lunar-js 或其他功能性 library，不改動 -->
-  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    .grid { display:block; }
+    .sec { border:none; padding:0; margin:0 0 10px; overflow-x: visible; }
+    .hide-print, .btns, .yaoCtl, #redraw, #download, #btnNow, #btnPrint, #size, #offx, #offy, #gap, #headgap, #sizeVal, #offxVal, #offyVal, #gapVal, #headgapVal { display:none !important; }
+    .canvasWrap { border:none; padding:0; overflow-x: visible; }
+    canvas { height:auto; width:100%; min-width: auto; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
 </head>
 <body>
-  <!-- 工具列 -->
-  <div id="saveBarTop">
-    <button id="btnRandomHex">隨機起卦</button>
-    <button id="redraw">重繪卦象</button>
-    <button id="download">匯出 PNG</button>
-    <button id="btnPrint">列印（A4）</button>
-  </div>
+<main>
+  <h1>仙人指路六爻排盤</h1>
+  <div id="err"></div>
+  <div class="grid">
+    <section class="sec">
+      <div class="row hide-print"><label>上卦</label><select id="upper"><option>乾</option><option>兌</option><option>離</option><option>震</option><option>巽</option><option selected>坎</option><option>艮</option><option>坤</option></select><span>下卦</span><select id="lower"><option selected>坎</option><option>乾</option><option>兌</option><option>離</option><option>震</option><option>巽</option><option>艮</option><option>坤</option></select><span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span></div>
+      <div class="row btns hide-print" style="gap:8px"><button id="btnRandomHex">隨機起卦</button></div>
+      <div class="row hide-print" style="gap:14px"><label>問題</label><input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運"></div>
+      <div class="row hide-print" style="gap:14px"><label>用神</label><select id="yongShen"><option value="">（未指定）</option><option value="父母">父母 (學業/文書)</option><option value="兄弟">兄弟 (競爭/劫財)</option><option value="官鬼">官鬼 (事業/疾病)</option><option value="妻財" selected>妻財 (求財/妻子)</option><option value="子孫">子孫 (福德/解憂)</option></select><span id="ysName" class="badge"></span></div>
+      <div class="row hide-print" style="gap:14px"><label>時間</label><input id="dt" type="datetime-local"><button id="btnNow">現在</button><button id="btnPrint">列印（A4）</button><span class="muted">四柱由 Lunar.js 精準換算</span></div>
+      <div class="row pillars"><span id="gzYear">年：—</span><span id="gzMonth">月：—</span><span id="gzDay">日：—</span><span id="gzHour">時：—</span><span id="gzXun">旬首：—</span><span id="gzKW">空亡：—</span></div>
+      <div class="row hide-print"><label>動爻</label><div class="yaoCtl" id="mvCtl"></div></div>
+      <div class="row hide-print" style="gap:10px"><button id="redraw">重繪卦象</button><button id="download">匯出 PNG</button><button id="btnUpdateRadar">更新雷達圖</button></div>
+      <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
+      <div id="noteBox" class="noteBox"><label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label><textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea></div>
+      <div class="row hide-print"><label>大小</label><input type="range" id="size" min="140" max="440" value="300"><span class="miniVal" id="sizeVal">300</span><label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span><label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span><label>爻距</label><input type="range" id="gap" min="26" max="38" value="32"><span class="miniVal" id="gapVal">32</span><label>欄頭間距</label><input type="range" id="headgap" min="16" max="48" value="24"><span class="miniVal" id="headgapVal">24</span></div>
+      <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
+    </section>
+    <section class="sec">
+      <div id="tcmBox" class="tcm-box"><h3>中醫分科建議</h3><div id="tcmCore"></div><div id="tcmLists"></div><div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div></div>
+    </section>
+  </div>
+</main>
 
-  <main>
-    <h1>仙人指路六爻排盤（教學優化版）</h1>
-    <div id="err"></div>
+<script>
+const E=(id)=>{const el=document.getElementById(id);if(!el){const b=document.getElementById('err');if(b){b.style.display='block';b.textContent='⚠️ 缺少元素 #'+id;}}return el;};
+(function(){const box=E('err');if(!box)return;const show=msg=>{box.style.display='block';box.textContent='⚠️ 發生錯誤：'+msg};window.addEventListener('error',e=>show(e.message||e.error));window.addEventListener('unhandledrejection',e=>show(e.reason&&e.reason.message?e.reason:String(e.reason)));})();
 
-    <div class="grid">
-      <!-- 左側主體欄 -->
-      <section class="sec">
-        <div class="row hide-print">
-          <label>上卦</label>
-          <select id="upper">
-            <option>乾</option><option>兌</option><option>離</option><option>震</option>
-            <option>巽</option><option selected>坎</option><option>艮</option><option>坤</option>
-          </select>
-          <span>下卦</span>
-          <select id="lower">
-            <option selected>坎</option><option>乾</option><option>兌</option><option>離</option>
-            <option>震</option><option>巽</option><option>艮</option><option>坤</option>
-          </select>
-          <span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span>
-        </div>
+const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const ZHI_ELEM={子:'水',丑:'土',寅:'木',卯:'木',辰:'土',巳:'火',午:'火',未:'土',申:'金',酉:'金',戌:'土',亥:'水'};
+const GONG_ELEM={乾:'金',坤:'土',震:'木',巽:'木',坎:'水',離:'火',艮:'土',兌:'金'};
+const TRIG={乾:[1,1,1],兌:[1,1,0],離:[1,0,1],震:[1,0,0],巽:[0,1,1],坎:[0,1,0],艮:[0,0,1],坤:[0,0,0]};
+const TRINAMES=Object.keys(TRIG); const YANG_TRIG=new Set(['乾','震','坎','艮']);
+const INNER_START={乾:'子',坎:'寅',震:'子',艮:'辰',坤:'未',巽:'丑',離:'卯',兌:'巳'};
+const OUTER_START={乾:'午',坎:'申',震:'午',艮:'戌',坤:'丑',巽:'未',離:'酉',兌:'亥'};
+const SEQ_YANG=['子','寅','辰','午','申','戌']; const SEQ_YIN=['亥','酉','未','巳','卯','丑'];
+const SIX=['青龍','朱雀','勾陳','螣蛇','白虎','玄武'];
+const SIX_START_BY_GAN={甲:0,乙:0,丙:1,丁:1,戊:2,己:3,庚:4,辛:4,壬:5,癸:5};
 
-        <div class="row hide-print" style="gap:8px">
-          <!-- btnRandomHex 也在工具列，所以這裡可選擇隱藏或保留 -->
-        </div>
+const GUA_CLASS = {"乾為天":{gong:"乾",type:"本宮"},"天風姤":{gong:"乾",type:"飛"},"天山遯":{gong:"乾",type:"飛"},"天地否":{gong:"乾",type:"飛"},"風地觀":{gong:"乾",type:"飛"},"山地剝":{gong:"乾",type:"飛"},"火地晉":{gong:"乾",type:"遊魂"},"火天大有":{gong:"乾",type:"歸魂"},"坤為地":{gong:"坤",type:"本宮"},"地雷復":{gong:"坤",type:"飛"},"地澤臨":{gong:"坤",type:"飛"},"地天泰":{gong:"坤",type:"飛"},"雷天大壯":{gong:"坤",type:"飛"},"澤天夬":{gong:"坤",type:"飛"},"水天需":{gong:"坤",type:"遊魂"},"水地比":{gong:"坤",type:"歸魂"},"震為雷":{gong:"震",type:"本宮"},"雷地豫":{gong:"震",type:"飛"},"雷水解":{gong:"震",type:"飛"},"雷風恆":{gong:"震",type:"飛"},"地風升":{gong:"震",type:"飛"},"水風井":{gong:"震",type:"飛"},"澤風大過":{gong:"震",type:"遊魂"},"澤雷隨":{gong:"震",type:"歸魂"},"巽為風":{gong:"巽",type:"本宮"},"風天小畜":{gong:"巽",type:"飛"},"風火家人":{gong:"巽",type:"飛"},"風雷益":{gong:"巽",type:"飛"},"天雷無妄":{gong:"巽",type:"飛"},"火雷噬嗑":{gong:"巽",type:"飛"},"山雷頤":{gong:"巽",type:"遊魂"},"山風蠱":{gong:"巽",type:"歸魂"},"坎為水":{gong:"坎",type:"本宮"},"水澤節":{gong:"坎",type:"飛"},"水雷屯":{gong:"坎",type:"飛"},"水火既濟":{gong:"坎",type:"飛"},"澤火革":{gong:"坎",type:"飛"},"雷火豐":{gong:"坎",type:"飛"},"地火明夷":{gong:"坎",type:"遊魂"},"地水師":{gong:"坎",type:"歸魂"},"離為火":{gong:"離",type:"本宮"},"火山旅":{gong:"離",type:"飛"},"火風鼎":{gong:"離",type:"飛"},"火水未濟":{gong:"離",type:"飛"},"山水蒙":{gong:"離",type:"飛"},"風水渙":{gong:"離",type:"飛"},"天水訟":{gong:"離",type:"遊魂"},"天火同人":{gong:"離",type:"歸魂"},"艮為山":{gong:"艮",type:"本宮"},"山火賁":{gong:"艮",type:"飛"},"山天大畜":{gong:"艮",type:"飛"},"山澤損":{gong:"艮",type:"飛"},"火澤睽":{gong:"艮",type:"飛"},"天澤履":{gong:"艮",type:"飛"},"風澤中孚":{gong:"艮",type:"遊魂"},"風山漸":{gong:"艮",type:"歸魂"},"兌為澤":{gong:"兌",type:"本宮"},"澤水困":{gong:"兌",type:"飛"},"澤地萃":{gong:"兌",type:"飛"},"澤山咸":{gong:"兌",type:"飛"},"水山蹇":{gong:"兌",type:"飛"},"地山謙":{gong:"兌",type:"飛"},"雷山小過":{gong:"兌",type:"遊魂"},"雷澤歸妹":{gong:"兌",type:"歸魂"}};
+const WU_SHENG = {木:'火',火:'土',土:'金',金:'水',水:'木'};
+const WU_KE = {木:'土',土:'水',水:'火',火:'金',金:'木'};
+const YS_KIN = ['父母','兄弟','官鬼','妻財','子孫'];
 
-        <div class="row hide-print" style="gap:14px">
-          <label>問題</label>
-          <input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運">
-        </div>
+function getYSFiveElementMap(meElem) { return {'父母': WU_SHENG[meElem],'兄弟': meElem,'官鬼': WU_KE[meElem],'妻財': WU_KE[WU_SHENG[meElem]],'子孫': WU_SHENG[WU_KE[meElem]]};}
+function trigFromBits(b3){for(const n of TRINAMES){const t=TRIG[n];if(t[0]===b3[0]&&t[1]===b3[1]&&t[2]===b3[2]) return n} return null}
+function upperLowerOf(lines){const lo=trigFromBits(lines.slice(0,3)), up=trigFromBits(lines.slice(3,6)); return {up,lo}}
+function guaNameOf(up,lo){ const N={'乾':{'乾':'乾為天','兌':'天澤履','離':'天火同人','震':'天雷無妄','巽':'天風姤','坎':'天水訟','艮':'天山遁','坤':'天地否'},'兌':{'乾':'澤天夬','兌':'兌為澤','離':'澤火革','震':'澤雷隨','巽':'澤風大過','坎':'澤水困','艮':'澤山咸','坤':'澤地萃'},'離':{'乾':'火天大有','兌':'火澤睽','離':'離為火','震':'火雷噬嗑','巽':'火風鼎','坎':'火水未濟','艮':'火山旅','坤':'火地晉'},'震':{'乾':'雷天大壯','兌':'雷澤歸妹','離':'雷火豐','震':'震為雷','巽':'雷風恆','坎':'雷水解','艮':'雷山小過','坤':'雷地豫'},'巽':{'乾':'風天小畜','兌':'風澤中孚','離':'風火家人','震':'風雷益','巽':'巽為風','坎':'風水渙','艮':'風山漸','坤':'風地觀'},'坎':{'乾':'水天需','兌':'水澤節','離':'水火既濟','震':'水雷屯','巽':'水風井','坎':'坎為水','艮':'水山蹇','坤':'水地比'},'艮':{'乾':'山天大畜','兌':'山澤損','離':'山火賁','震':'山雷頤','巽':'山風蠱','坎':'山水蒙','艮':'艮為山','坤':'坤為地'},'坤':{'乾':'地天泰','兌':'地澤臨','離':'地火明夷','震':'地雷復','巽':'地風升','坎':'地水師','艮':'地山謙','坤':'坤為地'} }; return (N[up]&&N[up][lo])?N[up][lo]:`${up}上·${lo}下`;}
+const toYMDhm=d=>{const z=n=>(n<10?'0'+n:n);return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;};
+function threeBranchesOfTrigram(tri,inner){ const start=inner?INNER_START[tri]:OUTER_START[tri]; const seq=YANG_TRIG.has(tri)?SEQ_YANG:SEQ_YIN; const i0=seq.indexOf(start); return [seq[i0%6],seq[(i0+1)%6],seq[(i0+2)%6]];}
+function naJiaBranches(lines){const {up,lo}=upperLowerOf(lines); return [...threeBranchesOfTrigram(lo,true), ...threeBranchesOfTrigram(up,false)]}
+function sixKin(meElem,branch){ const e=ZHI_ELEM[branch]||'土'; if(e===meElem) return '兄弟'; if(WU_KE[e]===meElem) return '官鬼'; if(WU_KE[meElem]===e) return '妻財'; if(WU_SHENG[e]===meElem) return '父母'; if(WU_SHENG[meElem]===e) return '子孫'; return '兄弟';}
+function changedLines(lines,moving){ return lines.map((v,i)=> moving[i] ? (v?0:1) : v); }
 
-        <div class="row hide-print" style="gap:14px">
-          <label>用神</label>
-          <select id="yongShen">
-            <option value="">（未指定）</option>
-            <option value="父母">父母 (學業/文書)</option>
-            <option value="兄弟">兄弟 (競爭/劫財)</option>
-            <option value="官鬼">官鬼 (事業/疾病)</option>
-            <option value="妻財" selected>妻財 (求財/妻子)</option>
-            <option value="子孫">子孫 (福德/解憂)</option>
-          </select>
-          <span id="ysName" class="badge"></span>
-        </div>
+let pillars=null;
+function calcPillarsAndSix(){
+  const s=E('dt').value; const dt=s?new Date(s):new Date();
+  const lunar=Lunar.fromDate(dt);
+  pillars={year:lunar.getYearInGanZhiExact(),month:lunar.getMonthInGanZhiExact(),day:lunar.getDayInGanZhiExact(),hour:lunar.getTimeInGanZhi()};
+  const dayGan=pillars.day.charAt(0);
+  E('gzYear').textContent=`年：${pillars.year}`; E('gzMonth').textContent=`月：${pillars.month}`;
+  E('gzDay').textContent=`日：${pillars.day}`; E('gzHour').textContent=`時：${pillars.hour}`;
+  E('gzXun').textContent=`旬首：${lunar.getDayXun()}`;
+  E('gzKW').textContent=`空亡：${lunar.getDayXunKong()}`;
+  const startIdx=SIX_START_BY_GAN[dayGan]??0;
+  return [0,1,2,3,4,5].map(i=> SIX[(startIdx+i)%6]);
+}
 
-        <div class="row hide-print" style="gap:14px">
-          <label>時間</label>
-          <input id="dt" type="datetime-local">
-          <button id="btnNow">現在</button>
-          <button id="btnPrint">列印（A4）</button>
-          <span class="muted">四柱由 Lunar.js 精準換算（含節氣切換）</span>
-        </div>
+function purePalaceRows(palace){ const lines=[...TRIG[palace], ...TRIG[palace]]; const branches=naJiaBranches(lines); const elem=GONG_ELEM[palace]; return {branches, kins: branches.map(b=>sixKin(elem,b))};}
+function buildFuShenForCurrent(gong,currentKins){ const needed=new Set(YS_KIN); currentKins.forEach(k=>needed.delete(k)); if(needed.size===0) return {}; const {branches, kins}=purePalaceRows(gong); const fuMap={}; needed.forEach(miss=>{ const idx=kins.indexOf(miss); if(idx!==-1) fuMap[idx+1]=`${branches[idx]} ${miss}`; }); return fuMap;}
+function decideShiYing(upTri, loTri, guaName, lines){ const info = GUA_CLASS[guaName]; const findShi=()=>{ for(let i=0;i<6;i++){ const tmp=[...lines]; tmp[i]=1-tmp[i]; if(trigFromBits(tmp.slice(0,3))===trigFromBits(tmp.slice(3,6))) return i+1; } return 6; }; const shi = (info&&info.type==='本宮')?6:(info&&info.type==='遊魂')?4:(info&&info.type==='歸魂')?3:findShi(); const ying = shi>3 ? shi-3 : shi+3; return {shi, ying, gong: info?info.gong:upTri, kind: info?info.type:'飛'};}
+let moving=[false,false,false,false,false,false];
+let cvs,ctx,DPR=1;
+function setupCanvas(){ cvs=E('hexCanvas'); ctx=cvs.getContext('2d'); DPR=window.devicePixelRatio||1; cvs.width=Math.max(1,Math.floor(cvs.clientWidth*DPR)); cvs.height=Math.max(1,Math.floor(cvs.clientHeight*DPR)); ctx.setTransform(DPR,0,0,DPR,0,0);}
+function drawWhiteTag(x,y,text){ ctx.font='14px "Noto Sans TC","Microsoft JhengHei"'; const pad=6, h=20, w=ctx.measureText(text).width+pad*2; const pa=ctx.textAlign, pb=ctx.textBaseline; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='rgba(255,255,255,.96)'; ctx.fillRect(x-w/2, y-h/2, w, h); ctx.fillStyle='#0f172a'; ctx.fillText(text, x, y+1); ctx.textAlign=pa; ctx.textBaseline=pb;}
+function drawBoard(meta,rows){
+  setupCanvas(); const W=cvs.clientWidth, H=cvs.clientHeight; ctx.clearRect(0,0,W,H); ctx.fillStyle='#0f172a';
+  ctx.font='bold 18px "Noto Sans TC","Microsoft JhengHei",sans-serif'; ctx.fillText(`問題：${meta.q}`,12,26);
+  ctx.font='15px "Noto Sans TC","Microsoft JhengHei",sans-serif'; ctx.fillText(`起卦：${meta.dt}`,12,48);
+  ctx.fillText(`四柱：${meta.gzY}　${meta.gzM}　${meta.gzD}　${meta.gzH}　（旬首：${meta.xun}　空亡：${meta.kw}）`,12,70);
+  ctx.fillText(`卦名：${meta.name}　上卦：${meta.up}　下卦：${meta.lo}　卦宮：${meta.gong}　卦型：${meta.kind}　世：${meta.shi}　應：${meta.ying} ${meta.ysTxt ? `｜用神：${meta.ysTxt}` : ''}`,12,92);
+  const size=+E('size').value, offx=+E('offx').value, offy=+E('offy').value, gap=+E('gap').value, rowOffset=+E('headgap').value;
+  E('sizeVal').textContent=size; E('offxVal').textContent=offx; E('offyVal').textContent=offy; E('gapVal').textContent=gap; E('headgapVal').textContent=rowOffset;
+  const x0=16+offx, y0=120+offy, headerY=y0-8; const yaoX1=x0+120, yaoX2=yaoX1+size; const col={six:x0, fu:x0+76, yao:yaoX1, kin:yaoX2+30, zhi:yaoX2+98, mark:yaoX2+160, kinc:yaoX2+220, zhic:yaoX2+290};
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle='#475569'; ctx.font='bold 13px "Noto Sans TC","Microsoft JhengHei"';
+  Object.entries({六獸:col.six,伏神:col.fu,爻象:col.yao,六親:col.kin,地支:col.zhi,世應:col.mark,變六親:col.kinc,變支:col.zhic}).forEach(([k,v])=>ctx.fillText(k,v,headerY));
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, headerY+8); ctx.lineTo(yaoX2+320, headerY+8); ctx.stroke();
+  ctx.lineWidth=6; ctx.strokeStyle='#111827'; ctx.fillStyle='#0f172a';
+  rows.forEach((r,idx)=>{ const y=y0 + rowOffset + idx*gap; ctx.font='14px "Noto Sans TC","Microsoft JhengHei"'; ctx.fillText(r.six||'—', col.six, y+5); ctx.textAlign = 'center'; ctx.fillText(r.fu?'':'—', col.fu, y+5); ctx.textAlign = 'left'; if(r.yy===1){ ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+size, y); ctx.stroke(); } else{ const g=size*0.22, seg=(size-g)/2; ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao+seg, y); ctx.moveTo(col.yao+seg+g, y); ctx.lineTo(col.yao+size, y); ctx.stroke(); } if(r.mv) ctx.fillText(r.yy===1?'○':'×', col.yao+size+12, y+6); ctx.fillText(r.kin||'—', col.kin, y+5); ctx.fillText(r.zhi||'—', col.zhi, y+5); if(r.fu) drawWhiteTag(col.fu, y, r.fu); if(r.mark) drawWhiteTag(col.mark, y, r.mark); if(r.kinc) drawWhiteTag(col.kinc, y, r.kinc); if(r.zhic) drawWhiteTag(col.zhic, y, r.zhic); });
+}
 
-        <div class="row pillars">
-          <span id="gzYear">年：—</span>
-          <span id="gzMonth">月：—</span>
-          <span id="gzDay">日：—</span>
-          <span id="gzHour">時：—</span>
-          <span id="gzXun">旬首：—</span>
-          <span id="gzKW">空亡：—</span>
-        </div>
+function calculateYongShenWuxingScores(yongShen, monthZhi, dayZhi, meElem, baseBranches, moving) {
+    const scores = {木:6, 火:6, 土:6, 金:6, 水:6}; const ysKinElemMap = getYSFiveElementMap(meElem); const targetElem = ysKinElemMap[yongShen]; if (!targetElem) return {scores, targetElem: ''}; let factor = 0; const monthElem = ZHI_ELEM[monthZhi.charAt(1)]; const dayElem = ZHI_ELEM[dayZhi.charAt(1)]; if (monthElem === targetElem || WU_SHENG[monthElem] === targetElem) factor += 3; else if (WU_KE[monthElem] === targetElem) factor -= 3; if (dayElem === targetElem || WU_SHENG[dayElem] === targetElem) factor += 2; else if (WU_KE[dayElem] === targetElem) factor -= 2; baseBranches.forEach((branch, i) => { if(moving[i]){ const moveElem = ZHI_ELEM[branch]; if (moveElem === targetElem || WU_SHENG[moveElem] === targetElem) factor += 1.5; else if (WU_KE[moveElem] === targetElem) factor -= 1.5; }}); scores[targetElem] = Math.min(10, Math.max(1, 6 + factor)); E('ysName').textContent = `${yongShen} (${targetElem} ${scores[targetElem].toFixed(1)})`; return {scores, targetElem};
+}
 
-        <div class="row hide-print">
-          <label>動爻</label>
-          <div class="yaoCtl" id="mvCtl"></div>
-        </div>
+function updateW5RadarScores(scores) {
+    if (!scores) return; const map = { '木':'mu', '火':'huo', '土':'tu', '金':'jin', '水':'shui' };
+    Object.entries(map).forEach(([k,v])=>{
+        const el=E(`w5_${v}`);
+        if(el && typeof scores[k] === 'number'){
+            const newValue = Math.round(scores[k]);
+            if (el.value !== String(newValue)) { el.value = newValue; el.dispatchEvent(new Event('input', {bubbles: true})); el.dispatchEvent(new Event('change', {bubbles: true}));}
+        }
+    });
+    if (window.w5_draw) { window.w5_draw(); }
+}
 
-        <div class="row hide-print" style="gap:10px">
-          <button id="redraw">重繪卦象</button>
-          <button id="download">匯出 PNG</button>
-          <button id="btnUpdateRadar">更新雷達圖</button>
-        </div>
+function applyRandomHexagram() {
+    const TRIS = ['乾','兌','離','震','巽','坎','艮','坤']; E('upper').value = TRIS[Math.floor(Math.random() * TRIS.length)]; E('lower').value = TRIS[Math.floor(Math.random() * TRIS.length)]; let hasMovingYao = false; const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]'); mvCtlInputs.forEach(cb => { const isMoving = Math.random() < 0.35; cb.checked = isMoving; if (isMoving) hasMovingYao = true; }); if (!hasMovingYao && mvCtlInputs.length > 0) { const randomIndex = Math.floor(Math.random() * mvCtlInputs.length); mvCtlInputs[randomIndex].checked = true;}
+    document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]').forEach((cb,i)=>{ moving[Number(cb.dataset.mv)] = cb.checked; }); E('question').value = `隨機起卦`; render();
+}
 
-        <div class="canvasWrap">
-          <canvas id="hexCanvas"></canvas>
-        </div>
+function render(){
+  const upTri=E('upper').value, loTri=E('lower').value, yongShen=E('yongShen').value; const baseLines=[...TRIG[loTri], ...TRIG[upTri]]; const gzSix=calcPillarsAndSix(); if(!pillars) return; const guaName = guaNameOf(upTri, loTri); const {shi, ying, gong, kind} = decideShiYing(upTri, loTri, guaName, baseLines); const meElem=GONG_ELEM[gong]; window.__lastMeElem = meElem; const branches=naJiaBranches(baseLines); const kins=branches.map(b=>sixKin(meElem,b)); let w5s={木:6,火:6,土:6,金:6,水:6}, ysTxt=''; if(yongShen){ const res=calculateYongShenWuxingScores(yongShen,pillars.month,pillars.day,meElem,branches,moving); w5s=res.scores; ysTxt=`${yongShen}(${res.targetElem} ${w5s[res.targetElem].toFixed(1)})`; } updateW5RadarScores(w5s); const chLines=changedLines(baseLines,moving); const branchesC=naJiaBranches(chLines), kinsC=branchesC.map(b=>sixKin(meElem,b)); const fuMap=buildFuShenForCurrent(gong,kins); const rows=[]; for(let pos=6;pos>=1;pos--){ const i=pos-1; rows.push({six:gzSix[i],fu:fuMap[pos]||'',yy:baseLines[i],mv:moving[i],kin:kins[i],zhi:branches[i],kinc:moving[i]?kinsC[i]:'',zhic:moving[i]?branchesC[i]:'',mark:(pos===shi)?'世':(pos===ying)?'應':''}); } const dtVal=(E('dt').value||'').replace('T',' '); drawBoard({q:E('question').value||'—',dt:dtVal,gzY:pillars.year,gzM:pillars.month,gzD:pillars.day,gzH:pillars.hour,xun:E('gzXun').textContent.substr(3),kw:E('gzKW').textContent.substr(3),name:guaName,up:upTri,lo:loTri,gong,shi,ying,kind,ysTxt},rows); if(window.updateTCMAdvice) try{window.updateTCMAdvice(meElem,w5s);}catch(e){}
+}
 
-        <div id="noteBox" class="noteBox">
-          <label for="userNote" style="display:block; margin:6px 0 4px; color: var(--text); font-size:14px">
-            備註（會列印）
-          </label>
-          <textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea>
-        </div>
+window.addEventListener('DOMContentLoaded', ()=>{
+  E('dt').value = toYMDhm(new Date());
+  E('btnNow').addEventListener('click', ()=>{ E('dt').value = toYMDhm(new Date()); render(); });
+  E('btnPrint').addEventListener('click', ()=>window.print());
+  const mvCtl=E('mvCtl');
+  mvCtl.innerHTML=[6,5,4,3,2,1].map(p=>`<label><input type="checkbox" data-mv="${p-1}"> ${p===6?'上':p===1?'初':p}爻動</label>`).join('');
+  mvCtl.addEventListener('change',e=>{ const i=e.target.dataset.mv; if(i != null){ moving[i]=e.target.checked; render(); }});
+  const bind=(id,fn)=>{const el=E(id);if(el){['input','change'].forEach(ev=>el.addEventListener(ev,fn));}};
+  ['upper','lower','question','dt','size','offx','offy','gap','headgap','yongShen'].forEach(id=>bind(id,render));
+  E('redraw').addEventListener('click',render);
+  E('download').addEventListener('click',downloadPNG);
+  E('btnRandomHex').addEventListener('click', applyRandomHexagram);
+  E('btnUpdateRadar').addEventListener('click', render);
+  render();
+});
+</script>
 
-        <div class="row hide-print">
-          <label>大小</label>
-          <input type="range" id="size" min="140" max="440" value="300">
-          <span class="miniVal" id="sizeVal">300</span>
-          <label>水平</label>
-          <input type="range" id="offx" min="-320" max="320" value="0">
-          <span class="miniVal" id="offxVal">0</span>
-          <label>垂直</label>
-          <input type="range" id="offy" min="-220" max="220" value="0">
-          <span class="miniVal" id="offyVal">0</span>
-          <label>爻距</label>
-          <input type="range" id="gap" min="26" max="38" value="32">
-          <span class="miniVal" id="gapVal">32</span>
-          <label>欄頭間距</label>
-          <input type="range" id="headgap" min="16" max="48" value="24">
-          <span class="miniVal" id="headgapVal">24</span>
-        </div>
+<script id="W5_SAFE_JS">
+(function(){
+  if(window.__W5_SAFE__) return; window.__W5_SAFE__=true;
+  const $=s=>document.querySelector(s);
+  function rightSec(){ const g=$('.grid'); if(!g) return null; const secs=[...g.querySelectorAll(':scope > .sec, :scope > section.sec')]; return secs.length > 1 ? secs[1] : null; }
+  const host=rightSec(); if(host){ const sec=document.createElement('div'); sec.id='w5_sec'; sec.className='sec'; sec.innerHTML=`
+      <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a">五行雷達圖</h3>
+      <div class="canvasWrap" style="overflow-x:visible;"><canvas id="w5_canv" style="min-width:auto; height: 300px;"></canvas></div>
+      <div id="w5_ctrl">
+        <div class="row"><label>木</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div>
+        <div class="row"><label>火</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div>
+        <div class="row"><label>土</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div>
+        <div class="row"><label>金</label><input id="w5_jin" type="range" min="1" max="10" step="1" value="6"><span id="w5_jinVal" class="miniVal">6</span></div>
+        <div class="row"><label>水</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div>
+      </div>`; host.insertBefore(sec, host.firstChild||null); }
+  const COLORS={木:'#16a34a',火:'#ef4444',土:'#f59e0b',金:'#64748b',水:'#3b82f6'}, ORDER=['火','木','土','金','水'];
+  const id=s=>document.getElementById(s), val=i=>Number(id(i)&&id(i).value)||6;
+  function values(){ return {火:val('w5_huo'),木:val('w5_mu'),土:val('w5_tu'),金:val('w5_jin'),水:val('w5_shui')}; }
+  function drawRadar(){ const c=id('w5_canv'); if(!c) return; const dpr=window.devicePixelRatio||1; const W=c.clientWidth, H=c.clientHeight; c.width=Math.floor(W*dpr); c.height=Math.floor(H*dpr); const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    const cx=W/2, cy=H/2, R=Math.min(W,H)/2*0.7, rings=5, ang0=-Math.PI/2;
+    ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb'; for(let r=1;r<=rings;r++){ const rr=R*r/rings; ctx.beginPath(); for(let i=0;i<ORDER.length;i++){ const a=ang0+i*(2*Math.PI/ORDER.length); i?ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a)):ctx.moveTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));} ctx.closePath(); ctx.stroke(); }
+    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ORDER.forEach((k,i)=>{ const a=ang0+i*(2*Math.PI/ORDER.length), x=cx+(R+18)*Math.cos(a), y=cy+(R+18)*Math.sin(a); ctx.fillStyle=COLORS[k]; ctx.fillText(k,x,y); });
+    const v=values(), pts=[]; ORDER.forEach((k,i)=>{ const rr=R*Math.max(0.1,Math.min(1,v[k]/10)), a=ang0+i*(2*Math.PI/ORDER.length); pts.push([cx+rr*Math.cos(a), cy+rr*Math.sin(a)]); });
+    ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fillStyle='rgba(59,130,246,0.2)'; ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+ }
+  window.w5_draw=drawRadar;
+  ['w5_mu','w5_huo','w5_tu','w5_jin','w5_shui'].forEach(i=>{ const el=id(i); if(el){ el.addEventListener('input',()=>{ const tip=id(i+'Val'); if(tip) tip.textContent=el.value; drawRadar(); if(window.updateTCMAdvice && window.__lastMeElem) try{window.updateTCMAdvice(window.__lastMeElem, values());}catch(_){} }); }}); 
+  window.addEventListener('resize', drawRadar);
+  document.addEventListener('DOMContentLoaded', drawRadar);
+  window.addEventListener('load', ()=>{ setTimeout(drawRadar,150); });
+})();
+</script>
+<style id="TCM_BOX_CSS">
+#tcmBox{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+#tcmBox h3{margin:0 0 10px;font-size:16px;color:#0f172a}
+#tcmCore{font-size:14px;color:#0f172a;line-height:1.6}
+#tcmCore .tag{display:inline-block;margin-right:8px;margin-bottom:6px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px}
+#tcmLists{margin-top:8px}
+#tcmLists .blk{margin:8px 0}
+#tcmLists .blk h4{margin:6px 0;font-size:14px;color:#334155}
+#tcmLists ul{margin:4px 0 8px 18px;padding:0}
+#tcmLists li{margin:2px 0}
+#tcmBox .tcm-note{margin-top:8px;color:#64748b;font-size:12px}
+</style>
+<script id="TCM_BOX_JS">
+(function(){
+  if(window.__TCM_BOX__) return; window.__TCM_BOX__=true;
+  const $=s=>document.querySelector(s);
+  const MAP={'木':{zang:'肝',fu:'膽',dept:['肝膽科','情志/睡眠','骨傷/筋膜'],patterns:['肝氣鬱結','肝火上炎','肝血不足','肝腎陰虛'],self:['規律作息、舒展拉筋','少酒辣與熬夜','情志舒解（散步、冥想）']},'火':{zang:'心',fu:'小腸',dept:['心血管','身心/睡眠'],patterns:['心火亢盛','心脾兩虛','心陰不足'],self:['少咖啡酒精','減少熬夜與重鹹','午間小憩、清心安神']},'土':{zang:'脾',fu:'胃',dept:['脾胃消化','內分泌/代謝'],patterns:['脾胃虛弱','濕困脾胃','胃氣上逆'],self:['少冰冷甜膩','三餐定時少量多餐','腹式呼吸、飯後步行']},'金':{zang:'肺',fu:'大腸',dept:['呼吸過敏','皮膚','耳鼻喉'],patterns:['肺氣虛','肺陰虛','風寒/風熱犯肺'],self:['避免過敏源','適度蒸氣/保濕','早睡早起、練呼吸']},'水':{zang:'腎',fu:'膀胱',dept:['腎泌尿','內科體質'],patterns:['腎陽虛','腎陰虛','腎氣不足'],self:['保暖腰腹與足部','規律作息、早睡','溫和伸展與補水']}};
+  const TEA_MAP = {'通用': '安迪湯（補氣養血，增強體力）','木旺': '菊花枸杞茶（清肝明目，疏肝解鬱）','木弱': '桂圓紅棗茶（養血柔肝，改善睡眠）','火旺': '蓮子心茶／竹葉茶（清心降火，幫助安神）','火弱': '酸棗仁湯（滋陰養血，寧心安神）','土弱': '四神湯／紅豆薏仁水（健脾祛濕，利水消腫）','金弱': '銀耳雪梨湯（潤肺生津，止咳化痰）','水弱': '黑豆杜仲茶（補腎益精，強腰補骨）'};
+  function pickFive(w5Scores){ if (w5Scores && Object.values(w5Scores).some(x => typeof x === 'number' && !isNaN(x))) { return w5Scores; } const get=id=>{const el=document.getElementById(id); return el?Number(el.value):null}; const v={木:get('w5_mu'),火:get('w5_huo'),土:get('w5_tu'),金:get('w5_jin'),水:get('w5_shui')}; const has=Object.values(v).some(x=>typeof x==='number' && !isNaN(x)); return has?v:null;}
+  function hiLo(v){ if(!v) return null; const arr=Object.entries(v); arr.sort((a,b)=>b[1]-a[1]); const hi=arr.slice(0,3).filter(x=>x[1] > 7.0); const lo=arr.slice(-3).filter(x=>x[1] < 5.0); return {hi, lo}; }
+  function htmlList(items){ return '<ul>'+items.map(s=>'<li>'+s+'</li>').join('')+'</ul>'; }
+  window.updateTCMAdvice = function build(meElem, w5Scores){
+    const core=$('#tcmCore'), lists=$('#tcmLists'); if(!core||!lists) return;
+    const base=MAP[meElem]||MAP['土']; const five=pickFive(w5Scores); const trend=hiLo(five);
+    let tags=`<span class="tag">卦宮五行：${meElem}</span><span class="tag">臟腑：${base.zang}／${base.fu}</span>`;
+    if(trend){ tags+=trend.hi.length? `<span class="tag">偏旺：${trend.hi.map(x=>x[0]+'('+x[1].toFixed(0)+')').join('、')}</span>`:''; tags+=trend.lo.length? `<span class="tag">偏弱：${trend.lo.map(x=>x[0]+'('+x[1].toFixed(0)+')').join('、')}</span>`:''; }
+    core.innerHTML=tags;
+    let html=''; html+=`<div class="blk"><h4>建議就診科別</h4>${htmlList(base.dept)}</div>`; html+=`<div class="blk"><h4>常見體質／症候（參考）</h4>${htmlList(base.patterns)}</div>`;
+    const teaList = [];
+    if (trend && (trend.hi.length > 0 || trend.lo.length > 0)) { trend.hi.forEach(([k]) => { if (TEA_MAP[`${k}旺`]) teaList.push(TEA_MAP[`${k}旺`]); }); trend.lo.forEach(([k]) => { if (TEA_MAP[`${k}弱`]) teaList.push(TEA_MAP[`${k}弱`]); }); } else { teaList.push(TEA_MAP['通用']); }
+    html+=`<div class="blk"><h4>養生茶飲／湯品</h4>${htmlList(teaList)}</div>`; html+=`<div class="blk"><h4>日常調養建議</h4>${htmlList(base.self)}</div>`;
+    lists.innerHTML=html;
+  }
+})();
+</script>
+<script id="TCM_HOOK_RENDER">
+(function(){
+  const _render = window.render; if(!_render) return;
+  window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice && window.__lastMeElem){ window.updateTCMAdvice(window.__lastMeElem, {}); } }catch(_){} };
+})();
+</script>
+<script id="PRINT_W5_TCM_JS">
+(function(){
+  if(window.__PRINT_W5_TCM__) return; window.__PRINT_W5_TCM__=true;
+  const $=s=>document.querySelector(s);
+  function markRight(){ const grid=$('.grid'); if(!grid) return null; const secs=[...grid.querySelectorAll(':scope > .sec, :scope > section.sec')]; const right=secs.length > 1 ? secs[1] : null; if(!right) return null; if(!right.id) right.id='printRight'; right.classList.remove('hide-print'); return right;}
+  function ensure(){ markRight(); }
+  document.addEventListener('DOMContentLoaded', ensure); window.addEventListener('load', ensure);
+  function preprint(){ try{ if(window.w5_draw) window.w5_draw(); }catch(_){} try{ if(window.render) window.render(); }catch(_){} }
+  if('onbeforeprint' in window){ window.addEventListener('beforeprint', preprint); }
+  try{ var mq=window.matchMedia('print'); if(mq&&mq.addListener){ mq.addListener(function(m){ if(m.matches) preprint(); }); } }catch(_){ }
+})();
+</script>
+<style id="PRINT_W5_TCM_CSS">
+@media print{
+  .grid > .sec.hide-print#printRight, .grid > section.sec.hide-print#printRight{display:block!important}
+  #w5_canv{height:260px!important;width:100%!important;display:block!important}
+  #tcmBox{display:block!important}
+}
+</style>
+<style id="SAVE_BAR_V1_CSS">
+#saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
+#saveBarTop button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
+#saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+@media print{#saveBarTop{display:none!important}}
+</style>
+<script id="SAVE_BAR_V1_JS">
+(function(){
+  if(window.__SAVE_BAR_V1__) return; window.__SAVE_BAR_V1__=true;
+  function q(s){return document.querySelector(s)}
+  function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+  function ensureBar(){ if(q('#saveBarTop')) return; var bar=document.createElement('div'); bar.id='saveBarTop'; bar.innerHTML='<button id="btnSaveLocal" title="保存到本機（瀏覽器）">保存</button>'+'<button id="btnLoadLocal" title="從本機載入">載入</button>'+'<button id="btnExportJSON" title="匯出設定為檔案">匯出設定</button>'+'<button id="btnImportJSON" title="從檔案匯入設定">匯入設定</button>'+'<button id="btnPNGHex" title="匯出卦盤 PNG">盤PNG</button>'+'<button id="btnPNGRadar" title="匯出雷達 PNG">雷達PNG</button>'+'<input id="fileImportJSON" type="file" accept="application/json" style="display:none">'; document.body.appendChild(bar);}
+  function toast(msg){ try{ var box=q('#err'); if(box){ box.style.display='block'; box.textContent='✔ '+msg; setTimeout(function(){ box.style.display='none'; },1400);} else { alert(msg);} }catch(e){}}
+  function showErr(msg){ var box=q('#err'); if(box){ box.style.display='block'; box.textContent='⚠️ '+msg; } else { alert(msg);}}
+  function getVal(id){ var el=document.getElementById(id); return el?el.value:null; }
+  function setVal(id,v){ var el=document.getElementById(id); if(el!=null && v!=null){ el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } }
+  function getMoving(){ var arr=[false,false,false,false,false,false]; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i)) arr[i]=!!cb.checked; }); return arr; }
+  function setMoving(a){ if(!a||!a.length) return; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i) && typeof a[i]!== 'undefined'){ cb.checked=!!a[i]; cb.dispatchEvent(new Event('change',{bubbles:true})); } }); }
+  function collect(){ var S={ ver:'v1',question:getVal('question'), dt:getVal('dt'), upper:getVal('upper'), lower:getVal('lower'), yongShen:getVal('yongShen'),size:getVal('size'), offx:getVal('offx'), offy:getVal('offy'), gap:getVal('gap'), headgap:getVal('headgap'),moving:getMoving(),w5:{ size:getVal('w5_size'), 木:getVal('w5_mu'), 火:getVal('w5_huo'), 土:getVal('w5_tu'), 金:getVal('w5_jin'), 水:getVal('w5_shui') },tcmHTML:(document.getElementById('tcmBox')||{}).innerHTML||null,note:(document.getElementById('userNote')||{}).value||null}; return S;}
+  function apply(S){ try{ setVal('question',S.question); setVal('dt',S.dt); setVal('upper',S.upper); setVal('lower',S.lower); setVal('yongShen',S.yongShen); setVal('size',S.size); setVal('offx',S.offx); setVal('offy',S.offy); setVal('gap',S.gap); setVal('headgap',S.headgap); setMoving(S.moving); if(S.w5){ setVal('w5_size',S.w5.size); setVal('w5_mu',S.w5.木); setVal('w5_huo',S.w5.火); setVal('w5_tu',S.w5.土); setVal('w5_jin',S.w5.金); setVal('w5_shui',S.w5.水); } if(S.note!=null){ var n=document.getElementById('userNote'); if(n) n.value=S.note; } if(S.tcmHTML!=null){ var t=document.getElementById('tcmBox'); if(t) t.innerHTML=S.tcmHTML; } try{ if(window.render) window.render(); }catch(e){} try{ if(window.w5_draw) window.w5_draw(); }catch(e){} toast('已套用設定');}catch(e){ showErr('套用設定失敗：'+(e.message||e)); } }
+  function saveLocal(){ try{ localStorage.setItem('hex_state_v1', JSON.stringify(collect())); toast('已保存到本機'); }catch(e){ showErr('保存失敗：'+(e.message||e)); } }
+  function loadLocal(){ try{ var s=localStorage.getItem('hex_state_v1'); if(!s) return toast('本機尚無保存'); apply(JSON.parse(s)); }catch(e){ showErr('載入失敗：'+(e.message||e)); } }
+  function downloadBlob(data, filename, type){ var blob=new Blob([data],{type:type||'application/octet-stream'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(url); a.remove();},0); }
+  function ts(){ var d=new Date(); function z(n){return n<10?'0'+n:n} return d.getFullYear()+''+z(d.getMonth()+1)+''+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes()); }
+  function exportJSON(){ try{ downloadBlob(JSON.stringify(collect(),null,2),'hex_state_'+ts()+'.json','application/json'); }catch(e){ showErr('匯出失敗：'+(e.message||e)); } }
+  function importJSONFile(file){ if(!file) return; var r=new FileReader(); r.onload=function(){ try{ apply(JSON.parse(String(r.result))); }catch(e){ showErr('匯入失敗：'+(e.message||e)); } }; r.readAsText(file); }
+  function canvasToPNG(id, filename){ var c=document.getElementById(id); if(!c){ return showErr('找不到畫布：'+id); } try{ if(c.toBlob){ c.toBlob(function(b){ var u=URL.createObjectURL(b); var a=document.createElement('a'); a.href=u; a.download=filename; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(u); a.remove();},0); }); } else { var a2=document.createElement('a'); a2.href=c.toDataURL('image/png'); a2.download=filename; a2.click(); } }catch(e){ showErr('匯出 PNG 失敗：'+(e.message||e)); } }
+  function bind(){ ensureBar(); var f=q('#fileImportJSON'); q('#btnSaveLocal').addEventListener('click', saveLocal); q('#btnLoadLocal').addEventListener('click', loadLocal); q('#btnExportJSON').addEventListener('click', exportJSON); q('#btnImportJSON').addEventListener('click', function(){ if(f) f.click(); }); if(f){ f.addEventListener('change', function(){ importJSONFile(this.files&&this.files[0]); this.value=''; }); } q('#btnPNGHex').addEventListener('click', function(){ try{ if(window.render) window.render(); }catch(e){} canvasToPNG('hexCanvas','hexagram_'+ts()+'.png'); }); q('#btnPNGRadar').addEventListener('click', function(){ try{ if(window.w5_draw) window.w5_draw(); }catch(e){} canvasToPNG('w5_canv','radar_'+ts()+'.png'); }); var t=null; function autosave(){ clearTimeout(t); t=setTimeout(saveLocal, 1200); } var ids=['upper','lower','question','dt','size','offx','offy','gap','headgap','w5_size','w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','yongShen']; for(var i=0;i<ids.length;i++){ var el=document.getElementById(ids[i]); if(el){ ['input','change'].forEach(function(ev){ el.addEventListener(ev, autosave); }); } } qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ cb.addEventListener('change', autosave); }); }
+  document.addEventListener('DOMContentLoaded', bind); window.addEventListener('load', bind);
+})();
+</script>
+<script id="SAVE_BAR_VAULT_JS">
+(function(){
+  if(window.__SAVE_BAR_VAULT__) return; window.__SAVE_BAR_VAULT__=true;
+  function q(s){return document.querySelector(s)} function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+  function ensureExtraButtons(){ var bar=q('#saveBarTop'); if(!bar) return; function addBtn(id,txt,ttl){ if(q('#'+id)) return; var b=document.createElement('button'); b.id=id; b.textContent=txt; if(ttl) b.title=ttl; bar.insertBefore(b, bar.firstChild); } addBtn('btnPrintTop','列印','列印 A4'); addBtn('btnVault','保存庫','管理與快速開啟'); q('#btnPrintTop').addEventListener('click', function(){ try{ if(window.w5_draw) window.w5_draw(); }catch(e){} try{ if(window.render) window.render(); }catch(e){} window.print(); }); q('#btnVault').addEventListener('click', function(){ var w=q('#vaultWrap'); if(!w){ buildVault(); w=q('#vaultWrap'); } if(!w) return; w.style.display = (w.style.display==='none'||!w.style.display)?'block':'none'; refreshVaultUI(); }); }
+  function vread(){ try{ return JSON.parse(localStorage.getItem('hex_vault_v1')||'{}'); }catch(e){ return {}; } }
+  function vwrite(v){ try{ localStorage.setItem('hex_vault_v1', JSON.stringify(v)); }catch(e){} }
+  function ensureVault(){ var v=vread(); if(!v.folders) v.folders={}; if(!v.currentFolder) v.currentFolder='預設'; if(!v.folders[v.currentFolder]) v.folders[v.currentFolder]=[]; vwrite(v); return v; }
+  function nowTs(){ var d=new Date(); function z(n){return n<10?'0'+n:n} return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+  function buildVault(){ var wrap=document.createElement('div'); wrap.id='vaultWrap'; wrap.innerHTML=''+'<div class="vhdr">保存庫</div>'+'<div class="vsec">'+'<div class="vrow"><span>資料夾</span><select id="vFolderSel"></select><input id="vNewFolder" type="text" placeholder="新增資料夾"><button id="vAddFolder">新增</button></div>'+'<div class="vrow" style="width:100%"><span>清單</span></div>'+'<ul id="vList"></ul>'+'<div class="vrow"><span>檔名</span><input id="vSaveName" type="text" placeholder="另存新檔名稱"><button id="vSaveAs">另存新檔</button><button id="vDel">刪除</button></div>'+'</div>'+'<div class="vfoot"><button id="vClose">關閉</button></div>'; document.body.appendChild(wrap); q('#vClose').addEventListener('click', function(){ q('#vaultWrap').style.display='none'; }); q('#vAddFolder').addEventListener('click', function(){ var v=ensureVault(); var name=(q('#vNewFolder').value||'').trim(); if(!name) return; if(!v.folders[name]) v.folders[name]=[]; v.currentFolder=name; vwrite(v); q('#vNewFolder').value=''; refreshVaultUI(); }); q('#vFolderSel').addEventListener('change', function(){ var v=ensureVault(); v.currentFolder=this.value; vwrite(v); refreshVaultUI(); }); q('#vSaveAs').addEventListener('click', function(){ var v=ensureVault(); var fname=(q('#vSaveName').value||'').trim(); if(!fname) fname='未命名'; var folder=v.currentFolder; var data=collectSafe(); var item={id:Date.now(), name:fname, ts:nowTs(), data:data}; v.folders[folder].push(item); vwrite(v); refreshVaultUI(); }); q('#vDel').addEventListener('click', function(){ var v=ensureVault(); var li=q('#vList li.sel'); if(!li) return; var id=Number(li.getAttribute('data-id')); var arr=v.folders[v.currentFolder]; v.folders[v.currentFolder]=arr.filter(function(x){return x.id!==id}); vwrite(v); refreshVaultUI(); }); }
+  function refreshVaultUI(){ var v=ensureVault(); var sel=q('#vFolderSel'); if(!sel) return; sel.innerHTML=''; Object.keys(v.folders).forEach(function(name){ var opt=document.createElement('option'); opt.value=name; opt.textContent=name; sel.appendChild(opt); }); sel.value=v.currentFolder; var list=q('#vList'); list.innerHTML=''; var arr=v.folders[v.currentFolder]||[]; arr.sort(function(a,b){return b.id-a.id}); arr.forEach(function(item){ var li=document.createElement('li'); li.setAttribute('data-id', item.id); li.innerHTML='<span>'+escapeHtml(item.name)+'</span><span style="color:#64748b">'+item.ts+'</span>'; li.addEventListener('click', function(){ qa('#vList li').forEach(function(x){x.classList.remove('sel')}); li.classList.add('sel'); q('#vSaveName').value=item.name; }); li.addEventListener('dblclick', function(){ try{ applySafe(item.data); q('#vaultWrap').style.display='none'; }catch(e){ showErr('載入失敗：'+(e.message||e)); } }); list.appendChild(li); }); }
+  function getValSafe(id){ var el=document.getElementById(id); return el?el.value:null; }
+  function setValSafe(id,v){ var el=document.getElementById(id); if(el!=null && v!=null){ el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } }
+  function getMovingSafe(){ var arr=[false,false,false,false,false,false]; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i)) arr[i]=!!cb.checked; }); return arr; }
+  function setMovingSafe(a){ if(!a||!a.length) return; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i) && typeof a[i]!== 'undefined'){ cb.checked=!!a[i]; cb.dispatchEvent(new Event('change',{bubbles:true})); } }); }
+  function collectSafe(){ var S={ ver:'v1',question:getValSafe('question'), dt:getValSafe('dt'), upper:getValSafe('upper'), lower:getValSafe('lower'), yongShen:getValSafe('yongShen'),size:getValSafe('size'), offx:getValSafe('offx'), offy:getValSafe('offy'), gap:getValSafe('gap'), headgap:getValSafe('headgap'),moving:getMovingSafe(),w5:{ size:getValSafe('w5_size'), 木:getValSafe('w5_mu'), 火:getValSafe('w5_huo'), 土:getValSafe('w5_tu'), 金:getValSafe('w5_jin'), 水:getValSafe('w5_shui') },note:(document.getElementById('userNote')||{}).value||null}; return S;}
+  function applySafe(S){ setValSafe('question',S.question); setValSafe('dt',S.dt); setValSafe('upper',S.upper); setValSafe('lower',S.lower); setValSafe('yongShen',S.yongShen); setValSafe('size',S.size); setValSafe('offx',S.offx); setValSafe('offy',S.offy); setValSafe('gap',S.gap); setValSafe('headgap',S.headgap); setMovingSafe(S.moving); if(S.w5){ setValSafe('w5_size',S.w5.size); setValSafe('w5_mu',S.w5.木); setValSafe('w5_huo',S.w5.火); setValSafe('w5_tu',S.w5.土); setValSafe('w5_jin',S.w5.金); setValSafe('w5_shui',S.w5.水); } if(S.note!=null){ var n=document.getElementById('userNote'); if(n) n.value=S.note; } try{ if(window.render) window.render(); }catch(e){} try{ if(window.w5_draw) window.w5_draw(); }catch(e){} toast('已從保存庫套用設定');}
+  function escapeHtml(str){ return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+  document.addEventListener('DOMContentLoaded', ensureExtraButtons); window.addEventListener('load', ensureExtraButtons);
+})();
+</script>
+<style id="SAVE_BAR_V1_TWEAK">#saveBarTop{right:12px}</style>
+<style id="NOTE_PRINT_VAULT_CSS">
+#noteBox{margin:8px 0 4px}
+#userNote{width:100%;min-height:110px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:14px;resize:vertical}
+@media print{
+  #w5_ctrl, #saveBarTop, #vaultWrap, #btnPrint{display:none!important}
+}
+#vaultWrap{position:fixed;top:50px;right:12px;z-index:10003;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);width:360px;max-height:70vh;display:none;overflow:auto}
+#vaultWrap .vhdr{font-weight:600;padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a}
+#vaultWrap .vsec{padding:10px 12px}
+#vaultWrap .vrow{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+#vaultWrap input[type=text]{flex:1;min-width:120px;border:1px solid #cbd5e1;border-radius:8px;height:30px;padding:0 8px}
+#vaultWrap select{height:30px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px}
+#vaultWrap button{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer}
+#vaultWrap ul{list-style:none;margin:6px 0 0 0;padding:0;border:1px solid #e5e7eb;border-radius:8px;max-height:36vh;overflow:auto}
+#vaultWrap li{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+#vaultWrap li:last-child{border-bottom:none}
+#vaultWrap li.sel{background:#f1f5f9}
+#vaultWrap .vfoot{padding:10px 12px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px}
+</style>
 
-        <div class="muted">
-          欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。
-        </div>
-
-      </section>
-
-      <!-- 右側欄：雷達 + 中醫建議 -->
-      <section class="sec">
-        <div id="headInfo" class="muted" style="font-size:14px; display:none;">
-          卦名：—　上卦：—　下卦：—　卦宮：—　卦型：—　世：—　應：—
-        </div>
-        <pre id="brief" class="rightNote" style="display:none;">
-（這裡會列出六爻摘要）
-        </pre>
-        <div id="tcmBox" class="tcm-box">
-          <h3>中醫分科建議</h3>
-          <div id="tcmCore"></div>
-          <div id="tcmLists"></div>
-          <div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <script>
-    /* ─────────────────────────────────────────
-       以下為你原本的 JavaScript 邏輯程式碼
-       我假設這部分你已經有、可以直接插入
-       （你原本的 calc / render / setupCanvas 等函式）  
-       這裡我不重複貼一次，為避免占太多篇幅。
-       只要你把你的原 JS 全部插進 <script> 裏即可。  
-    ───────────────────────────────────────── */
-  </script>
 </body>
 </html>
