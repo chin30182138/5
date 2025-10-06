@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（1006-V10-最終完成版）</title>
+<title>仙人指路六爻排盤 - 最終穩定版</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -12,7 +12,7 @@
   h1{margin:0 0 10px;font-size:22px}
   .grid{
     display:grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-columns: 1.5fr 1fr; /* 基礎兩欄佈局 */
     gap:12px
   }
   .sec{
@@ -21,7 +21,7 @@
     border-radius:12px;
     padding:12px;
     margin:10px 0;
-    overflow-x: auto;
+    overflow-x: auto; /* 強制內容超出時，顯示自己的滾動條 */
   }
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
   input[type=text]{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:8px;height:36px;padding:0 10px;font-size:14px}
@@ -34,7 +34,6 @@
     border-radius:10px;
     background:#fff;
     padding:8px;
-    overflow-x: auto;
   }
   canvas{display:block;min-width:600px;width:100%;height:560px}
   .yaoCtl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
@@ -46,22 +45,14 @@
   .pillars span{background:#eef2ff;color:#1e3a8a;border-radius:8px;padding:4px 10px;font-size:13px}
   .rightNote{white-space:pre-wrap;margin-top:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:14px}
 
+  /* 響應式佈局: 當螢幕寬度小於 1024px 時 */
   @media (max-width: 1024px) {
     .grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; /* 變為單欄 */
     }
   }
 
-  @media print {
-    @page { size: A4 portrait; margin: 12mm; }
-    .grid { display:block; }
-    .sec { border:none; padding:0; margin:0 0 10px; overflow-x: visible; }
-    .hide-print, .btns, .yaoCtl, #redraw, #download, #btnNow, #btnPrint, #size, #offx, #offy, #gap, #headgap, #sizeVal, #offxVal, #offyVal, #gapVal, #headgapVal { display:none !important; }
-    .canvasWrap { border:none; padding:0; overflow-x: visible; }
-    canvas { height:auto; width:100%; min-width: auto; }
-  }
-
-  /* ===== 版面最終精修 ===== */
+  /* 右側欄位精修 */
   .grid > .sec:nth-child(2) {
     display: flex;
     flex-direction: column;
@@ -76,106 +67,40 @@
     padding-bottom: 10px;
     border-bottom: 1px solid #e5e7eb;
   }
+
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    .grid { display:block; }
+    .sec { border:none; padding:0; margin:0 0 10px; overflow-x: visible; }
+    .hide-print, .btns, .yaoCtl, #redraw, #download, #btnNow, #btnPrint, #size, #offx, #offy, #gap, #headgap, #sizeVal, #offxVal, #offyVal, #gapVal, #headgapVal { display:none !important; }
+    .canvasWrap { border:none; padding:0; overflow-x: visible; }
+    canvas { height:auto; width:100%; min-width: auto; }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（1006-V10-最終完成版）</h1>
+  <h1>仙人指路六爻排盤</h1>
   <div id="err"></div>
-
   <div class="grid">
     <section class="sec">
-      <div class="row hide-print">
-        <label>上卦</label>
-        <select id="upper">
-          <option>乾</option><option>兌</option><option>離</option><option>震</option>
-          <option>巽</option><option selected>坎</option><option>艮</option><option>坤</option>
-        </select>
-        <span>下卦</span>
-        <select id="lower">
-          <option selected>坎</option><option>乾</option><option>兌</option><option>離</option>
-          <option>震</option><option>巽</option><option>艮</option><option>坤</option>
-        </select>
-        <span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span>
-      </div>
-
-      <div class="row btns hide-print" style="gap:8px">
-        <button id="btnRandomHex">隨機起卦</button>
-      </div>
-
-      <div class="row hide-print" style="gap:14px">
-        <label>問題</label>
-        <input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運">
-      </div>
-      
-      <div class="row hide-print" style="gap:14px">
-        <label>用神</label>
-        <select id="yongShen">
-          <option value="">（未指定）</option>
-          <option value="父母">父母 (學業/文書)</option>
-          <option value="兄弟">兄弟 (競爭/劫財)</option>
-          <option value="官鬼">官鬼 (事業/疾病)</option>
-          <option value="妻財" selected>妻財 (求財/妻子)</option>
-          <option value="子孫">子孫 (福德/解憂)</option>
-        </select>
-        <span id="ysName" class="badge"></span>
-      </div>
-      <div class="row hide-print" style="gap:14px">
-        <label>時間</label>
-        <input id="dt" type="datetime-local">
-        <button id="btnNow">現在</button>
-        <button id="btnPrint">列印（A4）</button>
-        <span class="muted">四柱由 Lunar.js 精準換算（含節氣切換）</span>
-      </div>
-
-      <div class="row pillars">
-        <span id="gzYear">年：—</span>
-        <span id="gzMonth">月：—</span>
-        <span id="gzDay">日：—</span>
-        <span id="gzHour">時：—</span>
-        <span id="gzXun">旬首：—</span>
-        <span id="gzKW">空亡：—</span>
-      </div>
-
-      <div class="row hide-print">
-        <label>動爻</label>
-        <div class="yaoCtl" id="mvCtl"></div>
-      </div>
-
-      <div class="row hide-print" style="gap:10px">
-        <button id="redraw">重繪卦象</button>
-        <button id="download">匯出 PNG</button>
-        <button id="btnUpdateRadar">更新雷達圖</button>
-      </div>
-
-      <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
-<div id="noteBox" class="noteBox">
-  <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
-  <textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea>
-</div>
-
-      <div class="row hide-print">
-        <label>大小</label><input type="range" id="size" min="140" max="440" value="300"><span class="miniVal" id="sizeVal">300</span>
-        <label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span>
-        <label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span>
-        <label>爻距</label><input type="range" id="gap" min="26" max="38" value="32"><span class="miniVal" id="gapVal">32</span>
-        <label>欄頭間距</label><input type="range" id="headgap" min="16" max="48" value="24"><span class="miniVal" id="headgapVal">24</span>
-      </div>
-
-      <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
+      <div class="row hide-print"><label>上卦</label><select id="upper"><option>乾</option><option>兌</option><option>離</option><option>震</option><option>巽</option><option selected>坎</option><option>艮</option><option>坤</option></select><span>下卦</span><select id="lower"><option selected>坎</option><option>乾</option><option>兌</option><option>離</option><option>震</option><option>巽</option><option>艮</option><option>坤</option></select><span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span></div>
+      <div class="row btns hide-print" style="gap:8px"><button id="btnRandomHex">隨機起卦</button></div>
+      <div class="row hide-print" style="gap:14px"><label>問題</label><input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運"></div>
+      <div class="row hide-print" style="gap:14px"><label>用神</label><select id="yongShen"><option value="">（未指定）</option><option value="父母">父母 (學業/文書)</option><option value="兄弟">兄弟 (競爭/劫財)</option><option value="官鬼">官鬼 (事業/疾病)</option><option value="妻財" selected>妻財 (求財/妻子)</option><option value="子孫">子孫 (福德/解憂)</option></select><span id="ysName" class="badge"></span></div>
+      <div class="row hide-print" style="gap:14px"><label>時間</label><input id="dt" type="datetime-local"><button id="btnNow">現在</button><button id="btnPrint">列印（A4）</button><span class="muted">四柱由 Lunar.js 精準換算</span></div>
+      <div class="row pillars"><span id="gzYear">年：—</span><span id="gzMonth">月：—</span><span id="gzDay">日：—</span><span id="gzHour">時：—</span><span id="gzXun">旬首：—</span><span id="gzKW">空亡：—</span></div>
+      <div class="row hide-print"><label>動爻</label><div class="yaoCtl" id="mvCtl"></div></div>
+      <div class="row hide-print" style="gap:10px"><button id="redraw">重繪卦象</button><button id="download">匯出 PNG</button></div>
+      <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
+      <div id="noteBox" class="noteBox"><label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label><textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea></div>
+      <div class="row hide-print"><label>大小</label><input type="range" id="size" min="140" max="440" value="300"><span class="miniVal" id="sizeVal">300</span><label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span><label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span><label>爻距</label><input type="range" id="gap" min="26" max="38" value="32"><span class="miniVal" id="gapVal">32</span><label>欄頭間距</label><input type="range" id="headgap" min="16" max="48" value="24"><span class="miniVal" id="headgapVal">24</span></div>
+      <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
     </section>
-
     <section class="sec">
-      <div id="headInfo" class="muted" style="font-size:14px; display:none;">卦名：—　上卦：—　下卦：—　卦宮：—　卦型：—　世：—　應：—</div>
-      <pre id="brief" class="rightNote" style="display:none;">（這裡會列出六爻摘要）</pre>
-<div id="tcmBox" class="tcm-box">
-  <h3>中醫分科建議</h3>
-  <div id="tcmCore"></div>
-  <div id="tcmLists"></div>
-  <div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div>
-</div>
-</section>
+      <div id="tcmBox" class="tcm-box"><h3>中醫分科建議</h3><div id="tcmCore"></div><div id="tcmLists"></div><div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div></div>
+    </section>
   </div>
 </main>
 
