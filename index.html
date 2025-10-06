@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（1006-V9-排版最終修正版）</title>
+<title>仙人指路六爻排盤（1006-V10-最終完成版）</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -21,7 +21,6 @@
     border-radius:12px;
     padding:12px;
     margin:10px 0;
-    /* 【排版最終修正】: 強制欄位處理自己的水平滾動，避免影響全局佈局 */
     overflow-x: auto;
   }
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
@@ -61,12 +60,28 @@
     .canvasWrap { border:none; padding:0; overflow-x: visible; }
     canvas { height:auto; width:100%; min-width: auto; }
   }
+
+  /* ===== 版面最終精修 ===== */
+  .grid > .sec:nth-child(2) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #w5_sec, #tcmBox {
+    margin: 0;
+  }
+  #w5_sec h3,
+  #tcmBox h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（1006-V9-排版最終修正版）</h1>
+  <h1>仙人指路六爻排盤（1006-V10-最終完成版）</h1>
   <div id="err"></div>
 
   <div class="grid">
@@ -250,7 +265,7 @@ function updateW5RadarScores(scores) {
 
 function applyRandomHexagram() {
     const TRIS = ['乾','兌','離','震','巽','坎','艮','坤']; E('upper').value = TRIS[Math.floor(Math.random() * TRIS.length)]; E('lower').value = TRIS[Math.floor(Math.random() * TRIS.length)]; let hasMovingYao = false; const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]'); mvCtlInputs.forEach(cb => { const isMoving = Math.random() < 0.35; cb.checked = isMoving; if (isMoving) hasMovingYao = true; }); if (!hasMovingYao && mvCtlInputs.length > 0) { const randomIndex = Math.floor(Math.random() * mvCtlInputs.length); mvCtlInputs[randomIndex].checked = true;}
-    document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]').forEach((cb,i)=>{ moving[i] = cb.checked; }); E('question').value = `隨機起卦`; render();
+    document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]').forEach((cb,i)=>{ moving[Number(cb.dataset.mv)] = cb.checked; }); E('question').value = `隨機起卦`; render();
 }
 
 function render(){
