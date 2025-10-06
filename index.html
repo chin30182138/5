@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>仙人指路六爻排盤（1006-V8-完整最終版）</title>
+<title>仙人指路六爻排盤（1006-V9-排版最終修正版）</title>
 <style>
   :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
   *{box-sizing:border-box}
@@ -15,7 +15,15 @@
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     gap:12px
   }
-  .sec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+  .sec{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px;
+    margin:10px 0;
+    /* 【排版最終修正】: 強制欄位處理自己的水平滾動，避免影響全局佈局 */
+    overflow-x: auto;
+  }
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
   input[type=text]{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:8px;height:36px;padding:0 10px;font-size:14px}
   input[type=datetime-local], select, button{height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;font-size:14px}
@@ -39,10 +47,8 @@
   .pillars span{background:#eef2ff;color:#1e3a8a;border-radius:8px;padding:4px 10px;font-size:13px}
   .rightNote{white-space:pre-wrap;margin-top:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:14px}
 
-  /* 【響應式佈局修正】 */
   @media (max-width: 1024px) {
     .grid {
-      /* 在窄螢幕上，變為單欄佈局 */
       grid-template-columns: 1fr;
     }
   }
@@ -50,7 +56,7 @@
   @media print {
     @page { size: A4 portrait; margin: 12mm; }
     .grid { display:block; }
-    .sec { border:none; padding:0; margin:0 0 10px; }
+    .sec { border:none; padding:0; margin:0 0 10px; overflow-x: visible; }
     .hide-print, .btns, .yaoCtl, #redraw, #download, #btnNow, #btnPrint, #size, #offx, #offy, #gap, #headgap, #sizeVal, #offxVal, #offyVal, #gapVal, #headgapVal { display:none !important; }
     .canvasWrap { border:none; padding:0; overflow-x: visible; }
     canvas { height:auto; width:100%; min-width: auto; }
@@ -60,7 +66,7 @@
 </head>
 <body>
 <main>
-  <h1>仙人指路六爻排盤（1006-V8-完整最終版）</h1>
+  <h1>仙人指路六爻排盤（1006-V9-排版最終修正版）</h1>
   <div id="err"></div>
 
   <div class="grid">
@@ -334,13 +340,103 @@ window.addEventListener('DOMContentLoaded', ()=>{
   }
 })();
 </script>
-<script id="TCM_HOOK_RENDER"> /* ... Unchanged ... */ </script>
-<script id="PRINT_W5_TCM_JS"> /* ... Unchanged ... */ </script>
-<style id="PRINT_W5_TCM_CSS"> /* ... Unchanged ... */ </style>
-<style id="SAVE_BAR_V1_CSS"> /* ... Unchanged ... */ </style>
-<script id="SAVE_BAR_V1_JS"> /* ... Unchanged ... */ </script>
-<script id="SAVE_BAR_VAULT_JS"> /* ... Unchanged ... */ </script>
-<style id="SAVE_BAR_V1_TWEAK"> /* ... Unchanged ... */ </style>
-<style id="NOTE_PRINT_VAULT_CSS"> /* ... Unchanged ... */ </style>
+<script id="TCM_HOOK_RENDER">
+(function(){
+  const _render = window.render; if(!_render) return;
+  window.render = function(){ _render.apply(this, arguments); try{ if(window.updateTCMAdvice && window.__lastMeElem){ window.updateTCMAdvice(window.__lastMeElem, {}); } }catch(_){} };
+})();
+</script>
+<script id="PRINT_W5_TCM_JS">
+(function(){
+  if(window.__PRINT_W5_TCM__) return; window.__PRINT_W5_TCM__=true;
+  const $=s=>document.querySelector(s);
+  function markRight(){ const grid=$('.grid'); if(!grid) return null; const secs=[...grid.querySelectorAll(':scope > .sec, :scope > section.sec')]; const right=secs.length > 1 ? secs[1] : null; if(!right) return null; if(!right.id) right.id='printRight'; right.classList.remove('hide-print'); return right;}
+  function ensure(){ markRight(); }
+  document.addEventListener('DOMContentLoaded', ensure); window.addEventListener('load', ensure);
+  function preprint(){ try{ if(window.w5_draw) window.w5_draw(); }catch(_){} try{ if(window.render) window.render(); }catch(_){} }
+  if('onbeforeprint' in window){ window.addEventListener('beforeprint', preprint); }
+  try{ var mq=window.matchMedia('print'); if(mq&&mq.addListener){ mq.addListener(function(m){ if(m.matches) preprint(); }); } }catch(_){ }
+})();
+</script>
+<style id="PRINT_W5_TCM_CSS">
+@media print{
+  .grid > .sec.hide-print#printRight, .grid > section.sec.hide-print#printRight{display:block!important}
+  #w5_canv{height:260px!important;width:100%!important;display:block!important}
+  #tcmBox{display:block!important}
+}
+</style>
+<style id="SAVE_BAR_V1_CSS">
+#saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
+#saveBarTop button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
+#saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+@media print{#saveBarTop{display:none!important}}
+</style>
+<script id="SAVE_BAR_V1_JS">
+(function(){
+  if(window.__SAVE_BAR_V1__) return; window.__SAVE_BAR_V1__=true;
+  function q(s){return document.querySelector(s)}
+  function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+  function ensureBar(){ if(q('#saveBarTop')) return; var bar=document.createElement('div'); bar.id='saveBarTop'; bar.innerHTML='<button id="btnSaveLocal" title="保存到本機（瀏覽器）">保存</button>'+'<button id="btnLoadLocal" title="從本機載入">載入</button>'+'<button id="btnExportJSON" title="匯出設定為檔案">匯出設定</button>'+'<button id="btnImportJSON" title="從檔案匯入設定">匯入設定</button>'+'<button id="btnPNGHex" title="匯出卦盤 PNG">盤PNG</button>'+'<button id="btnPNGRadar" title="匯出雷達 PNG">雷達PNG</button>'+'<input id="fileImportJSON" type="file" accept="application/json" style="display:none">'; document.body.appendChild(bar);}
+  function toast(msg){ try{ var box=q('#err'); if(box){ box.style.display='block'; box.textContent='✔ '+msg; setTimeout(function(){ box.style.display='none'; },1400);} else { alert(msg);} }catch(e){}}
+  function showErr(msg){ var box=q('#err'); if(box){ box.style.display='block'; box.textContent='⚠️ '+msg; } else { alert(msg);}}
+  function getVal(id){ var el=document.getElementById(id); return el?el.value:null; }
+  function setVal(id,v){ var el=document.getElementById(id); if(el!=null && v!=null){ el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } }
+  function getMoving(){ var arr=[false,false,false,false,false,false]; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i)) arr[i]=!!cb.checked; }); return arr; }
+  function setMoving(a){ if(!a||!a.length) return; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i) && typeof a[i]!== 'undefined'){ cb.checked=!!a[i]; cb.dispatchEvent(new Event('change',{bubbles:true})); } }); }
+  function collect(){ var S={ ver:'v1',question:getVal('question'), dt:getVal('dt'), upper:getVal('upper'), lower:getVal('lower'), yongShen:getVal('yongShen'),size:getVal('size'), offx:getVal('offx'), offy:getVal('offy'), gap:getVal('gap'), headgap:getVal('headgap'),moving:getMoving(),w5:{ size:getVal('w5_size'), 木:getVal('w5_mu'), 火:getVal('w5_huo'), 土:getVal('w5_tu'), 金:getVal('w5_jin'), 水:getVal('w5_shui') },tcmHTML:(document.getElementById('tcmBox')||{}).innerHTML||null,note:(document.getElementById('userNote')||{}).value||null}; return S;}
+  function apply(S){ try{ setVal('question',S.question); setVal('dt',S.dt); setVal('upper',S.upper); setVal('lower',S.lower); setVal('yongShen',S.yongShen); setVal('size',S.size); setVal('offx',S.offx); setVal('offy',S.offy); setVal('gap',S.gap); setVal('headgap',S.headgap); setMoving(S.moving); if(S.w5){ setVal('w5_size',S.w5.size); setVal('w5_mu',S.w5.木); setVal('w5_huo',S.w5.火); setVal('w5_tu',S.w5.土); setVal('w5_jin',S.w5.金); setVal('w5_shui',S.w5.水); } if(S.note!=null){ var n=document.getElementById('userNote'); if(n) n.value=S.note; } if(S.tcmHTML!=null){ var t=document.getElementById('tcmBox'); if(t) t.innerHTML=S.tcmHTML; } try{ if(window.render) window.render(); }catch(e){} try{ if(window.w5_draw) window.w5_draw(); }catch(e){} toast('已套用設定');}catch(e){ showErr('套用設定失敗：'+(e.message||e)); } }
+  function saveLocal(){ try{ localStorage.setItem('hex_state_v1', JSON.stringify(collect())); toast('已保存到本機'); }catch(e){ showErr('保存失敗：'+(e.message||e)); } }
+  function loadLocal(){ try{ var s=localStorage.getItem('hex_state_v1'); if(!s) return toast('本機尚無保存'); apply(JSON.parse(s)); }catch(e){ showErr('載入失敗：'+(e.message||e)); } }
+  function downloadBlob(data, filename, type){ var blob=new Blob([data],{type:type||'application/octet-stream'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(url); a.remove();},0); }
+  function ts(){ var d=new Date(); function z(n){return n<10?'0'+n:n} return d.getFullYear()+''+z(d.getMonth()+1)+''+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes()); }
+  function exportJSON(){ try{ downloadBlob(JSON.stringify(collect(),null,2),'hex_state_'+ts()+'.json','application/json'); }catch(e){ showErr('匯出失敗：'+(e.message||e)); } }
+  function importJSONFile(file){ if(!file) return; var r=new FileReader(); r.onload=function(){ try{ apply(JSON.parse(String(r.result))); }catch(e){ showErr('匯入失敗：'+(e.message||e)); } }; r.readAsText(file); }
+  function canvasToPNG(id, filename){ var c=document.getElementById(id); if(!c){ return showErr('找不到畫布：'+id); } try{ if(c.toBlob){ c.toBlob(function(b){ var u=URL.createObjectURL(b); var a=document.createElement('a'); a.href=u; a.download=filename; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(u); a.remove();},0); }); } else { var a2=document.createElement('a'); a2.href=c.toDataURL('image/png'); a2.download=filename; a2.click(); } }catch(e){ showErr('匯出 PNG 失敗：'+(e.message||e)); } }
+  function bind(){ ensureBar(); var f=q('#fileImportJSON'); q('#btnSaveLocal').addEventListener('click', saveLocal); q('#btnLoadLocal').addEventListener('click', loadLocal); q('#btnExportJSON').addEventListener('click', exportJSON); q('#btnImportJSON').addEventListener('click', function(){ if(f) f.click(); }); if(f){ f.addEventListener('change', function(){ importJSONFile(this.files&&this.files[0]); this.value=''; }); } q('#btnPNGHex').addEventListener('click', function(){ try{ if(window.render) window.render(); }catch(e){} canvasToPNG('hexCanvas','hexagram_'+ts()+'.png'); }); q('#btnPNGRadar').addEventListener('click', function(){ try{ if(window.w5_draw) window.w5_draw(); }catch(e){} canvasToPNG('w5_canv','radar_'+ts()+'.png'); }); var t=null; function autosave(){ clearTimeout(t); t=setTimeout(saveLocal, 1200); } var ids=['upper','lower','question','dt','size','offx','offy','gap','headgap','w5_size','w5_mu','w5_huo','w5_tu','w5_jin','w5_shui','yongShen']; for(var i=0;i<ids.length;i++){ var el=document.getElementById(ids[i]); if(el){ ['input','change'].forEach(function(ev){ el.addEventListener(ev, autosave); }); } } qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ cb.addEventListener('change', autosave); }); }
+  document.addEventListener('DOMContentLoaded', bind); window.addEventListener('load', bind);
+})();
+</script>
+<script id="SAVE_BAR_VAULT_JS">
+(function(){
+  if(window.__SAVE_BAR_VAULT__) return; window.__SAVE_BAR_VAULT__=true;
+  function q(s){return document.querySelector(s)} function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+  function ensureExtraButtons(){ var bar=q('#saveBarTop'); if(!bar) return; function addBtn(id,txt,ttl){ if(q('#'+id)) return; var b=document.createElement('button'); b.id=id; b.textContent=txt; if(ttl) b.title=ttl; bar.insertBefore(b, bar.firstChild); } addBtn('btnPrintTop','列印','列印 A4'); addBtn('btnVault','保存庫','管理與快速開啟'); q('#btnPrintTop').addEventListener('click', function(){ try{ if(window.w5_draw) window.w5_draw(); }catch(e){} try{ if(window.render) window.render(); }catch(e){} window.print(); }); q('#btnVault').addEventListener('click', function(){ var w=q('#vaultWrap'); if(!w){ buildVault(); w=q('#vaultWrap'); } if(!w) return; w.style.display = (w.style.display==='none'||!w.style.display)?'block':'none'; refreshVaultUI(); }); }
+  function vread(){ try{ return JSON.parse(localStorage.getItem('hex_vault_v1')||'{}'); }catch(e){ return {}; } }
+  function vwrite(v){ try{ localStorage.setItem('hex_vault_v1', JSON.stringify(v)); }catch(e){} }
+  function ensureVault(){ var v=vread(); if(!v.folders) v.folders={}; if(!v.currentFolder) v.currentFolder='預設'; if(!v.folders[v.currentFolder]) v.folders[v.currentFolder]=[]; vwrite(v); return v; }
+  function nowTs(){ var d=new Date(); function z(n){return n<10?'0'+n:n} return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+  function buildVault(){ var wrap=document.createElement('div'); wrap.id='vaultWrap'; wrap.innerHTML=''+'<div class="vhdr">保存庫</div>'+'<div class="vsec">'+'<div class="vrow"><span>資料夾</span><select id="vFolderSel"></select><input id="vNewFolder" type="text" placeholder="新增資料夾"><button id="vAddFolder">新增</button></div>'+'<div class="vrow" style="width:100%"><span>清單</span></div>'+'<ul id="vList"></ul>'+'<div class="vrow"><span>檔名</span><input id="vSaveName" type="text" placeholder="另存新檔名稱"><button id="vSaveAs">另存新檔</button><button id="vDel">刪除</button></div>'+'</div>'+'<div class="vfoot"><button id="vClose">關閉</button></div>'; document.body.appendChild(wrap); q('#vClose').addEventListener('click', function(){ q('#vaultWrap').style.display='none'; }); q('#vAddFolder').addEventListener('click', function(){ var v=ensureVault(); var name=(q('#vNewFolder').value||'').trim(); if(!name) return; if(!v.folders[name]) v.folders[name]=[]; v.currentFolder=name; vwrite(v); q('#vNewFolder').value=''; refreshVaultUI(); }); q('#vFolderSel').addEventListener('change', function(){ var v=ensureVault(); v.currentFolder=this.value; vwrite(v); refreshVaultUI(); }); q('#vSaveAs').addEventListener('click', function(){ var v=ensureVault(); var fname=(q('#vSaveName').value||'').trim(); if(!fname) fname='未命名'; var folder=v.currentFolder; var data=collectSafe(); var item={id:Date.now(), name:fname, ts:nowTs(), data:data}; v.folders[folder].push(item); vwrite(v); refreshVaultUI(); }); q('#vDel').addEventListener('click', function(){ var v=ensureVault(); var li=q('#vList li.sel'); if(!li) return; var id=Number(li.getAttribute('data-id')); var arr=v.folders[v.currentFolder]; v.folders[v.currentFolder]=arr.filter(function(x){return x.id!==id}); vwrite(v); refreshVaultUI(); }); }
+  function refreshVaultUI(){ var v=ensureVault(); var sel=q('#vFolderSel'); if(!sel) return; sel.innerHTML=''; Object.keys(v.folders).forEach(function(name){ var opt=document.createElement('option'); opt.value=name; opt.textContent=name; sel.appendChild(opt); }); sel.value=v.currentFolder; var list=q('#vList'); list.innerHTML=''; var arr=v.folders[v.currentFolder]||[]; arr.sort(function(a,b){return b.id-a.id}); arr.forEach(function(item){ var li=document.createElement('li'); li.setAttribute('data-id', item.id); li.innerHTML='<span>'+escapeHtml(item.name)+'</span><span style="color:#64748b">'+item.ts+'</span>'; li.addEventListener('click', function(){ qa('#vList li').forEach(function(x){x.classList.remove('sel')}); li.classList.add('sel'); q('#vSaveName').value=item.name; }); li.addEventListener('dblclick', function(){ try{ applySafe(item.data); q('#vaultWrap').style.display='none'; }catch(e){ showErr('載入失敗：'+(e.message||e)); } }); list.appendChild(li); }); }
+  function getValSafe(id){ var el=document.getElementById(id); return el?el.value:null; }
+  function setValSafe(id,v){ var el=document.getElementById(id); if(el!=null && v!=null){ el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } }
+  function getMovingSafe(){ var arr=[false,false,false,false,false,false]; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i)) arr[i]=!!cb.checked; }); return arr; }
+  function setMovingSafe(a){ if(!a||!a.length) return; qa('#mvCtl input[type=checkbox][data-mv]').forEach(function(cb){ var i=+cb.getAttribute('data-mv'); if(!isNaN(i) && typeof a[i]!== 'undefined'){ cb.checked=!!a[i]; cb.dispatchEvent(new Event('change',{bubbles:true})); } }); }
+  function collectSafe(){ var S={ ver:'v1',question:getValSafe('question'), dt:getValSafe('dt'), upper:getValSafe('upper'), lower:getValSafe('lower'), yongShen:getValSafe('yongShen'),size:getValSafe('size'), offx:getValSafe('offx'), offy:getValSafe('offy'), gap:getValSafe('gap'), headgap:getValSafe('headgap'),moving:getMovingSafe(),w5:{ size:getValSafe('w5_size'), 木:getValSafe('w5_mu'), 火:getValSafe('w5_huo'), 土:getValSafe('w5_tu'), 金:getValSafe('w5_jin'), 水:getValSafe('w5_shui') },note:(document.getElementById('userNote')||{}).value||null}; return S;}
+  function applySafe(S){ setValSafe('question',S.question); setValSafe('dt',S.dt); setValSafe('upper',S.upper); setValSafe('lower',S.lower); setValSafe('yongShen',S.yongShen); setValSafe('size',S.size); setValSafe('offx',S.offx); setValSafe('offy',S.offy); setValSafe('gap',S.gap); setValSafe('headgap',S.headgap); setMovingSafe(S.moving); if(S.w5){ setValSafe('w5_size',S.w5.size); setValSafe('w5_mu',S.w5.木); setValSafe('w5_huo',S.w5.火); setValSafe('w5_tu',S.w5.土); setValSafe('w5_jin',S.w5.金); setValSafe('w5_shui',S.w5.水); } if(S.note!=null){ var n=document.getElementById('userNote'); if(n) n.value=S.note; } try{ if(window.render) window.render(); }catch(e){} try{ if(window.w5_draw) window.w5_draw(); }catch(e){} toast('已從保存庫套用設定');}
+  function escapeHtml(str){ return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+  document.addEventListener('DOMContentLoaded', ensureExtraButtons); window.addEventListener('load', ensureExtraButtons);
+})();
+</script>
+<style id="SAVE_BAR_V1_TWEAK">#saveBarTop{right:12px}</style>
+<style id="NOTE_PRINT_VAULT_CSS">
+#noteBox{margin:8px 0 4px}
+#userNote{width:100%;min-height:110px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:14px;resize:vertical}
+@media print{
+  #w5_ctrl, #saveBarTop, #vaultWrap, #btnPrint{display:none!important}
+}
+#vaultWrap{position:fixed;top:50px;right:12px;z-index:10003;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);width:360px;max-height:70vh;display:none;overflow:auto}
+#vaultWrap .vhdr{font-weight:600;padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a}
+#vaultWrap .vsec{padding:10px 12px}
+#vaultWrap .vrow{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+#vaultWrap input[type=text]{flex:1;min-width:120px;border:1px solid #cbd5e1;border-radius:8px;height:30px;padding:0 8px}
+#vaultWrap select{height:30px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px}
+#vaultWrap button{height:30px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;cursor:pointer}
+#vaultWrap ul{list-style:none;margin:6px 0 0 0;padding:0;border:1px solid #e5e7eb;border-radius:8px;max-height:36vh;overflow:auto}
+#vaultWrap li{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+#vaultWrap li:last-child{border-bottom:none}
+#vaultWrap li.sel{background:#f1f5f9}
+#vaultWrap .vfoot{padding:10px 12px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px}
+</style>
+
 </body>
 </html>
