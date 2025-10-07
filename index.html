@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>仙人指路六爻排盤 - 完整專業版</title>
+  <title>六爻排盤 - DeepSeek AI 分析版</title>
   <style>
     :root {
       --card: #fff;
@@ -219,41 +219,56 @@
       font-weight: 500;
     }
     
-    .rightNote {
-      white-space: pre-wrap;
-      margin-top: 8px;
-      background: #fff;
-      border: 1px solid #e5e7eb;
+    .api-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      color: #92400e;
+    }
+    
+    .api-status.connected {
+      background: #d1fae5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    
+    .api-status.error {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+    
+    .analysis-section {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f8fafc;
       border-radius: 8px;
-      padding: 12px;
-      font-size: 14px;
+      border-left: 4px solid var(--primary);
     }
     
-    .grid > .sec:nth-child(2) {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      height: fit-content;
+    .analysis-section h4 {
+      color: #1e40af;
+      margin-bottom: 8px;
     }
     
-    #w5_sec, #tcmBox {
-      margin: 0;
-      flex: 1;
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--primary);
     }
     
-    #w5_sec h3, #tcmBox h3 {
-      margin-top: 0;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #e5e7eb;
-      color: #111827;
-    }
-    
-    #w5_sec {
-      order: 1;
-    }
-    
-    #tcmBox {
-      order: 2;
+    .error {
+      text-align: center;
+      padding: 20px;
+      color: var(--danger);
+      background: #fef2f2;
+      border-radius: 8px;
     }
     
     .tcm-section {
@@ -308,69 +323,9 @@
       color: #065f46;
     }
     
-    .tcm-note {
-      margin-top: 12px;
-      color: #64748b;
-      font-size: 12px;
-      font-style: italic;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 12px;
-    }
-    
-    .slider-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-    }
-    
-    .slider-container label {
-      min-width: 60px;
-      font-size: 14px;
-    }
-    
-    .slider-container input[type="range"] {
-      flex: 1;
-    }
-    
-    .analysis-section {
-      margin-top: 20px;
-      padding: 16px;
-      background: #f8fafc;
-      border-radius: 8px;
-      border-left: 4px solid var(--primary);
-    }
-    
-    .analysis-section h4 {
-      color: #1e40af;
-      margin-bottom: 8px;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: var(--primary);
-    }
-    
-    .error {
-      text-align: center;
-      padding: 20px;
-      color: var(--danger);
-      background: #fef2f2;
-      border-radius: 8px;
-    }
-    
     @media (max-width: 1024px) {
       .grid {
         grid-template-columns: 1fr;
-      }
-      
-      .grid > .sec:nth-child(2) {
-        flex-direction: column;
-      }
-      
-      #w5_sec, #tcmBox {
-        flex: none;
       }
     }
     
@@ -392,61 +347,20 @@
         padding: 4px 8px;
       }
     }
-    
-    @media print {
-      @page {
-        size: A4 portrait;
-        margin: 12mm;
-      }
-      
-      .grid {
-        display: block;
-      }
-      
-      .sec {
-        border: none;
-        padding: 0;
-        margin: 0 0 10px;
-        overflow-x: visible;
-        box-shadow: none;
-      }
-      
-      .hide-print, .btns, .yaoCtl, #redraw, #download, #btnNow, #btnPrint, #size, #offx, #offy, #gap, #headgap, #sizeVal, #offxVal, #offyVal, #gapVal, #headgapVal {
-        display: none !important;
-      }
-      
-      .canvasWrap {
-        border: none;
-        padding: 0;
-        overflow-x: visible;
-      }
-      
-      canvas {
-        height: auto;
-        width: 100%;
-        min-width: auto;
-      }
-      
-      #w5_canv {
-        height: 260px !important;
-        width: 100% !important;
-        display: block !important;
-      }
-      
-      #tcmBox {
-        display: block !important;
-      }
-    }
   </style>
 </head>
 <body>
   <main>
-    <h1>仙人指路六爻排盤 - 完整專業版</h1>
+    <h1>六爻排盤 - DeepSeek AI 分析版</h1>
     <div id="err"></div>
+    <div id="apiStatus" class="api-status">
+      <span id="statusIcon">🔴</span>
+      <span id="statusText">檢查 API 連接...</span>
+    </div>
     
     <div class="grid">
       <section class="sec">
-        <div class="row hide-print">
+        <div class="row">
           <label>上卦</label>
           <select id="upper">
             <option>乾</option>
@@ -469,21 +383,21 @@
             <option>艮</option>
             <option>坤</option>
           </select>
-          <span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span>
+          <span class="badge">DeepSeek AI 智能分析</span>
         </div>
         
-        <div class="row btns hide-print" style="gap:10px">
+        <div class="row btns" style="gap:10px">
           <button id="btnRandomHex" class="primary">隨機起卦</button>
           <button id="btnClear">清除重設</button>
-          <button id="btnAdvancedAnalysis" class="primary">深度分析</button>
+          <button id="btnDeepSeekAnalysis" class="primary">DeepSeek AI 分析</button>
         </div>
         
-        <div class="row hide-print" style="gap:14px">
+        <div class="row" style="gap:14px">
           <label>問題</label>
-          <input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運">
+          <input id="question" type="text" placeholder="請輸入起卦問題" value="示例：求財運">
         </div>
         
-        <div class="row hide-print" style="gap:14px">
+        <div class="row" style="gap:14px">
           <label>用神</label>
           <select id="yongShen">
             <option value="">（未指定）</option>
@@ -496,11 +410,10 @@
           <span id="ysName" class="badge"></span>
         </div>
         
-        <div class="row hide-print" style="gap:14px">
+        <div class="row" style="gap:14px">
           <label>時間</label>
           <input id="dt" type="datetime-local">
           <button id="btnNow">現在</button>
-          <button id="btnPrint">列印（A4）</button>
           <span class="muted">四柱由 Lunar.js 精準換算</span>
         </div>
         
@@ -513,15 +426,13 @@
           <span id="gzKW">空亡：—</span>
         </div>
         
-        <div class="row hide-print">
+        <div class="row">
           <label>動爻</label>
           <div class="yaoCtl" id="mvCtl"></div>
         </div>
         
-        <div class="row hide-print" style="gap:10px">
+        <div class="row" style="gap:10px">
           <button id="redraw" class="primary">重繪卦象</button>
-          <button id="download">匯出 PNG</button>
-          <button id="btnUpdateRadar">更新雷達圖</button>
         </div>
         
         <div class="canvasWrap">
@@ -529,17 +440,17 @@
         </div>
 
         <div id="hexagramAnalysis" class="analysis-section" style="display: none;">
-          <h3>🔮 卦象深度分析</h3>
+          <h3>🔮 DeepSeek AI 卦象分析</h3>
           <div id="analysisContent"></div>
         </div>
         
-        <div id="noteBox" class="noteBox">
-          <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
-          <textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea>
+        <div id="tcmAnalysis" class="analysis-section" style="display: none; margin-top: 16px;">
+          <h3>🌿 DeepSeek AI 中醫分析</h3>
+          <div id="tcmContent"></div>
         </div>
         
         <div class="muted">
-          欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。
+          本系統使用 DeepSeek AI 進行智能分析，請確保已配置正確的 API Key。
         </div>
       </section>
       
@@ -578,25 +489,285 @@
           </div>
         </div>
         
-        <div id="similarCases" class="analysis-section" style="display: none; margin-top: 16px;">
-          <h3>📚 相似歷史案例</h3>
-          <div id="casesContent"></div>
-        </div>
-        
-        <div id="tcmBox" class="tcm-box">
-          <h3>中醫體質分析與調理建議</h3>
-          <div id="tcmCore"></div>
-          <div id="tcmLists"></div>
-          <div class="tcm-note">
-            ※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。
-          </div>
+        <div class="tcm-section">
+          <h3>💡 使用說明</h3>
+          <ul>
+            <li>1. 配置您的 DeepSeek API Key</li>
+            <li>2. 選擇卦象或隨機起卦</li>
+            <li>3. 點擊 "DeepSeek AI 分析"</li>
+            <li>4. 查看智能分析結果</li>
+            <li>5. 調整五行數據獲得中醫建議</li>
+          </ul>
         </div>
       </section>
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
   <script>
-    // 完整的六爻排盤系統 - 所有代碼都在這個文件中
+    // ==================== 配置區域 ====================
+    // 請在這裡填入您的 DeepSeek API Key
+    const DEEPSEEK_API_KEY = '您的_DeepSeek_API_Key_在這裡';
+    // =================================================
+
+    // DeepSeek API 客戶端
+    class DeepSeekClient {
+      constructor(apiKey) {
+        this.apiKey = apiKey;
+        this.baseURL = 'https://api.deepseek.com/v1';
+        this.model = 'deepseek-chat';
+      }
+
+      async analyzeHexagram(hexagramData) {
+        const prompt = this.buildHexagramPrompt(hexagramData);
+        
+        const response = await fetch(`${this.baseURL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages: [
+              {
+                role: "system",
+                content: `你是一位資深的六爻占卜專家，精通易經卦象分析和預測。請用專業且易懂的方式分析卦象，按照以下結構回應：
+
+## 整體卦象解讀
+[詳細解讀卦象的整體意義]
+
+## 動爻影響分析  
+[分析動爻的具體影響]
+
+## 用神狀態分析
+[分析用神的強弱和狀態]
+
+## 具體行動建議
+1. [建議一]
+2. [建議二]
+3. [建議三]
+
+## 時機把握建議
+[時機相關建議]
+
+## 風險評估
+[風險分析和注意事項]
+
+請確保回應內容專業、實用，且符合六爻占卜的傳統理論。`
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API 請求失敗: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return this.parseAnalysisResponse(data.choices[0].message.content);
+      }
+
+      buildHexagramPrompt(hexagramData) {
+        return `
+請分析以下六爻卦象：
+
+## 基本資訊
+- 卦象：${hexagramData.hexagramName}
+- 上卦：${hexagramData.upperTrigram}
+- 下卦：${hexagramData.lowerTrigram}
+- 問題：${hexagramData.question || '未指定'}
+- 用神：${hexagramData.yongShen || '未指定'}
+
+## 動爻資訊
+${hexagramData.movingYao && hexagramData.movingYao.length > 0 
+  ? hexagramData.movingYao.map(yao => `- 第${yao.position}爻${yao.isYang ? '陽' : '陰'}動`).join('\n')
+  : '無動爻'
+}
+
+## 四柱資訊
+- 年柱：${hexagramData.pillars?.year || '未知'}
+- 月柱：${hexagramData.pillars?.month || '未知'}  
+- 日柱：${hexagramData.pillars?.day || '未知'}
+- 時柱：${hexagramData.pillars?.hour || '未知'}
+
+## 六獸排列
+${hexagramData.sixAnimals ? hexagramData.sixAnimals.join(' → ') : '未知'}
+
+請基於以上資訊進行專業的六爻分析。
+        `.trim();
+      }
+
+      parseAnalysisResponse(responseText) {
+        const sections = {
+          overall: this.extractSection(responseText, '整體卦象解讀'),
+          movingYao: this.extractSection(responseText, '動爻影響分析'),
+          yongShenAnalysis: this.extractSection(responseText, '用神狀態分析'),
+          advice: this.extractAdvice(responseText),
+          timing: this.extractSection(responseText, '時機把握建議'),
+          riskAssessment: this.extractSection(responseText, '風險評估')
+        };
+
+        return {
+          success: true,
+          analysis: sections,
+          metadata: {
+            analyzedAt: new Date().toISOString(),
+            model: this.model,
+            source: 'DeepSeek AI'
+          }
+        };
+      }
+
+      extractSection(text, sectionTitle) {
+        const regex = new RegExp(`## ${sectionTitle}[\\s\\n]*([^#]+)(?=##|$)`, 'i');
+        const match = text.match(regex);
+        return match ? match[1].trim() : '暫無分析';
+      }
+
+      extractAdvice(text) {
+        const adviceSection = this.extractSection(text, '具體行動建議');
+        if (adviceSection.includes('1.')) {
+          return adviceSection.split('\n')
+            .filter(line => line.trim().match(/^\d\./))
+            .map(line => line.replace(/^\d\.\s*/, '').trim())
+            .filter(line => line.length > 0);
+        }
+        return ['保持現狀，觀察變化'];
+      }
+
+      async analyzeTCM(wuxingData) {
+        const prompt = this.buildTCMPrompt(wuxingData);
+        
+        const response = await fetch(`${this.baseURL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages: [
+              {
+                role: "system",
+                content: `你是一位資深的中醫專家，精通五行理論和體質辨證。請根據五行數據分析體質，並提供專業的中醫調理建議。按照以下結構回應：
+
+## 體質分析
+[分析五行平衡和體質類型]
+
+## 主要特徵
+[體質的主要特徵和表現]
+
+## 建議就診科別
+- [科別一]: [原因]
+- [科別二]: [原因]
+
+## 中藥方劑建議
+- [方劑一]: [組成] - [功效]
+- [方劑二]: [組成] - [功效]
+
+## 穴位保健
+- [穴位一]: [位置] - [功能]
+- [穴位二]: [位置] - [功能]
+
+## 飲食調養
+- 宜食: [食物列表]
+- 忌食: [食物列表]
+
+## 生活調養建議
+1. [建議一]
+2. [建議二]
+
+請確保建議專業、實用，符合中醫理論。`
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`TCM API 請求失敗: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return this.parseTCMResponse(data.choices[0].message.content);
+      }
+
+      buildTCMPrompt(wuxingData) {
+        return `
+請根據以下五行數據進行中醫體質分析：
+
+## 五行數值
+- 木: ${wuxingData.mu}/10
+- 火: ${wuxingData.huo}/10  
+- 土: ${wuxingData.tu}/10
+- 金: ${wuxingData.jin}/10
+- 水: ${wuxingData.shui}/10
+
+請分析五行平衡狀況，判斷體質類型，並提供具體的調理建議。
+        `.trim();
+      }
+
+      parseTCMResponse(responseText) {
+        return {
+          success: true,
+          analysis: {
+            constitution: this.extractTCMConstitution(responseText),
+            constitutionAnalysis: this.extractSection(responseText, '體質分析'),
+            characteristics: this.extractSection(responseText, '主要特徵'),
+            recommendedDepartments: this.extractTCMList(responseText, '建議就診科別'),
+            herbalRecommendations: this.extractTCMList(responseText, '中藥方劑建議'),
+            acupuncturePoints: this.extractTCMList(responseText, '穴位保健'),
+            dietRecommendations: this.extractTCMDiet(responseText),
+            lifestyleRecommendations: this.extractTCMList(responseText, '生活調養建議')
+          }
+        };
+      }
+
+      extractTCMConstitution(text) {
+        if (text.includes('肝膽')) return '肝膽型體質';
+        if (text.includes('心火')) return '心火型體質';
+        if (text.includes('脾胃')) return '脾胃型體質';
+        if (text.includes('肺')) return '肺型體質';
+        if (text.includes('腎')) return '腎型體質';
+        return '綜合型體質';
+      }
+
+      extractTCMList(text, sectionTitle) {
+        const section = this.extractSection(text, sectionTitle);
+        return section.split('\n')
+          .filter(line => line.trim().startsWith('-'))
+          .map(line => line.replace(/^-\s*/, '').trim())
+          .filter(line => line.length > 0);
+      }
+
+      extractTCMDiet(text) {
+        const dietSection = this.extractSection(text, '飲食調養');
+        return {
+          foods: this.extractDietItems(dietSection, '宜食'),
+          avoid: this.extractDietItems(dietSection, '忌食')
+        };
+      }
+
+      extractDietItems(text, type) {
+        const regex = new RegExp(`${type}:\\s*([^\\n]+)`, 'i');
+        const match = text.match(regex);
+        return match ? match[1].split(/[、,，]/).map(item => item.trim()) : [];
+      }
+    }
+
+    // 六爻核心邏輯
     class HexagramCore {
       constructor() {
         this.GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -678,130 +849,6 @@
 
       calculateShiYing(upper, lower) {
         return { shi: 3, ying: 6 };
-      }
-    }
-
-    // 中醫分析系統
-    class TCMAnalyzer {
-      constructor() {
-        this.tcmData = {
-          '木': {
-            constitution: '肝膽型體質',
-            characteristics: ['易怒', '壓力敏感', '肩頸僵硬', '眼睛疲勞'],
-            departments: ['肝膽科', '情志/睡眠', '骨傷/筋膜'],
-            patterns: ['肝氣鬱結', '肝火上炎', '肝血不足', '肝腎陰虛'],
-            recommendations: {
-              diet: ['綠色蔬菜', '酸味食物', '枸杞', '菊花'],
-              acupuncture: ['太衝穴', '行間穴', '風池穴'],
-              lifestyle: ['規律運動', '情緒管理', '避免熬夜'],
-              herbs: ['逍遙散', '龍膽瀉肝湯']
-            }
-          },
-          '火': {
-            constitution: '心小腸型體質',
-            characteristics: ['心悸', '失眠', '口舌生瘡', '面色紅潤'],
-            departments: ['心血管', '身心/睡眠'],
-            patterns: ['心火亢盛', '心脾兩虛', '心陰不足'],
-            recommendations: {
-              diet: ['苦瓜', '蓮子', '小麥', '百合'],
-              acupuncture: ['神門穴', '內關穴', '勞宮穴'],
-              lifestyle: ['冥想靜坐', '避免辛辣', '保持涼爽'],
-              herbs: ['天王補心丹', '導赤散']
-            }
-          },
-          '土': {
-            constitution: '脾胃型體質',
-            characteristics: ['消化不良', '容易疲勞', '水腫', '肌肉無力'],
-            departments: ['脾胃消化', '內分泌/代謝'],
-            patterns: ['脾胃虛弱', '濕困脾胃', '胃氣上逆'],
-            recommendations: {
-              diet: ['山藥', '薏仁', '紅棗', '生薑'],
-              acupuncture: ['足三里', '中脘穴', '脾俞穴'],
-              lifestyle: ['三餐定時', '適度運動', '避免生冷'],
-              herbs: ['六君子湯', '參苓白朮散']
-            }
-          },
-          '金': {
-            constitution: '肺大腸型體質',
-            characteristics: ['呼吸不順', '皮膚乾燥', '容易感冒', '便秘'],
-            departments: ['呼吸過敏', '皮膚', '耳鼻喉'],
-            patterns: ['肺氣虛', '肺陰虛', '風寒/風熱犯肺'],
-            recommendations: {
-              diet: ['梨子', '銀耳', '百合', '杏仁'],
-              acupuncture: ['肺俞穴', '合谷穴', '曲池穴'],
-              lifestyle: ['呼吸練習', '保持濕潤', '避免過敏源'],
-              herbs: ['玉屏風散', '桑菊飲']
-            }
-          },
-          '水': {
-            constitution: '腎膀胱型體質',
-            characteristics: ['腰膝酸軟', '畏寒怕冷', '耳鳴', '記憶力減退'],
-            departments: ['腎泌尿', '內科體質'],
-            patterns: ['腎陽虛', '腎陰虛', '腎氣不足'],
-            recommendations: {
-              diet: ['黑豆', '核桃', '枸杞', '山藥'],
-              acupuncture: ['腎俞穴', '太谿穴', '關元穴'],
-              lifestyle: ['保暖腰腹', '規律作息', '溫和運動'],
-              herbs: ['六味地黃丸', '金匱腎氣丸']
-            }
-          }
-        };
-      }
-
-      analyzeWuxing(wuxingData) {
-        const elements = {
-          '木': wuxingData.mu,
-          '火': wuxingData.huo, 
-          '土': wuxingData.tu,
-          '金': wuxingData.jin,
-          '水': wuxingData.shui
-        };
-        
-        const dominantElement = this.findDominantElement(elements);
-        const weakElement = this.findWeakElement(elements);
-        const balanceScore = this.calculateBalanceScore(elements);
-        
-        return {
-          dominantElement,
-          weakElement, 
-          balanceScore,
-          elements,
-          constitution: this.getConstitutionAdvice(dominantElement)
-        };
-      }
-
-      findDominantElement(elements) {
-        return Object.entries(elements).reduce((a, b) => a[1] > b[1] ? a : b)[0];
-      }
-
-      findWeakElement(elements) {
-        return Object.entries(elements).reduce((a, b) => a[1] < b[1] ? a : b)[0];
-      }
-
-      calculateBalanceScore(elements) {
-        const values = Object.values(elements);
-        const avg = values.reduce((a, b) => a + b) / values.length;
-        const variance = values.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / values.length;
-        return Math.max(0, Math.round(100 - Math.sqrt(variance) * 20));
-      }
-
-      getConstitutionAdvice(dominantElement) {
-        return this.tcmData[dominantElement] || this.tcmData['土'];
-      }
-
-      generateTCMAdvice(analysis) {
-        const constitution = analysis.constitution;
-        
-        return {
-          constitution: constitution.constitution,
-          characteristics: constitution.characteristics,
-          departments: constitution.departments,
-          patterns: constitution.patterns,
-          recommendations: constitution.recommendations,
-          balanceScore: analysis.balanceScore,
-          dominantElement: analysis.dominantElement,
-          weakElement: analysis.weakElement
-        };
       }
     }
 
@@ -888,16 +935,24 @@
 
     // 主應用程序
     class LiuYaoApp {
-      constructor() {
+      constructor(deepSeekApiKey) {
         this.hexagramCore = new HexagramCore();
-        this.tcmAnalyzer = new TCMAnalyzer();
         this.radarChart = new RadarChart('w5_canv');
+        this.deepSeekClient = new DeepSeekClient(deepSeekApiKey);
         this.isInitialized = false;
+        
+        this.apiStatus = {
+          isConnected: false,
+          lastTest: null,
+          error: null
+        };
       }
 
       async init() {
         if (this.isInitialized) return;
 
+        await this.testAPIConnection();
+        
         this.setCurrentTime();
         this.initMovingYaoControl();
         this.bindEvents();
@@ -905,9 +960,43 @@
         
         this.calcPillarsAndSix();
         this.drawHexagram();
-        this.updateTCMAdvice();
         
         this.isInitialized = true;
+      }
+
+      async testAPIConnection() {
+        try {
+          const testData = {
+            hexagramName: '乾為天',
+            upperTrigram: '乾',
+            lowerTrigram: '乾',
+            movingYao: [],
+            question: '測試連接',
+            pillars: { year: '甲辰', month: '丙子', day: '戊戌', hour: '壬子' },
+            sixAnimals: ['青龍', '朱雀', '勾陳', '螣蛇', '白虎', '玄武']
+          };
+
+          await this.deepSeekClient.analyzeHexagram(testData);
+          this.apiStatus.isConnected = true;
+          this.apiStatus.lastTest = new Date();
+          this.updateAPIStatus('✅ API 連接成功', 'connected');
+          
+        } catch (error) {
+          this.apiStatus.isConnected = false;
+          this.apiStatus.error = error.message;
+          this.updateAPIStatus('❌ API 連接失敗', 'error');
+        }
+      }
+
+      updateAPIStatus(message, type) {
+        const statusElement = document.getElementById('apiStatus');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        
+        statusElement.className = `api-status ${type}`;
+        statusIcon.textContent = type === 'connected' ? '✅' : '❌';
+        statusText.textContent = message;
+        statusElement.style.display = 'block';
       }
 
       setCurrentTime() {
@@ -938,7 +1027,6 @@
               valueSpan.textContent = slider.value;
             }
             this.updateRadarChart();
-            this.updateTCMAdvice();
           });
         });
       }
@@ -958,8 +1046,8 @@
           this.clearAll();
         });
 
-        document.getElementById('btnAdvancedAnalysis').addEventListener('click', () => {
-          this.performAdvancedAnalysis();
+        document.getElementById('btnDeepSeekAnalysis').addEventListener('click', () => {
+          this.performDeepSeekAnalysis();
         });
 
         document.getElementById('mvCtl').addEventListener('change', (e) => {
@@ -1007,7 +1095,6 @@
         document.getElementById('question').value = '隨機起卦';
         this.calcPillarsAndSix();
         this.drawHexagram();
-        this.updateTCMAdvice();
       }
 
       clearAll() {
@@ -1015,7 +1102,6 @@
         document.getElementById('lower').value = '坎';
         document.getElementById('question').value = '';
         document.getElementById('yongShen').value = '妻財';
-        document.getElementById('userNote').value = '';
         
         const checkboxes = document.querySelectorAll('#mvCtl input[type="checkbox"]');
         checkboxes.forEach(cb => {
@@ -1036,7 +1122,10 @@
         this.calcPillarsAndSix();
         this.drawHexagram();
         this.updateRadarChart();
-        this.updateTCMAdvice();
+        
+        // 隱藏分析結果
+        document.getElementById('hexagramAnalysis').style.display = 'none';
+        document.getElementById('tcmAnalysis').style.display = 'none';
       }
 
       calcPillarsAndSix() {
@@ -1216,83 +1305,6 @@
         this.radarChart.draw(values);
       }
 
-      updateTCMAdvice() {
-        const wuxingData = {
-          mu: parseInt(document.getElementById('w5_mu').value),
-          huo: parseInt(document.getElementById('w5_huo').value),
-          tu: parseInt(document.getElementById('w5_tu').value),
-          jin: parseInt(document.getElementById('w5_jin').value),
-          shui: parseInt(document.getElementById('w5_shui').value)
-        };
-        
-        const analysis = this.tcmAnalyzer.analyzeWuxing(wuxingData);
-        const advice = this.tcmAnalyzer.generateTCMAdvice(analysis);
-        
-        this.displayTCMAdvice(advice);
-      }
-
-      displayTCMAdvice(advice) {
-        const tcmCore = document.getElementById('tcmCore');
-        const tcmLists = document.getElementById('tcmLists');
-        
-        if (!tcmCore || !tcmLists) return;
-        
-        tcmCore.innerHTML = `
-          <div class="tcm-tags">
-            <span class="tcm-tag">體質：${advice.constitution}</span>
-            <span class="tcm-tag ${advice.balanceScore >= 80 ? 'success' : advice.balanceScore >= 60 ? 'warning' : 'danger'}">
-              平衡度：${advice.balanceScore}%
-            </span>
-            <span class="tcm-tag">主導：${advice.dominantElement}</span>
-            <span class="tcm-tag warning">偏弱：${advice.weakElement}</span>
-          </div>
-        `;
-        
-        tcmLists.innerHTML = `
-          <div class="tcm-section">
-            <h4>🏥 建議就診科別</h4>
-            <ul>
-              ${advice.departments.map(dept => `<li>${dept}</li>`).join('')}
-            </ul>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>💊 常見證型</h4>
-            <ul>
-              ${advice.patterns.map(pattern => `<li>${pattern}</li>`).join('')}
-            </ul>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>📍 穴位保健</h4>
-            <ul>
-              ${advice.recommendations.acupuncture.map(point => `<li>${point}</li>`).join('')}
-            </ul>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>🥗 飲食調養</h4>
-            <ul>
-              ${advice.recommendations.diet.map(food => `<li>${food}</li>`).join('')}
-            </ul>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>🌿 中藥參考</h4>
-            <ul>
-              ${advice.recommendations.herbs.map(herb => `<li>${herb}</li>`).join('')}
-            </ul>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>📋 生活調養</h4>
-            <ul>
-              ${advice.recommendations.lifestyle.map(item => `<li>${item}</li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }
-
       updateYongShenDisplay() {
         const yongShen = document.getElementById('yongShen').value;
         const ysName = document.getElementById('ysName');
@@ -1304,25 +1316,28 @@
         }
       }
 
-      async performAdvancedAnalysis() {
+      async performDeepSeekAnalysis() {
+        if (!this.apiStatus.isConnected) {
+          this.showErrorState('API 連接失敗，請檢查 API Key');
+          return;
+        }
+
         const hexagramData = this.collectHexagramData();
         const wuxingData = this.collectWuxingData();
         
         this.showLoadingState();
         
         try {
-          // 模擬 API 調用延遲
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          const [hexagramAnalysis, tcmAnalysis] = await Promise.all([
+            this.deepSeekClient.analyzeHexagram(hexagramData),
+            this.deepSeekClient.analyzeTCM(wuxingData)
+          ]);
           
-          const hexagramAnalysis = this.getOfflineHexagramAnalysis(hexagramData);
-          const tcmAnalysis = { success: true, analysis: this.tcmAnalyzer.generateTCMAdvice(
-            this.tcmAnalyzer.analyzeWuxing(wuxingData)
-          )};
-          const similarCases = this.getSampleCases();
+          this.updateAnalysisResults(hexagramAnalysis, tcmAnalysis);
           
-          this.updateAdvancedAnalysis(hexagramAnalysis, tcmAnalysis, similarCases);
         } catch (error) {
-          this.showErrorState('分析服務暫時不可用');
+          console.error('DeepSeek 分析失敗:', error);
+          this.showErrorState(`分析失敗: ${error.message}`);
         }
       }
 
@@ -1357,63 +1372,20 @@
         };
       }
 
-      getOfflineHexagramAnalysis(hexagramData) {
-        return {
-          success: true,
-          analysis: {
-            overall: "🔮 離線深度分析模式\n\n此卦象顯示當前狀況需要耐心觀察，變化正在發生中。建議保持冷靜，等待時機成熟。卦象中顯示有轉機的跡象，但需要謹慎行事。",
-            movingYao: "⚡ 動爻影響分析\n\n動爻顯示事情正在轉變過程中，需要特別注意相關領域的變化。第三爻的變動暗示內部結構的調整。",
-            yongShenAnalysis: "🎯 用神狀態分析\n\n用神相對穩定，但受到動爻影響，需要加強相關方面的關注。建議密切觀察用神的變化趨勢。",
-            advice: ["保持耐心觀察變化", "記錄重要時間點", "避免衝動決策", "尋求專業建議", "注意文書往來"],
-            timing: "⏰ 時機把握\n\n近期是觀察期，重要決策建議等待一個月後。最佳行動時機在農曆下個月。",
-            riskAssessment: "⚠️ 風險評估\n\n整體風險中等，需要注意細節和時機把握。財務方面需要特別謹慎。"
-          }
-        };
-      }
-
-      getSampleCases() {
-        return [
-          {
-            question: "求職面試結果",
-            hexagram: "水火既濟",
-            outcome: "面試成功，一周後收到錄取通知",
-            advice: "保持自信，充分準備專業問題",
-            date: "2024-01-15"
-          },
-          {
-            question: "投資理財決策", 
-            hexagram: "地天泰",
-            outcome: "投資獲利，三個月後有不錯回報",
-            advice: "分散投資，注意風險控制",
-            date: "2024-01-08"
-          },
-          {
-            question: "感情發展",
-            hexagram: "風火家人", 
-            outcome: "關係穩定發展，半年後訂婚",
-            advice: "真誠溝通，建立信任基礎",
-            date: "2023-12-20"
-          }
-        ];
-      }
-
       showLoadingState() {
-        const analysisSection = document.getElementById('hexagramAnalysis');
-        const casesSection = document.getElementById('similarCases');
-        
-        analysisSection.style.display = 'block';
-        casesSection.style.display = 'block';
+        document.getElementById('hexagramAnalysis').style.display = 'block';
+        document.getElementById('tcmAnalysis').style.display = 'block';
         
         document.getElementById('analysisContent').innerHTML = `
           <div class="loading">
-            <div>分析中...</div>
-            <div class="muted">正在進行深度分析</div>
+            <div>DeepSeek AI 分析中...</div>
+            <div class="muted">正在進行智能分析</div>
           </div>
         `;
         
-        document.getElementById('casesContent').innerHTML = `
+        document.getElementById('tcmContent').innerHTML = `
           <div class="loading">
-            <div>搜尋相似案例...</div>
+            <div>中醫體質分析中...</div>
           </div>
         `;
       }
@@ -1422,22 +1394,18 @@
         document.getElementById('analysisContent').innerHTML = `
           <div class="error">
             <div>${message}</div>
-            <button onclick="app.performAdvancedAnalysis()" style="margin-top: 10px;">重試</button>
+            <button onclick="app.performDeepSeekAnalysis()" style="margin-top: 10px;">重試</button>
           </div>
         `;
       }
 
-      updateAdvancedAnalysis(hexagramAnalysis, tcmAnalysis, similarCases) {
+      updateAnalysisResults(hexagramAnalysis, tcmAnalysis) {
         if (hexagramAnalysis && hexagramAnalysis.success) {
           this.updateHexagramAnalysis(hexagramAnalysis);
         }
         
         if (tcmAnalysis && tcmAnalysis.success) {
-          this.displayTCMAdvice(tcmAnalysis.analysis);
-        }
-        
-        if (similarCases && similarCases.length > 0) {
-          this.showSimilarCases(similarCases);
+          this.updateTCMAnalysis(tcmAnalysis);
         }
       }
 
@@ -1481,29 +1449,83 @@
             <p>${analysis.riskAssessment}</p>
           </div>
           ` : ''}
+          
+          <div class="muted" style="margin-top: 16px; font-size: 12px;">
+            分析來源: DeepSeek AI • 模型: ${analysisData.metadata.model} • 時間: ${new Date(analysisData.metadata.analyzedAt).toLocaleString()}
+          </div>
         `;
       }
 
-      showSimilarCases(cases) {
-        const casesContent = document.getElementById('casesContent');
+      updateTCMAnalysis(tcmAnalysis) {
+        const analysis = tcmAnalysis.analysis;
+        const tcmContent = document.getElementById('tcmContent');
         
-        casesContent.innerHTML = `
-          <div style="max-height: 300px; overflow-y: auto;">
-            ${cases.map(caseItem => `
-              <div class="tcm-section" style="border-left: 3px solid #3b82f6; padding-left: 12px; margin-bottom: 16px;">
-                <h4>${caseItem.question} (${new Date(caseItem.date).toLocaleDateString()})</h4>
-                <p><strong>卦象：</strong>${caseItem.hexagram}</p>
-                <p><strong>結果：</strong>${caseItem.outcome}</p>
-                <p><strong>建議：</strong>${caseItem.advice}</p>
-              </div>
-            `).join('')}
+        tcmContent.innerHTML = `
+          <div class="tcm-tags">
+            <span class="tcm-tag">體質：${analysis.constitution}</span>
           </div>
+          
+          <div class="tcm-section">
+            <h4>🔬 體質分析</h4>
+            <p>${analysis.constitutionAnalysis}</p>
+          </div>
+          
+          ${analysis.characteristics ? `
+          <div class="tcm-section">
+            <h4>📋 主要特徵</h4>
+            <p>${analysis.characteristics}</p>
+          </div>
+          ` : ''}
+          
+          ${analysis.recommendedDepartments && analysis.recommendedDepartments.length > 0 ? `
+          <div class="tcm-section">
+            <h4>🏥 建議就診科別</h4>
+            <ul>
+              ${analysis.recommendedDepartments.map(dept => `<li>${dept}</li>`).join('')}
+            </ul>
+          </div>
+          ` : ''}
+          
+          ${analysis.herbalRecommendations && analysis.herbalRecommendations.length > 0 ? `
+          <div class="tcm-section">
+            <h4>💊 中藥方劑建議</h4>
+            <ul>
+              ${analysis.herbalRecommendations.map(herb => `<li>${herb}</li>`).join('')}
+            </ul>
+          </div>
+          ` : ''}
+          
+          ${analysis.acupuncturePoints && analysis.acupuncturePoints.length > 0 ? `
+          <div class="tcm-section">
+            <h4>📍 穴位保健</h4>
+            <ul>
+              ${analysis.acupuncturePoints.map(point => `<li>${point}</li>`).join('')}
+            </ul>
+          </div>
+          ` : ''}
+          
+          ${analysis.dietRecommendations && (analysis.dietRecommendations.foods.length > 0 || analysis.dietRecommendations.avoid.length > 0) ? `
+          <div class="tcm-section">
+            <h4>🥗 飲食調養</h4>
+            ${analysis.dietRecommendations.foods.length > 0 ? `<p><strong>宜食：</strong>${analysis.dietRecommendations.foods.join('、')}</p>` : ''}
+            ${analysis.dietRecommendations.avoid.length > 0 ? `<p><strong>忌食：</strong>${analysis.dietRecommendations.avoid.join('、')}</p>` : ''}
+          </div>
+          ` : ''}
+          
+          ${analysis.lifestyleRecommendations && analysis.lifestyleRecommendations.length > 0 ? `
+          <div class="tcm-section">
+            <h4>📋 生活調養</h4>
+            <ul>
+              ${analysis.lifestyleRecommendations.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+          ` : ''}
         `;
       }
     }
 
     // 初始化應用
-    const app = new LiuYaoApp();
+    const app = new LiuYaoApp(DEEPSEEK_API_KEY);
     document.addEventListener('DOMContentLoaded', function() {
       app.init();
       app.updateRadarChart();
