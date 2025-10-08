@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepSeek AI 聊天助手</title>
+    <title>易經排卦 · 中醫體質分析</title>
     <style>
         * {
             margin: 0;
@@ -12,261 +12,411 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+            background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
             min-height: 100vh;
             padding: 20px;
+            color: #333;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: rgba(255, 248, 225, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             overflow: hidden;
+            border: 3px solid #8B4513;
         }
         
         .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: #FFF8E1;
             padding: 30px;
             text-align: center;
+            border-bottom: 3px solid #D2691E;
         }
         
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         
         .header p {
+            font-size: 1.2rem;
             opacity: 0.9;
-            font-size: 1.1rem;
         }
         
-        .chat-container {
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
             padding: 30px;
-            height: 500px;
-            overflow-y: auto;
-            border-bottom: 1px solid #e5e7eb;
         }
         
-        .message {
-            margin-bottom: 20px;
-            padding: 15px 20px;
+        .divination-section, .analysis-section {
+            background: white;
+            padding: 25px;
             border-radius: 15px;
-            line-height: 1.6;
-            max-width: 80%;
+            border: 2px solid #D2691E;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
-        .user-message {
-            background: #4f46e5;
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 5px;
+        .section-title {
+            color: #8B4513;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 2px solid #F4A460;
+            padding-bottom: 10px;
         }
         
-        .ai-message {
-            background: #f3f4f6;
-            color: #374151;
-            margin-right: auto;
-            border-bottom-left-radius: 5px;
-        }
-        
-        .input-container {
-            padding: 20px;
+        /* 銅錢樣式 */
+        .coin-container {
             display: flex;
-            gap: 10px;
-            background: #f9fafb;
+            justify-content: space-around;
+            margin: 30px 0;
         }
         
-        #messageInput {
-            flex: 1;
-            padding: 15px 20px;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        
-        #messageInput:focus {
-            border-color: #4f46e5;
-        }
-        
-        #sendButton {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+        .coin {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #B8860B 0%, #DAA520 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
             cursor: pointer;
-            transition: transform 0.2s;
+            border: 3px solid #8B4513;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         
-        #sendButton:hover {
-            transform: translateY(-2px);
+        .coin:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
         
-        #sendButton:disabled {
+        .coin.yang {
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+        }
+        
+        .coin.yin {
+            background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);
+        }
+        
+        /* 按鈕樣式 */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .cast-button {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+        }
+        
+        .analyze-button {
+            background: linear-gradient(135deg, #2E8B57 0%, #3CB371 100%);
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
         
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f4f6;
-            border-radius: 50%;
-            border-top-color: #4f46e5;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .error {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 10px 15px;
+        /* 卦象顯示 */
+        .hexagram-display {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #FFF8E1;
             border-radius: 10px;
-            margin: 10px 0;
+            border: 2px dashed #D2691E;
+        }
+        
+        .hexagram-line {
+            height: 8px;
+            margin: 8px auto;
+            border-radius: 4px;
+        }
+        
+        .yang-line {
+            background: #8B4513;
+            width: 120px;
+        }
+        
+        .yin-line {
+            background: #8B4513;
+            width: 120px;
+            height: 4px;
+            margin: 10px auto;
+            border: 2px solid #8B4513;
+            background: transparent;
+        }
+        
+        .hexagram-name {
+            font-size: 1.8rem;
+            color: #8B4513;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        
+        /* 中醫分析區域 */
+        .analysis-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #F8FFF8;
+            border-radius: 10px;
+            border: 2px solid #2E8B57;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #8B4513;
+            font-size: 1.1rem;
+        }
+        
+        .analysis-content {
+            line-height: 1.8;
+        }
+        
+        .analysis-content h4 {
+            color: #2E8B57;
+            margin: 15px 0 10px 0;
+            border-bottom: 1px solid #90EE90;
+            padding-bottom: 5px;
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .coin {
+                width: 60px;
+                height: 60px;
+                font-size: 18px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>DeepSeek AI 助手</h1>
-            <p>與 AI 進行智能對話</p>
+            <h1>易經排卦 · 中醫體質分析</h1>
+            <p>透過易經智慧，解析身心健康平衡</p>
         </div>
         
-        <div class="chat-container" id="chatContainer">
-            <div class="message ai-message">
-                您好！我是 DeepSeek AI 助手，有什麼可以幫助您的嗎？
+        <div class="main-content">
+            <!-- 左側：排卦區 -->
+            <div class="divination-section">
+                <h2 class="section-title">易經排卦</h2>
+                
+                <div class="coin-container">
+                    <div class="coin" id="coin1" onclick="flipCoin(1)">陽</div>
+                    <div class="coin" id="coin2" onclick="flipCoin(2)">陽</div>
+                    <div class="coin" id="coin3" onclick="flipCoin(3)">陽</div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="cast-button" onclick="castHexagram()">
+                        隨機排卦
+                    </button>
+                    <button class="analyze-button" onclick="analyzeHealth()" id="analyzeBtn" disabled>
+                        中醫分析
+                    </button>
+                </div>
+                
+                <div class="hexagram-display" id="hexagramDisplay">
+                    <p>請先排卦或點擊銅錢設定卦象</p>
+                </div>
             </div>
-        </div>
-        
-        <div class="input-container">
-            <input 
-                type="text" 
-                id="messageInput" 
-                placeholder="輸入您的訊息..." 
-                onkeypress="handleKeyPress(event)"
-            >
-            <button id="sendButton" onclick="sendMessage()">傳送</button>
+            
+            <!-- 右側：分析區 -->
+            <div class="analysis-section">
+                <h2 class="section-title">中醫體質分析</h2>
+                
+                <div class="analysis-result" id="analysisResult">
+                    <p>排卦完成後，點擊「中醫分析」獲取專業解讀</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const chatContainer = document.getElementById('chatContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
+        let currentHexagram = [];
+        let coinStates = [1, 1, 1]; // 1=陽, 0=陰
 
-        // 處理 Enter 鍵
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
+        // 翻轉銅錢
+        function flipCoin(coinIndex) {
+            coinStates[coinIndex - 1] = 1 - coinStates[coinIndex - 1];
+            updateCoinDisplay();
+            generateHexagramFromCoins();
+        }
+
+        // 更新銅錢顯示
+        function updateCoinDisplay() {
+            for (let i = 1; i <= 3; i++) {
+                const coin = document.getElementById(`coin${i}`);
+                const isYang = coinStates[i - 1] === 1;
+                coin.textContent = isYang ? '陽' : '陰';
+                coin.className = `coin ${isYang ? 'yang' : 'yin'}`;
             }
         }
 
-        // 新增訊息到聊天室
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-            messageDiv.textContent = content;
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+        // 從銅錢生成卦象
+        function generateHexagramFromCoins() {
+            currentHexagram = [...coinStates];
+            displayHexagram();
+            document.getElementById('analyzeBtn').disabled = false;
         }
 
-        // 顯示載入動畫
-        function showLoading() {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'message ai-message';
-            loadingDiv.id = 'loadingMessage';
-            loadingDiv.innerHTML = '<div class="loading"></div> 思考中...';
-            chatContainer.appendChild(loadingDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // 隱藏載入動畫
-        function hideLoading() {
-            const loadingMessage = document.getElementById('loadingMessage');
-            if (loadingMessage) {
-                loadingMessage.remove();
+        // 隨機排卦
+        function castHexagram() {
+            for (let i = 0; i < 3; i++) {
+                coinStates[i] = Math.random() > 0.5 ? 1 : 0;
             }
+            updateCoinDisplay();
+            generateHexagramFromCoins();
         }
 
-        // 發送訊息
-        async function sendMessage() {
-            const message = messageInput.value.trim();
+        // 顯示卦象
+        function displayHexagram() {
+            const display = document.getElementById('hexagramDisplay');
+            const lines = currentHexagram.map(line => line === 1 ? 'yang' : 'yin');
             
-            if (!message) return;
+            const hexagramHTML = `
+                <div class="hexagram-name">${getHexagramName(lines)}</div>
+                ${lines.map(line => `
+                    <div class="hexagram-line ${line}-line"></div>
+                `).join('')}
+                <p>${getHexagramDescription(lines)}</p>
+            `;
             
-            // 禁用輸入和按鈕
-            messageInput.disabled = true;
-            sendButton.disabled = true;
+            display.innerHTML = hexagramHTML;
+        }
+
+        // 獲取卦名
+        function getHexagramName(lines) {
+            const hexagrams = {
+                'yang,yang,yang': '乾為天',
+                'yin,yin,yin': '坤為地', 
+                'yang,yin,yang': '離為火',
+                'yin,yang,yin': '坎為水',
+                'yang,yang,yin': '巽為風',
+                'yin,yang,yang': '震為雷',
+                'yang,yin,yin': '艮為山',
+                'yin,yin,yang': '兌為澤'
+            };
             
-            // 顯示用戶訊息
-            addMessage(message, true);
-            messageInput.value = '';
+            return hexagrams[lines.join(',')] || '特殊卦象';
+        }
+
+        // 獲取卦象簡述
+        function getHexagramDescription(lines) {
+            const descriptions = {
+                'yang,yang,yang': '剛健不息，自強不息',
+                'yin,yin,yin': '柔順承載，厚德載物',
+                'yang,yin,yang': '光明美麗，依附團結',
+                'yin,yang,yin': '險陷艱難，誠信通達',
+                'yang,yang,yin': '隨風順入，無孔不入',
+                'yin,yang,yang': '雷動奮起，變動新生',
+                'yang,yin,yin': '靜止穩重，適可而止',
+                'yin,yin,yang': '喜悅溝通，和諧愉悅'
+            };
             
-            // 顯示載中動畫
-            showLoading();
+            return descriptions[lines.join(',')] || '此卦象需深入解讀';
+        }
+
+        // 中醫分析
+        async function analyzeHealth() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const resultDiv = document.getElementById('analysisResult');
+            
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '分析中...';
+            
+            resultDiv.innerHTML = '<div class="loading">🔮 正在進行中醫體質分析...</div>';
             
             try {
-                // 呼叫我們的 API
+                const hexagramData = {
+                    lines: currentHexagram,
+                    name: getHexagramName(currentHexagram.map(line => line === 1 ? 'yang' : 'yin')),
+                    description: getHexagramDescription(currentHexagram.map(line => line === 1 ? 'yang' : 'yin'))
+                };
+                
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ 
+                        hexagram: hexagramData,
+                        request: "請根據這個易經卦象，從中醫角度分析對應的體質特徵、健康建議和養生方向。"
+                    })
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`API 錯誤: ${response.status}`);
+                    throw new Error(`分析失敗: ${response.status}`);
                 }
                 
                 const data = await response.json();
                 
-                // 移除載入動畫
-                hideLoading();
-                
-                // 顯示 AI 回覆
-                if (data.choices && data.choices[0]) {
-                    addMessage(data.choices[0].message.content);
-                } else {
-                    throw new Error('無效的回應格式');
-                }
+                // 顯示分析結果
+                resultDiv.innerHTML = `
+                    <div class="analysis-content">
+                        <h4>📜 卦象解讀</h4>
+                        <p><strong>${hexagramData.name}</strong> - ${hexagramData.description}</p>
+                        
+                        <h4>🌿 中醫體質分析</h4>
+                        <p>${data.choices[0].message.content}</p>
+                    </div>
+                `;
                 
             } catch (error) {
-                // 移除載入動畫
-                hideLoading();
-                
-                // 顯示錯誤訊息
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error';
-                errorDiv.textContent = `錯誤: ${error.message}`;
-                chatContainer.appendChild(errorDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-                
-                console.error('API 呼叫失敗:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 分析失敗</h4>
+                        <p>${error.message}</p>
+                        <p>請檢查網路連接或稍後再試</p>
+                    </div>
+                `;
+                console.error('分析錯誤:', error);
             } finally {
-                // 重新啟用輸入和按鈕
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-                messageInput.focus();
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '中醫分析';
             }
         }
 
-        // 聚焦輸入框
-        messageInput.focus();
+        // 初始化顯示
+        updateCoinDisplay();
     </script>
 </body>
 </html>
