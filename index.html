@@ -1,1535 +1,272 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>六爻排盤 - DeepSeek AI 分析版</title>
-  <style>
-    :root {
-      --card: #fff;
-      --line: #e5e7eb;
-      --muted: #64748b;
-      --primary: #3b82f6;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-    }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      margin: 0;
-      background: #f6f7fb;
-      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
-      line-height: 1.6;
-      color: #1f2937;
-    }
-    
-    main {
-      max-width: 1280px;
-      margin: 18px auto;
-      padding: 0 16px;
-    }
-    
-    h1 {
-      margin: 0 0 16px;
-      font-size: 26px;
-      color: #111827;
-      text-align: center;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .grid {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 16px;
-    }
-    
-    .sec {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 16px;
-      margin: 12px 0;
-      overflow-x: auto;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-    
-    .row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin: 10px 0;
-    }
-    
-    input[type=text], input[type=datetime-local], select, textarea {
-      flex: 1;
-      min-width: 220px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      height: 40px;
-      padding: 0 12px;
-      font-size: 14px;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    
-    input[type=text]:focus, input[type=datetime-local]:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    textarea {
-      height: auto;
-      padding: 12px;
-      resize: vertical;
-      min-height: 100px;
-    }
-    
-    button {
-      height: 40px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      background: #fff;
-      padding: 0 16px;
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    button:hover {
-      background: #f8fafc;
-      border-color: #94a3b8;
-    }
-    
-    button.primary {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-    
-    button.primary:hover {
-      background: #2563eb;
-    }
-    
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-    }
-    
-    .badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 999px;
-      background: #eef2ff;
-      color: #4338ca;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    
-    .canvasWrap {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fff;
-      padding: 12px;
-      margin: 12px 0;
-    }
-    
-    canvas {
-      display: block;
-      min-width: 600px;
-      width: 100%;
-      height: 560px;
-    }
-    
-    .yaoCtl {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 10px;
-    }
-    
-    .yaoCtl > label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      justify-content: center;
-      border: 1px dashed #cbd5e1;
-      border-radius: 8px;
-      padding: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    
-    .yaoCtl > label:hover {
-      background: #f8fafc;
-    }
-    
-    #err {
-      position: fixed;
-      right: 16px;
-      top: 16px;
-      z-index: 9999;
-      max-width: 60ch;
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-      border-radius: 10px;
-      padding: 12px;
-      display: none;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
-    .miniVal {
-      font-variant-numeric: tabular-nums;
-      color: #475569;
-      font-size: 13px;
-      min-width: 30px;
-      text-align: center;
-    }
-    
-    .btns button {
-      height: 36px;
-    }
-    
-    .pillars {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin: 12px 0;
-    }
-    
-    .pillars span {
-      background: #eef2ff;
-      color: #1e3a8a;
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    
-    .api-status {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      color: #92400e;
-    }
-    
-    .api-status.connected {
-      background: #d1fae5;
-      border-color: #10b981;
-      color: #065f46;
-    }
-    
-    .api-status.error {
-      background: #fee2e2;
-      border-color: #ef4444;
-      color: #991b1b;
-    }
-    
-    .analysis-section {
-      margin-top: 20px;
-      padding: 16px;
-      background: #f8fafc;
-      border-radius: 8px;
-      border-left: 4px solid var(--primary);
-    }
-    
-    .analysis-section h4 {
-      color: #1e40af;
-      margin-bottom: 8px;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: var(--primary);
-    }
-    
-    .error {
-      text-align: center;
-      padding: 20px;
-      color: var(--danger);
-      background: #fef2f2;
-      border-radius: 8px;
-    }
-    
-    .tcm-section {
-      margin: 16px 0;
-    }
-    
-    .tcm-section h4 {
-      margin: 12px 0 8px;
-      font-size: 15px;
-      color: #374151;
-    }
-    
-    .tcm-section ul {
-      margin: 4px 0 12px 20px;
-      padding: 0;
-    }
-    
-    .tcm-section li {
-      margin: 4px 0;
-      line-height: 1.5;
-    }
-    
-    .tcm-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .tcm-tag {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 999px;
-      background: #eef2ff;
-      color: #4338ca;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    
-    .tcm-tag.warning {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    
-    .tcm-tag.danger {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-    
-    .tcm-tag.success {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    
-    @media (max-width: 1024px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    @media (max-width: 768px) {
-      main {
-        padding: 0 12px;
-      }
-      
-      .yaoCtl {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      
-      .pillars {
-        gap: 8px;
-      }
-      
-      .pillars span {
-        font-size: 12px;
-        padding: 4px 8px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek AI 聊天助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .chat-container {
+            padding: 30px;
+            height: 500px;
+            overflow-y: auto;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            line-height: 1.6;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background: #4f46e5;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .ai-message {
+            background: #f3f4f6;
+            color: #374151;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .input-container {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            background: #f9fafb;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #messageInput:focus {
+            border-color: #4f46e5;
+        }
+        
+        #sendButton {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        #sendButton:hover {
+            transform: translateY(-2px);
+        }
+        
+        #sendButton:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f4f6;
+            border-radius: 50%;
+            border-top-color: #4f46e5;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
-  <main>
-    <h1>六爻排盤 - DeepSeek AI 分析版</h1>
-    <div id="err"></div>
-    <div id="apiStatus" class="api-status">
-      <span id="statusIcon">🔴</span>
-      <span id="statusText">檢查 API 連接...</span>
+    <div class="container">
+        <div class="header">
+            <h1>DeepSeek AI 助手</h1>
+            <p>與 AI 進行智能對話</p>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message ai-message">
+                您好！我是 DeepSeek AI 助手，有什麼可以幫助您的嗎？
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="輸入您的訊息..." 
+                onkeypress="handleKeyPress(event)"
+            >
+            <button id="sendButton" onclick="sendMessage()">傳送</button>
+        </div>
     </div>
-    
-    <div class="grid">
-      <section class="sec">
-        <div class="row">
-          <label>上卦</label>
-          <select id="upper">
-            <option>乾</option>
-            <option>兌</option>
-            <option>離</option>
-            <option>震</option>
-            <option>巽</option>
-            <option selected>坎</option>
-            <option>艮</option>
-            <option>坤</option>
-          </select>
-          <span>下卦</span>
-          <select id="lower">
-            <option selected>坎</option>
-            <option>乾</option>
-            <option>兌</option>
-            <option>離</option>
-            <option>震</option>
-            <option>巽</option>
-            <option>艮</option>
-            <option>坤</option>
-          </select>
-          <span class="badge">DeepSeek AI 智能分析</span>
-        </div>
-        
-        <div class="row btns" style="gap:10px">
-          <button id="btnRandomHex" class="primary">隨機起卦</button>
-          <button id="btnClear">清除重設</button>
-          <button id="btnDeepSeekAnalysis" class="primary">DeepSeek AI 分析</button>
-        </div>
-        
-        <div class="row" style="gap:14px">
-          <label>問題</label>
-          <input id="question" type="text" placeholder="請輸入起卦問題" value="示例：求財運">
-        </div>
-        
-        <div class="row" style="gap:14px">
-          <label>用神</label>
-          <select id="yongShen">
-            <option value="">（未指定）</option>
-            <option value="父母">父母 (學業/文書)</option>
-            <option value="兄弟">兄弟 (競爭/劫財)</option>
-            <option value="官鬼">官鬼 (事業/疾病)</option>
-            <option value="妻財" selected>妻財 (求財/妻子)</option>
-            <option value="子孫">子孫 (福德/解憂)</option>
-          </select>
-          <span id="ysName" class="badge"></span>
-        </div>
-        
-        <div class="row" style="gap:14px">
-          <label>時間</label>
-          <input id="dt" type="datetime-local">
-          <button id="btnNow">現在</button>
-          <span class="muted">四柱由 Lunar.js 精準換算</span>
-        </div>
-        
-        <div class="pillars">
-          <span id="gzYear">年：—</span>
-          <span id="gzMonth">月：—</span>
-          <span id="gzDay">日：—</span>
-          <span id="gzHour">時：—</span>
-          <span id="gzXun">旬首：—</span>
-          <span id="gzKW">空亡：—</span>
-        </div>
-        
-        <div class="row">
-          <label>動爻</label>
-          <div class="yaoCtl" id="mvCtl"></div>
-        </div>
-        
-        <div class="row" style="gap:10px">
-          <button id="redraw" class="primary">重繪卦象</button>
-        </div>
-        
-        <div class="canvasWrap">
-          <canvas id="hexCanvas"></canvas>
-        </div>
 
-        <div id="hexagramAnalysis" class="analysis-section" style="display: none;">
-          <h3>🔮 DeepSeek AI 卦象分析</h3>
-          <div id="analysisContent"></div>
-        </div>
-        
-        <div id="tcmAnalysis" class="analysis-section" style="display: none; margin-top: 16px;">
-          <h3>🌿 DeepSeek AI 中醫分析</h3>
-          <div id="tcmContent"></div>
-        </div>
-        
-        <div class="muted">
-          本系統使用 DeepSeek AI 進行智能分析，請確保已配置正確的 API Key。
-        </div>
-      </section>
-      
-      <section class="sec">
-        <div id="w5_sec" class="w5-sec">
-          <h3>五行雷達圖</h3>
-          <div class="canvasWrap" style="overflow-x:visible;">
-            <canvas id="w5_canv" style="min-width:auto; height:300px;"></canvas>
-          </div>
-          <div id="w5_ctrl">
-            <div class="row">
-              <label>木</label>
-              <input id="w5_mu" type="range" min="1" max="10" step="1" value="6">
-              <span id="w5_muVal" class="miniVal">6</span>
-            </div>
-            <div class="row">
-              <label>火</label>
-              <input id="w5_huo" type="range" min="1" max="10" step="1" value="6">
-              <span id="w5_huoVal" class="miniVal">6</span>
-            </div>
-            <div class="row">
-              <label>土</label>
-              <input id="w5_tu" type="range" min="1" max="10" step="1" value="6">
-              <span id="w5_tuVal" class="miniVal">6</span>
-            </div>
-            <div class="row">
-              <label>金</label>
-              <input id="w5_jin" type="range" min="1" max="10" step="1" value="6">
-              <span id="w5_jinVal" class="miniVal">6</span>
-            </div>
-            <div class="row">
-              <label>水</label>
-              <input id="w5_shui" type="range" min="1" max="10" step="1" value="6">
-              <span id="w5_shuiVal" class="miniVal">6</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="tcm-section">
-          <h3>💡 使用說明</h3>
-          <ul>
-            <li>1. 配置您的 DeepSeek API Key</li>
-            <li>2. 選擇卦象或隨機起卦</li>
-            <li>3. 點擊 "DeepSeek AI 分析"</li>
-            <li>4. 查看智能分析結果</li>
-            <li>5. 調整五行數據獲得中醫建議</li>
-          </ul>
-        </div>
-      </section>
-    </div>
-  </main>
+    <script>
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
 
-  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
-  <script>
-    // ==================== 配置區域 ====================
-    // 請在這裡填入您的 DeepSeek API Key
-    const DEEPSEEK_API_KEY = '您的_DeepSeek_API_Key_在這裡';
-    // =================================================
-
-    // DeepSeek API 客戶端
-    class DeepSeekClient {
-      constructor(apiKey) {
-        this.apiKey = apiKey;
-        this.baseURL = 'https://api.deepseek.com/v1';
-        this.model = 'deepseek-chat';
-      }
-
-      async analyzeHexagram(hexagramData) {
-        const prompt = this.buildHexagramPrompt(hexagramData);
-        
-        const response = await fetch(`${this.baseURL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify({
-            model: this.model,
-            messages: [
-              {
-                role: "system",
-                content: `你是一位資深的六爻占卜專家，精通易經卦象分析和預測。請用專業且易懂的方式分析卦象，按照以下結構回應：
-
-## 整體卦象解讀
-[詳細解讀卦象的整體意義]
-
-## 動爻影響分析  
-[分析動爻的具體影響]
-
-## 用神狀態分析
-[分析用神的強弱和狀態]
-
-## 具體行動建議
-1. [建議一]
-2. [建議二]
-3. [建議三]
-
-## 時機把握建議
-[時機相關建議]
-
-## 風險評估
-[風險分析和注意事項]
-
-請確保回應內容專業、實用，且符合六爻占卜的傳統理論。`
-              },
-              {
-                role: "user",
-                content: prompt
-              }
-            ],
-            temperature: 0.7,
-            max_tokens: 2000
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`API 請求失敗: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return this.parseAnalysisResponse(data.choices[0].message.content);
-      }
-
-      buildHexagramPrompt(hexagramData) {
-        return `
-請分析以下六爻卦象：
-
-## 基本資訊
-- 卦象：${hexagramData.hexagramName}
-- 上卦：${hexagramData.upperTrigram}
-- 下卦：${hexagramData.lowerTrigram}
-- 問題：${hexagramData.question || '未指定'}
-- 用神：${hexagramData.yongShen || '未指定'}
-
-## 動爻資訊
-${hexagramData.movingYao && hexagramData.movingYao.length > 0 
-  ? hexagramData.movingYao.map(yao => `- 第${yao.position}爻${yao.isYang ? '陽' : '陰'}動`).join('\n')
-  : '無動爻'
-}
-
-## 四柱資訊
-- 年柱：${hexagramData.pillars?.year || '未知'}
-- 月柱：${hexagramData.pillars?.month || '未知'}  
-- 日柱：${hexagramData.pillars?.day || '未知'}
-- 時柱：${hexagramData.pillars?.hour || '未知'}
-
-## 六獸排列
-${hexagramData.sixAnimals ? hexagramData.sixAnimals.join(' → ') : '未知'}
-
-請基於以上資訊進行專業的六爻分析。
-        `.trim();
-      }
-
-      parseAnalysisResponse(responseText) {
-        const sections = {
-          overall: this.extractSection(responseText, '整體卦象解讀'),
-          movingYao: this.extractSection(responseText, '動爻影響分析'),
-          yongShenAnalysis: this.extractSection(responseText, '用神狀態分析'),
-          advice: this.extractAdvice(responseText),
-          timing: this.extractSection(responseText, '時機把握建議'),
-          riskAssessment: this.extractSection(responseText, '風險評估')
-        };
-
-        return {
-          success: true,
-          analysis: sections,
-          metadata: {
-            analyzedAt: new Date().toISOString(),
-            model: this.model,
-            source: 'DeepSeek AI'
-          }
-        };
-      }
-
-      extractSection(text, sectionTitle) {
-        const regex = new RegExp(`## ${sectionTitle}[\\s\\n]*([^#]+)(?=##|$)`, 'i');
-        const match = text.match(regex);
-        return match ? match[1].trim() : '暫無分析';
-      }
-
-      extractAdvice(text) {
-        const adviceSection = this.extractSection(text, '具體行動建議');
-        if (adviceSection.includes('1.')) {
-          return adviceSection.split('\n')
-            .filter(line => line.trim().match(/^\d\./))
-            .map(line => line.replace(/^\d\.\s*/, '').trim())
-            .filter(line => line.length > 0);
-        }
-        return ['保持現狀，觀察變化'];
-      }
-
-      async analyzeTCM(wuxingData) {
-        const prompt = this.buildTCMPrompt(wuxingData);
-        
-        const response = await fetch(`${this.baseURL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify({
-            model: this.model,
-            messages: [
-              {
-                role: "system",
-                content: `你是一位資深的中醫專家，精通五行理論和體質辨證。請根據五行數據分析體質，並提供專業的中醫調理建議。按照以下結構回應：
-
-## 體質分析
-[分析五行平衡和體質類型]
-
-## 主要特徵
-[體質的主要特徵和表現]
-
-## 建議就診科別
-- [科別一]: [原因]
-- [科別二]: [原因]
-
-## 中藥方劑建議
-- [方劑一]: [組成] - [功效]
-- [方劑二]: [組成] - [功效]
-
-## 穴位保健
-- [穴位一]: [位置] - [功能]
-- [穴位二]: [位置] - [功能]
-
-## 飲食調養
-- 宜食: [食物列表]
-- 忌食: [食物列表]
-
-## 生活調養建議
-1. [建議一]
-2. [建議二]
-
-請確保建議專業、實用，符合中醫理論。`
-              },
-              {
-                role: "user",
-                content: prompt
-              }
-            ],
-            temperature: 0.7,
-            max_tokens: 2000
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`TCM API 請求失敗: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return this.parseTCMResponse(data.choices[0].message.content);
-      }
-
-      buildTCMPrompt(wuxingData) {
-        return `
-請根據以下五行數據進行中醫體質分析：
-
-## 五行數值
-- 木: ${wuxingData.mu}/10
-- 火: ${wuxingData.huo}/10  
-- 土: ${wuxingData.tu}/10
-- 金: ${wuxingData.jin}/10
-- 水: ${wuxingData.shui}/10
-
-請分析五行平衡狀況，判斷體質類型，並提供具體的調理建議。
-        `.trim();
-      }
-
-      parseTCMResponse(responseText) {
-        return {
-          success: true,
-          analysis: {
-            constitution: this.extractTCMConstitution(responseText),
-            constitutionAnalysis: this.extractSection(responseText, '體質分析'),
-            characteristics: this.extractSection(responseText, '主要特徵'),
-            recommendedDepartments: this.extractTCMList(responseText, '建議就診科別'),
-            herbalRecommendations: this.extractTCMList(responseText, '中藥方劑建議'),
-            acupuncturePoints: this.extractTCMList(responseText, '穴位保健'),
-            dietRecommendations: this.extractTCMDiet(responseText),
-            lifestyleRecommendations: this.extractTCMList(responseText, '生活調養建議')
-          }
-        };
-      }
-
-      extractTCMConstitution(text) {
-        if (text.includes('肝膽')) return '肝膽型體質';
-        if (text.includes('心火')) return '心火型體質';
-        if (text.includes('脾胃')) return '脾胃型體質';
-        if (text.includes('肺')) return '肺型體質';
-        if (text.includes('腎')) return '腎型體質';
-        return '綜合型體質';
-      }
-
-      extractTCMList(text, sectionTitle) {
-        const section = this.extractSection(text, sectionTitle);
-        return section.split('\n')
-          .filter(line => line.trim().startsWith('-'))
-          .map(line => line.replace(/^-\s*/, '').trim())
-          .filter(line => line.length > 0);
-      }
-
-      extractTCMDiet(text) {
-        const dietSection = this.extractSection(text, '飲食調養');
-        return {
-          foods: this.extractDietItems(dietSection, '宜食'),
-          avoid: this.extractDietItems(dietSection, '忌食')
-        };
-      }
-
-      extractDietItems(text, type) {
-        const regex = new RegExp(`${type}:\\s*([^\\n]+)`, 'i');
-        const match = text.match(regex);
-        return match ? match[1].split(/[、,，]/).map(item => item.trim()) : [];
-      }
-    }
-
-    // 六爻核心邏輯
-    class HexagramCore {
-      constructor() {
-        this.GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-        this.ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-        this.ZHI_ELEM = { 子: '水', 丑: '土', 寅: '木', 卯: '木', 辰: '土', 巳: '火', 午: '火', 未: '土', 申: '金', 酉: '金', 戌: '土', 亥: '水' };
-        this.GONG_ELEM = { 乾: '金', 坤: '土', 震: '木', 巽: '木', 坎: '水', 離: '火', 艮: '土', 兌: '金' };
-        this.TRIG = { 
-          乾: [1,1,1], 兌: [1,1,0], 離: [1,0,1], 震: [1,0,0], 
-          巽: [0,1,1], 坎: [0,1,0], 艮: [0,0,1], 坤: [0,0,0] 
-        };
-        this.LIU_SHOU = ['青龍', '朱雀', '勾陳', '螣蛇', '白虎', '玄武'];
-        this.NA_JIA = {
-          乾: { 內: ['子', '寅', '辰'], 外: ['午', '申', '戌'] },
-          坤: { 內: ['未', '巳', '卯'], 外: ['丑', '亥', '酉'] },
-          震: { 內: ['子', '寅', '辰'], 外: ['午', '申', '戌'] },
-          巽: { 內: ['丑', '亥', '酉'], 外: ['未', '巳', '卯'] },
-          坎: { 內: ['寅', '辰', '午'], 外: ['申', '戌', '子'] },
-          離: { 內: ['卯', '丑', '亥'], 外: ['酉', '未', '巳'] },
-          艮: { 內: ['辰', '午', '申'], 外: ['戌', '子', '寅'] },
-          兌: { 內: ['巳', '卯', '丑'], 外: ['亥', '酉', '未'] }
-        };
-        
-        this.moving = [false, false, false, false, false, false];
-        this.currentPillars = null;
-        this.currentSixAnimals = [];
-      }
-
-      calculateLiuQin(gongElement, branch) {
-        const element = this.ZHI_ELEM[branch];
-        if (!element) return '兄弟';
-        
-        if (element === gongElement) return '兄弟';
-        if (this.isSheng(gongElement, element)) return '父母';
-        if (this.isSheng(element, gongElement)) return '子孫';
-        if (this.isKe(gongElement, element)) return '妻財';
-        if (this.isKe(element, gongElement)) return '官鬼';
-        
-        return '兄弟';
-      }
-
-      isSheng(wu1, wu2) {
-        const shengCycle = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
-        return shengCycle[wu1] === wu2;
-      }
-
-      isKe(wu1, wu2) {
-        const keCycle = { '木': '土', '土': '水', '水': '火', '火': '金', '金': '木' };
-        return keCycle[wu1] === wu2;
-      }
-
-      calculateSixAnimals(dayGan) {
-        const startIndex = {
-          '甲': 0, '乙': 0, '丙': 1, '丁': 1, '戊': 2, 
-          '己': 3, '庚': 4, '辛': 4, '壬': 5, '癸': 5
-        }[dayGan] || 0;
-        
-        const animals = [];
-        for (let i = 0; i < 6; i++) {
-          animals.push(this.LIU_SHOU[(startIndex + i) % 6]);
-        }
-        return animals;
-      }
-
-      getGuaName(upper, lower) {
-        const guaMap = {
-          '乾乾': '乾為天', '坤坤': '坤為地', '坎坎': '坎為水', '離離': '離為火',
-          '震震': '震為雷', '艮艮': '艮為山', '巽巽': '巽為風', '兌兌': '兌為澤',
-          '乾坎': '天水訟', '坎乾': '水天需', '坎坤': '水地比', '坤坎': '地水師',
-          '乾坤': '天地否', '坤乾': '地天泰', '坎離': '水火既濟', '離坎': '火水未濟'
-        };
-        return guaMap[upper + lower] || `${upper}${lower}卦`;
-      }
-
-      getNaJiaBranches(upper, lower) {
-        const lowerBranches = this.NA_JIA[lower]?.內 || [];
-        const upperBranches = this.NA_JIA[upper]?.外 || [];
-        return [...lowerBranches, ...upperBranches];
-      }
-
-      calculateShiYing(upper, lower) {
-        return { shi: 3, ying: 6 };
-      }
-    }
-
-    // 五行雷達圖
-    class RadarChart {
-      constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
-        this.colors = {
-          '木': '#16a34a', '火': '#ef4444', '土': '#f59e0b', 
-          '金': '#64748b', '水': '#3b82f6'
-        };
-        this.order = ['火', '木', '土', '金', '水'];
-      }
-
-      draw(values) {
-        const dpr = window.devicePixelRatio || 1;
-        const width = this.canvas.clientWidth;
-        const height = this.canvas.clientHeight;
-        
-        this.canvas.width = width * dpr;
-        this.canvas.height = height * dpr;
-        this.ctx.scale(dpr, dpr);
-        
-        this.ctx.clearRect(0, 0, width, height);
-        
-        const cx = width / 2;
-        const cy = height / 2;
-        const R = Math.min(width, height) / 2 * 0.35;
-        const rings = 5;
-        const ang0 = -Math.PI / 2;
-        
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeStyle = '#e5e7eb';
-        for (let r = 1; r <= rings; r++) {
-          const rr = R * r / rings;
-          this.ctx.beginPath();
-          for (let i = 0; i < this.order.length; i++) {
-            const a = ang0 + i * (2 * Math.PI / this.order.length);
-            const x = cx + rr * Math.cos(a);
-            const y = cy + rr * Math.sin(a);
-            i ? this.ctx.lineTo(x, y) : this.ctx.moveTo(x, y);
-          }
-          this.ctx.closePath();
-          this.ctx.stroke();
-        }
-        
-        this.ctx.font = '14px "Noto Sans TC"';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.order.forEach((element, i) => {
-          const a = ang0 + i * (2 * Math.PI / this.order.length);
-          const x = cx + (R + 20) * Math.cos(a);
-          const y = cy + (R + 20) * Math.sin(a);
-          this.ctx.fillStyle = this.colors[element];
-          this.ctx.fillText(element, x, y);
-        });
-        
-        const pts = [];
-        this.order.forEach((element, i) => {
-          const value = values[element];
-          const rr = R * Math.max(0.1, Math.min(1, value / 10));
-          const a = ang0 + i * (2 * Math.PI / this.order.length);
-          pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]);
-        });
-        
-        this.ctx.beginPath();
-        pts.forEach((p, i) => i ? this.ctx.lineTo(p[0], p[1]) : this.ctx.moveTo(p[0], p[1]));
-        this.ctx.closePath();
-        this.ctx.fillStyle = 'rgba(59,130,246,0.2)';
-        this.ctx.strokeStyle = '#3b82f6';
-        this.ctx.lineWidth = 2;
-        this.ctx.fill();
-        this.ctx.stroke();
-        
-        pts.forEach((p, i) => {
-          this.ctx.beginPath();
-          this.ctx.arc(p[0], p[1], 4, 0, Math.PI * 2);
-          this.ctx.fillStyle = this.colors[this.order[i]];
-          this.ctx.fill();
-        });
-      }
-    }
-
-    // 主應用程序
-    class LiuYaoApp {
-      constructor(deepSeekApiKey) {
-        this.hexagramCore = new HexagramCore();
-        this.radarChart = new RadarChart('w5_canv');
-        this.deepSeekClient = new DeepSeekClient(deepSeekApiKey);
-        this.isInitialized = false;
-        
-        this.apiStatus = {
-          isConnected: false,
-          lastTest: null,
-          error: null
-        };
-      }
-
-      async init() {
-        if (this.isInitialized) return;
-
-        await this.testAPIConnection();
-        
-        this.setCurrentTime();
-        this.initMovingYaoControl();
-        this.bindEvents();
-        this.initRadarControls();
-        
-        this.calcPillarsAndSix();
-        this.drawHexagram();
-        
-        this.isInitialized = true;
-      }
-
-      async testAPIConnection() {
-        try {
-          const testData = {
-            hexagramName: '乾為天',
-            upperTrigram: '乾',
-            lowerTrigram: '乾',
-            movingYao: [],
-            question: '測試連接',
-            pillars: { year: '甲辰', month: '丙子', day: '戊戌', hour: '壬子' },
-            sixAnimals: ['青龍', '朱雀', '勾陳', '螣蛇', '白虎', '玄武']
-          };
-
-          await this.deepSeekClient.analyzeHexagram(testData);
-          this.apiStatus.isConnected = true;
-          this.apiStatus.lastTest = new Date();
-          this.updateAPIStatus('✅ API 連接成功', 'connected');
-          
-        } catch (error) {
-          this.apiStatus.isConnected = false;
-          this.apiStatus.error = error.message;
-          this.updateAPIStatus('❌ API 連接失敗', 'error');
-        }
-      }
-
-      updateAPIStatus(message, type) {
-        const statusElement = document.getElementById('apiStatus');
-        const statusIcon = document.getElementById('statusIcon');
-        const statusText = document.getElementById('statusText');
-        
-        statusElement.className = `api-status ${type}`;
-        statusIcon.textContent = type === 'connected' ? '✅' : '❌';
-        statusText.textContent = message;
-        statusElement.style.display = 'block';
-      }
-
-      setCurrentTime() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        
-        document.getElementById('dt').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-      }
-
-      initMovingYaoControl() {
-        const mvCtl = document.getElementById('mvCtl');
-        mvCtl.innerHTML = [6, 5, 4, 3, 2, 1].map(p => 
-          `<label><input type="checkbox" data-mv="${p-1}"> ${p === 6 ? '上' : p === 1 ? '初' : p}爻動</label>`
-        ).join('');
-      }
-
-      initRadarControls() {
-        const sliders = document.querySelectorAll('#w5_ctrl input[type="range"]');
-        sliders.forEach(slider => {
-          slider.addEventListener('input', () => {
-            const valueId = slider.id + 'Val';
-            const valueSpan = document.getElementById(valueId);
-            if (valueSpan) {
-              valueSpan.textContent = slider.value;
+        // 處理 Enter 鍵
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
             }
-            this.updateRadarChart();
-          });
-        });
-      }
-
-      bindEvents() {
-        document.getElementById('btnNow').addEventListener('click', () => {
-          this.setCurrentTime();
-          this.calcPillarsAndSix();
-          this.drawHexagram();
-        });
-
-        document.getElementById('btnRandomHex').addEventListener('click', () => {
-          this.generateRandomHexagram();
-        });
-
-        document.getElementById('btnClear').addEventListener('click', () => {
-          this.clearAll();
-        });
-
-        document.getElementById('btnDeepSeekAnalysis').addEventListener('click', () => {
-          this.performDeepSeekAnalysis();
-        });
-
-        document.getElementById('mvCtl').addEventListener('change', (e) => {
-          if (e.target.type === 'checkbox') {
-            const index = parseInt(e.target.dataset.mv);
-            this.hexagramCore.moving[index] = e.target.checked;
-            this.drawHexagram();
-          }
-        });
-
-        document.getElementById('upper').addEventListener('change', () => this.drawHexagram());
-        document.getElementById('lower').addEventListener('change', () => this.drawHexagram());
-        document.getElementById('question').addEventListener('input', () => this.drawHexagram());
-        document.getElementById('dt').addEventListener('change', () => {
-          this.calcPillarsAndSix();
-          this.drawHexagram();
-        });
-
-        document.getElementById('yongShen').addEventListener('change', () => {
-          this.updateYongShenDisplay();
-        });
-
-        document.getElementById('redraw').addEventListener('click', () => this.drawHexagram());
-
-        window.addEventListener('resize', () => {
-          this.drawHexagram();
-          this.updateRadarChart();
-        });
-      }
-
-      generateRandomHexagram() {
-        const trigrams = ['乾', '兌', '離', '震', '巽', '坎', '艮', '坤'];
-        const randomUpper = trigrams[Math.floor(Math.random() * trigrams.length)];
-        const randomLower = trigrams[Math.floor(Math.random() * trigrams.length)];
-        
-        document.getElementById('upper').value = randomUpper;
-        document.getElementById('lower').value = randomLower;
-        
-        const checkboxes = document.querySelectorAll('#mvCtl input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-          cb.checked = Math.random() < 0.3;
-          this.hexagramCore.moving[parseInt(cb.dataset.mv)] = cb.checked;
-        });
-        
-        document.getElementById('question').value = '隨機起卦';
-        this.calcPillarsAndSix();
-        this.drawHexagram();
-      }
-
-      clearAll() {
-        document.getElementById('upper').value = '坎';
-        document.getElementById('lower').value = '坎';
-        document.getElementById('question').value = '';
-        document.getElementById('yongShen').value = '妻財';
-        
-        const checkboxes = document.querySelectorAll('#mvCtl input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-          cb.checked = false;
-          this.hexagramCore.moving[parseInt(cb.dataset.mv)] = false;
-        });
-        
-        document.getElementById('w5_mu').value = 6;
-        document.getElementById('w5_huo').value = 6;
-        document.getElementById('w5_tu').value = 6;
-        document.getElementById('w5_jin').value = 6;
-        document.getElementById('w5_shui').value = 6;
-        
-        document.querySelectorAll('#w5_ctrl .miniVal').forEach((span, index) => {
-          span.textContent = 6;
-        });
-        
-        this.calcPillarsAndSix();
-        this.drawHexagram();
-        this.updateRadarChart();
-        
-        // 隱藏分析結果
-        document.getElementById('hexagramAnalysis').style.display = 'none';
-        document.getElementById('tcmAnalysis').style.display = 'none';
-      }
-
-      calcPillarsAndSix() {
-        const s = document.getElementById('dt').value; 
-        const dt = s ? new Date(s) : new Date();
-        
-        try {
-          const lunar = Lunar.fromDate(dt);
-          const pillars = {
-            year: lunar.getYearInGanZhiExact(),
-            month: lunar.getMonthInGanZhiExact(),
-            day: lunar.getDayInGanZhiExact(),
-            hour: lunar.getTimeInGanZhi()
-          };
-          
-          this.hexagramCore.currentPillars = pillars;
-          
-          const dayGan = pillars.day.charAt(0);
-          this.hexagramCore.currentSixAnimals = this.hexagramCore.calculateSixAnimals(dayGan);
-          
-          document.getElementById('gzYear').textContent = `年：${pillars.year}`;
-          document.getElementById('gzMonth').textContent = `月：${pillars.month}`;
-          document.getElementById('gzDay').textContent = `日：${pillars.day}`;
-          document.getElementById('gzHour').textContent = `時：${pillars.hour}`;
-          document.getElementById('gzXun').textContent = `旬首：${lunar.getDayXun()}`;
-          document.getElementById('gzKW').textContent = `空亡：${lunar.getDayXunKong()}`;
-          
-        } catch (error) {
-          console.error('計算四柱錯誤:', error);
         }
-      }
 
-      drawHexagram() {
-        const canvas = document.getElementById('hexCanvas');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-        
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        ctx.scale(dpr, dpr);
-        
-        ctx.clearRect(0, 0, width, height);
-        
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 18px "Noto Sans TC"';
-        ctx.fillText(`問題：${document.getElementById('question').value || '—'}`, 20, 30);
-        
-        ctx.font = '14px "Noto Sans TC"';
-        ctx.fillText(`時間：${document.getElementById('dt').value.replace('T', ' ') || '—'}`, 20, 55);
-        
-        if (this.hexagramCore.currentPillars) {
-          ctx.fillText(`四柱：${this.hexagramCore.currentPillars.year} ${this.hexagramCore.currentPillars.month} ${this.hexagramCore.currentPillars.day} ${this.hexagramCore.currentPillars.hour}`, 20, 80);
+        // 新增訊息到聊天室
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-        
-        const upper = document.getElementById('upper').value;
-        const lower = document.getElementById('lower').value;
-        const upperLines = this.hexagramCore.TRIG[upper];
-        const lowerLines = this.hexagramCore.TRIG[lower];
-        const allLines = [...lowerLines, ...upperLines];
-        const gongElement = this.hexagramCore.GONG_ELEM[upper];
-        
-        const guaName = this.hexagramCore.getGuaName(upper, lower);
-        const allBranches = this.hexagramCore.getNaJiaBranches(upper, lower);
-        const liuQin = allBranches.map(branch => this.hexagramCore.calculateLiuQin(gongElement, branch));
-        const { shi, ying } = this.hexagramCore.calculateShiYing(upper, lower);
-        
-        ctx.fillText(`卦名：${guaName} 上卦：${upper} 下卦：${lower} 卦宮：${upper}${gongElement}`, 20, 105);
-        
-        const startX = 50;
-        const startY = 150;
-        const rowHeight = 40;
-        const colWidth = 60;
-        
-        const headers = ['六獸', '伏神', '爻象', '六親', '地支', '世應', '變六親', '變支'];
-        headers.forEach((header, i) => {
-          ctx.fillStyle = '#374151';
-          ctx.font = 'bold 14px "Noto Sans TC"';
-          ctx.fillText(header, startX + i * colWidth, startY - 10);
-        });
-        
-        ctx.strokeStyle = '#e5e7eb';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(startX + colWidth * headers.length, startY);
-        ctx.stroke();
-        
-        for (let i = 5; i >= 0; i--) {
-          const rowY = startY + (5 - i) * rowHeight;
-          const yaoIndex = i;
-          
-          ctx.fillStyle = '#64748b';
-          ctx.font = '14px "Noto Sans TC"';
-          ctx.fillText(this.hexagramCore.currentSixAnimals[yaoIndex] || '—', startX, rowY + 5);
-          
-          ctx.fillText('—', startX + colWidth, rowY + 5);
-          
-          const isYang = allLines[yaoIndex] === 1;
-          const isMoving = this.hexagramCore.moving[yaoIndex];
-          
-          ctx.strokeStyle = isMoving ? '#ef4444' : '#111827';
-          ctx.lineWidth = 2;
-          
-          const yaoX = startX + colWidth * 2 + 20;
-          const yaoWidth = 30;
-          
-          if (isYang) {
-            ctx.beginPath();
-            ctx.moveTo(yaoX, rowY);
-            ctx.lineTo(yaoX + yaoWidth, rowY);
-            ctx.stroke();
-          } else {
-            const segmentWidth = yaoWidth / 2;
-            ctx.beginPath();
-            ctx.moveTo(yaoX, rowY);
-            ctx.lineTo(yaoX + segmentWidth, rowY);
-            ctx.stroke();
+
+        // 顯示載入動畫
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai-message';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.innerHTML = '<div class="loading"></div> 思考中...';
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 隱藏載入動畫
+        function hideLoading() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+
+        // 發送訊息
+        async function sendMessage() {
+            const message = messageInput.value.trim();
             
-            ctx.beginPath();
-            ctx.moveTo(yaoX + segmentWidth + 5, rowY);
-            ctx.lineTo(yaoX + yaoWidth, rowY);
-            ctx.stroke();
-          }
-          
-          if (isMoving) {
-            ctx.fillStyle = '#ef4444';
-            ctx.font = '16px "Noto Sans TC"';
-            ctx.fillText(isYang ? '○' : '×', yaoX + yaoWidth + 5, rowY + 5);
-          }
-          
-          ctx.fillStyle = '#111827';
-          ctx.font = '14px "Noto Sans TC"';
-          ctx.fillText(liuQin[yaoIndex], startX + colWidth * 3, rowY + 5);
-          
-          ctx.fillText(allBranches[yaoIndex], startX + colWidth * 4, rowY + 5);
-          
-          let shiYingText = '';
-          if (yaoIndex + 1 === shi) shiYingText = '世';
-          if (yaoIndex + 1 === ying) shiYingText = '應';
-          ctx.fillText(shiYingText, startX + colWidth * 5, rowY + 5);
-          
-          if (isMoving) {
-            ctx.fillStyle = '#dc2626';
-            ctx.fillText(liuQin[yaoIndex], startX + colWidth * 6, rowY + 5);
-          } else {
-            ctx.fillStyle = '#9ca3af';
-            ctx.fillText('—', startX + colWidth * 6, rowY + 5);
-          }
-          
-          if (isMoving) {
-            ctx.fillStyle = '#dc2626';
-            ctx.fillText(allBranches[yaoIndex], startX + colWidth * 7, rowY + 5);
-          } else {
-            ctx.fillStyle = '#9ca3af';
-            ctx.fillText('—', startX + colWidth * 7, rowY + 5);
-          }
-          
-          const yaoNames = ['初', '二', '三', '四', '五', '上'];
-          ctx.fillStyle = '#64748b';
-          ctx.font = '12px "Noto Sans TC"';
-          ctx.fillText(yaoNames[i], startX - 20, rowY + 5);
-        }
-      }
-
-      updateRadarChart() {
-        const values = {
-          '木': parseInt(document.getElementById('w5_mu').value),
-          '火': parseInt(document.getElementById('w5_huo').value),
-          '土': parseInt(document.getElementById('w5_tu').value),
-          '金': parseInt(document.getElementById('w5_jin').value),
-          '水': parseInt(document.getElementById('w5_shui').value)
-        };
-        this.radarChart.draw(values);
-      }
-
-      updateYongShenDisplay() {
-        const yongShen = document.getElementById('yongShen').value;
-        const ysName = document.getElementById('ysName');
-        
-        if (yongShen) {
-          ysName.textContent = `${yongShen}`;
-        } else {
-          ysName.textContent = '';
-        }
-      }
-
-      async performDeepSeekAnalysis() {
-        if (!this.apiStatus.isConnected) {
-          this.showErrorState('API 連接失敗，請檢查 API Key');
-          return;
+            if (!message) return;
+            
+            // 禁用輸入和按鈕
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            
+            // 顯示用戶訊息
+            addMessage(message, true);
+            messageInput.value = '';
+            
+            // 顯示載中動畫
+            showLoading();
+            
+            try {
+                // 呼叫我們的 API
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API 錯誤: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // 移除載入動畫
+                hideLoading();
+                
+                // 顯示 AI 回覆
+                if (data.choices && data.choices[0]) {
+                    addMessage(data.choices[0].message.content);
+                } else {
+                    throw new Error('無效的回應格式');
+                }
+                
+            } catch (error) {
+                // 移除載入動畫
+                hideLoading();
+                
+                // 顯示錯誤訊息
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = `錯誤: ${error.message}`;
+                chatContainer.appendChild(errorDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                console.error('API 呼叫失敗:', error);
+            } finally {
+                // 重新啟用輸入和按鈕
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
         }
 
-        const hexagramData = this.collectHexagramData();
-        const wuxingData = this.collectWuxingData();
-        
-        this.showLoadingState();
-        
-        try {
-          const [hexagramAnalysis, tcmAnalysis] = await Promise.all([
-            this.deepSeekClient.analyzeHexagram(hexagramData),
-            this.deepSeekClient.analyzeTCM(wuxingData)
-          ]);
-          
-          this.updateAnalysisResults(hexagramAnalysis, tcmAnalysis);
-          
-        } catch (error) {
-          console.error('DeepSeek 分析失敗:', error);
-          this.showErrorState(`分析失敗: ${error.message}`);
-        }
-      }
-
-      collectHexagramData() {
-        const upper = document.getElementById('upper').value;
-        const lower = document.getElementById('lower').value;
-        
-        return {
-          upperTrigram: upper,
-          lowerTrigram: lower,
-          hexagramName: this.hexagramCore.getGuaName(upper, lower),
-          movingYao: this.hexagramCore.moving.map((isMoving, index) => ({
-            position: index + 1,
-            isMoving,
-            isYang: [...this.hexagramCore.TRIG[lower], ...this.hexagramCore.TRIG[upper]][index] === 1
-          })).filter(yao => yao.isMoving),
-          question: document.getElementById('question').value,
-          yongShen: document.getElementById('yongShen').value,
-          pillars: this.hexagramCore.currentPillars,
-          timestamp: new Date().toISOString(),
-          sixAnimals: this.hexagramCore.currentSixAnimals
-        };
-      }
-
-      collectWuxingData() {
-        return {
-          mu: parseInt(document.getElementById('w5_mu').value),
-          huo: parseInt(document.getElementById('w5_huo').value),
-          tu: parseInt(document.getElementById('w5_tu').value),
-          jin: parseInt(document.getElementById('w5_jin').value),
-          shui: parseInt(document.getElementById('w5_shui').value)
-        };
-      }
-
-      showLoadingState() {
-        document.getElementById('hexagramAnalysis').style.display = 'block';
-        document.getElementById('tcmAnalysis').style.display = 'block';
-        
-        document.getElementById('analysisContent').innerHTML = `
-          <div class="loading">
-            <div>DeepSeek AI 分析中...</div>
-            <div class="muted">正在進行智能分析</div>
-          </div>
-        `;
-        
-        document.getElementById('tcmContent').innerHTML = `
-          <div class="loading">
-            <div>中醫體質分析中...</div>
-          </div>
-        `;
-      }
-
-      showErrorState(message) {
-        document.getElementById('analysisContent').innerHTML = `
-          <div class="error">
-            <div>${message}</div>
-            <button onclick="app.performDeepSeekAnalysis()" style="margin-top: 10px;">重試</button>
-          </div>
-        `;
-      }
-
-      updateAnalysisResults(hexagramAnalysis, tcmAnalysis) {
-        if (hexagramAnalysis && hexagramAnalysis.success) {
-          this.updateHexagramAnalysis(hexagramAnalysis);
-        }
-        
-        if (tcmAnalysis && tcmAnalysis.success) {
-          this.updateTCMAnalysis(tcmAnalysis);
-        }
-      }
-
-      updateHexagramAnalysis(analysisData) {
-        const analysis = analysisData.analysis;
-        const analysisContent = document.getElementById('analysisContent');
-        
-        analysisContent.innerHTML = `
-          <div class="tcm-section">
-            <h4>📊 整體解讀</h4>
-            <p>${analysis.overall.replace(/\n/g, '<br>')}</p>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>⚡ 動爻分析</h4>
-            <p>${analysis.movingYao}</p>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>🎯 用神分析</h4>
-            <p>${analysis.yongShenAnalysis}</p>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>💡 行動建議</h4>
-            <ul>
-              ${analysis.advice.map(item => `<li>${item}</li>`).join('')}
-            </ul>
-          </div>
-          
-          ${analysis.timing ? `
-          <div class="tcm-section">
-            <h4>⏰ 時機分析</h4>
-            <p>${analysis.timing}</p>
-          </div>
-          ` : ''}
-          
-          ${analysis.riskAssessment ? `
-          <div class="tcm-section">
-            <h4>⚠️ 風險評估</h4>
-            <p>${analysis.riskAssessment}</p>
-          </div>
-          ` : ''}
-          
-          <div class="muted" style="margin-top: 16px; font-size: 12px;">
-            分析來源: DeepSeek AI • 模型: ${analysisData.metadata.model} • 時間: ${new Date(analysisData.metadata.analyzedAt).toLocaleString()}
-          </div>
-        `;
-      }
-
-      updateTCMAnalysis(tcmAnalysis) {
-        const analysis = tcmAnalysis.analysis;
-        const tcmContent = document.getElementById('tcmContent');
-        
-        tcmContent.innerHTML = `
-          <div class="tcm-tags">
-            <span class="tcm-tag">體質：${analysis.constitution}</span>
-          </div>
-          
-          <div class="tcm-section">
-            <h4>🔬 體質分析</h4>
-            <p>${analysis.constitutionAnalysis}</p>
-          </div>
-          
-          ${analysis.characteristics ? `
-          <div class="tcm-section">
-            <h4>📋 主要特徵</h4>
-            <p>${analysis.characteristics}</p>
-          </div>
-          ` : ''}
-          
-          ${analysis.recommendedDepartments && analysis.recommendedDepartments.length > 0 ? `
-          <div class="tcm-section">
-            <h4>🏥 建議就診科別</h4>
-            <ul>
-              ${analysis.recommendedDepartments.map(dept => `<li>${dept}</li>`).join('')}
-            </ul>
-          </div>
-          ` : ''}
-          
-          ${analysis.herbalRecommendations && analysis.herbalRecommendations.length > 0 ? `
-          <div class="tcm-section">
-            <h4>💊 中藥方劑建議</h4>
-            <ul>
-              ${analysis.herbalRecommendations.map(herb => `<li>${herb}</li>`).join('')}
-            </ul>
-          </div>
-          ` : ''}
-          
-          ${analysis.acupuncturePoints && analysis.acupuncturePoints.length > 0 ? `
-          <div class="tcm-section">
-            <h4>📍 穴位保健</h4>
-            <ul>
-              ${analysis.acupuncturePoints.map(point => `<li>${point}</li>`).join('')}
-            </ul>
-          </div>
-          ` : ''}
-          
-          ${analysis.dietRecommendations && (analysis.dietRecommendations.foods.length > 0 || analysis.dietRecommendations.avoid.length > 0) ? `
-          <div class="tcm-section">
-            <h4>🥗 飲食調養</h4>
-            ${analysis.dietRecommendations.foods.length > 0 ? `<p><strong>宜食：</strong>${analysis.dietRecommendations.foods.join('、')}</p>` : ''}
-            ${analysis.dietRecommendations.avoid.length > 0 ? `<p><strong>忌食：</strong>${analysis.dietRecommendations.avoid.join('、')}</p>` : ''}
-          </div>
-          ` : ''}
-          
-          ${analysis.lifestyleRecommendations && analysis.lifestyleRecommendations.length > 0 ? `
-          <div class="tcm-section">
-            <h4>📋 生活調養</h4>
-            <ul>
-              ${analysis.lifestyleRecommendations.map(item => `<li>${item}</li>`).join('')}
-            </ul>
-          </div>
-          ` : ''}
-        `;
-      }
-    }
-
-    // 初始化應用
-    const app = new LiuYaoApp(DEEPSEEK_API_KEY);
-    document.addEventListener('DOMContentLoaded', function() {
-      app.init();
-      app.updateRadarChart();
-    });
-  </script>
+        // 聚焦輸入框
+        messageInput.focus();
+    </script>
 </body>
 </html>
