@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>仙人指路六爻排盤 - 完整版（含零錢起卦+用神世應分析+中醫API）</title>
+  <title>仙人指路六爻排盤 - 完整版（含用神世應分析）</title>
   <style>
     :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
     *{box-sizing:border-box}
@@ -103,6 +103,15 @@
     .yongShenAnalysis p {
       margin: 4px 0;
       font-size: 14px;
+    }
+    .yongShenAnalysis .shiying-info {
+      background: #dbeafe;
+      padding: 8px;
+      border-radius: 6px;
+      margin: 8px 0;
+    }
+    .yongShenAnalysis .shiying-info strong {
+      color: #1e40af;
     }
     
     /* 零錢起卦樣式 */
@@ -227,24 +236,12 @@
       margin-top: 10px;
       justify-content: center;
     }
-
-    /* 中藥名稱樣式 */
-    .herb-name {
-      color: #059669;
-      cursor: pointer;
-      text-decoration: underline;
-      text-decoration-style: dotted;
-    }
-    .herb-name:hover {
-      color: #047857;
-      background: #f0fdf4;
-    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
 </head>
 <body>
   <main>
-    <h1>仙人指路六爻排盤 - 完整版（含零錢起卦+用神世應分析+中醫API）</h1>
+    <h1>仙人指路六爻排盤 - 完整版（含用神世應分析）</h1>
     <div id="err"></div>
     
     <!-- 零錢起卦區塊 -->
@@ -307,13 +304,6 @@
             <option value="子孫">子孫 (福德/解憂)</option>
           </select>
           <span id="ysName" class="badge"></span>
-        </div>
-
-        <!-- 症狀輸入區塊 -->
-        <div class="row hide-print" style="gap:14px; margin-top:10px;">
-          <label>症狀描述</label>
-          <input id="symptoms" type="text" placeholder="可選：描述具體不適症狀（如：失眠、頭痛、消化不良等）">
-          <button id="btnAnalyzeSymptoms">分析症狀</button>
         </div>
         
         <div class="row hide-print" style="gap:14px">
@@ -738,325 +728,152 @@
       return lines.map((v, i) => moving[i] ? (v ? 0 : 1) : v); 
     }
 
-    // ==================== 增強版中醫 API 系統 ====================
-    class EnhancedTCMSystem {
-        constructor() {
-            this.baseURL = '/api/analyze'; // 您的後端 API 地址
+    // ==================== 用神世應分析系統 ====================
+    function analyzeYongShenWithShiYing(yongShen, sixKin, moving, branches) {
+        // 計算世應位置（簡單版本：世在6爻，應在3爻）
+        const shiPosition = 6; // 世爻在第六爻
+        const yingPosition = 3; // 應爻在第三爻
+        
+        const analysis = {
+            用神: yongShen,
+            世爻位置: `${shiPosition}爻`,
+            應爻位置: `${yingPosition}爻`,
+            用神在世爻: false,
+            用神在應爻: false,
+            用神動爻: false,
+            用神強弱: '中等',
+            世應關係: '',
+            建議: []
+        };
+
+        // 檢查用神在世爻位置（注意：卦盤顯示是從上到下6->1，但數組是0->5）
+        const shiIndex = 6 - shiPosition; // 6爻對應數組索引0
+        const yingIndex = 6 - yingPosition; // 3爻對應數組索引3
+        
+        analysis.用神在世爻 = sixKin[shiIndex] === yongShen;
+        analysis.用神在應爻 = sixKin[yingIndex] === yongShen;
+        
+        // 檢查用神是否為動爻
+        analysis.用神動爻 = sixKin.some((kin, index) => 
+            kin === yongShen && moving[index]
+        );
+
+        // 判斷用神強弱
+        if (analysis.用神在世爻) {
+            analysis.用神強弱 = '強';
+            analysis.世應關係 = '用神持世';
+            analysis.建議.push('用神持世，事主主動，事易成功');
+        } else if (analysis.用神在應爻) {
+            analysis.用神強弱 = '中等';
+            analysis.世應關係 = '用神在應';
+            analysis.建議.push('用神在應爻，需看他人助力，事在人為');
+        } else {
+            analysis.用神強弱 = '一般';
+            analysis.世應關係 = '用神不在世應';
+            analysis.建議.push('用神不在世應位置，需看其他爻位生扶');
         }
 
-        async getDetailedTCMAdvice(meElem, w5Scores, symptoms = [], userInfo = {}) {
-            try {
-                const response = await fetch(this.baseURL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'detailed_tcm_analysis',
-                        constitution: meElem,
-                        element_balance: w5Scores,
-                        symptoms: symptoms,
-                        user_info: userInfo,
-                        timestamp: new Date().toISOString()
-                    })
-                });
+        // 如果用神是動爻
+        if (analysis.用神動爻) {
+            analysis.用神強弱 = '動態變化';
+            analysis.建議.push('用神發動，事情有變化轉機');
+        }
 
-                if (!response.ok) {
-                    throw new Error(`後台服務錯誤: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                if (data.success && data.data) {
-                    return this.formatDetailedResponse(data.data);
-                } else {
-                    return this.getLocalTCMAdvice(meElem);
-                }
-                
-            } catch (error) {
-                console.error('中醫後台連接失敗:', error);
-                return this.getLocalTCMAdvice(meElem);
+        // 檢查用神所在的五行與世應位置的關係
+        const yongShenPositions = [];
+        sixKin.forEach((kin, index) => {
+            if (kin === yongShen) {
+                const position = 6 - index; // 轉換為爻位
+                yongShenPositions.push(`${position}爻`);
             }
-        }
-
-        formatDetailedResponse(data) {
-            return {
-                constitution: data.constitution || '',
-                zang_fu: data.zang_fu || {},
-                diagnosis: data.patterns || [],
-                syndrome_analysis: data.syndrome_analysis || '',
-                risk_factors: data.risk_factors || [],
-                recommended_departments: data.recommended_departments || [],
-                herbal_prescriptions: data.herbal_prescriptions || [],
-                acupuncture_points: data.acupuncture_points || [],
-                lifestyle_advice: data.lifestyle_advice || [],
-                diet_recommendations: data.diet_recommendations || [],
-                exercise_suggestions: data.exercise_suggestions || [],
-                seasonal_advice: data.seasonal_advice || {},
-                urgent_advice: data.urgent_advice || [],
-                professional_recommendations: data.professional_recommendations || []
-            };
-        }
-
-        async submitSymptoms(symptoms, userInfo = {}) {
-            try {
-                const response = await fetch(this.baseURL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'submit_symptoms',
-                        symptoms: symptoms,
-                        user_info: userInfo,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                
-                return await response.json();
-            } catch (error) {
-                console.error('症狀提交失敗:', error);
-                return { success: false, error: '網絡連接失敗' };
-            }
-        }
-
-        async getHerbDetails(herbName) {
-            try {
-                const response = await fetch(this.baseURL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'get_herb_details',
-                        herb_name: herbName
-                    })
-                });
-                
-                const data = await response.json();
-                return data.success ? data.data : null;
-            } catch (error) {
-                console.error('藥材詳情獲取失敗:', error);
-                return null;
-            }
-        }
-
-        getLocalTCMAdvice(meElem) {
-            const MAP = {
-                '木': { 
-                    zang: '肝', fu: '膽', 
-                    dept: ['肝膽科', '情志科', '睡眠門診', '骨科/復健科'], 
-                    patterns: ['肝氣鬱結', '肝火上炎', '肝血不足', '肝腎陰虛', '肝陽上亢'], 
-                    self: ['規律作息、舒展拉筋', '少酒辣與熬夜', '情志舒解（散步、冥想）'],
-                    diet: ['綠色蔬菜', '酸味食物', '枸杞', '菊花茶'],
-                    warning: '注意情緒波動，避免過度勞累'
-                },
-                '火': { 
-                    zang: '心', fu: '小腸', 
-                    dept: ['心血管', '身心/睡眠'], 
-                    patterns: ['心火亢盛', '心脾兩虛', '心陰不足'], 
-                    self: ['少咖啡酒精', '減少熬夜與重鹹', '午間小憩、清心安神'] 
-                },
-                '土': { 
-                    zang: '脾', fu: '胃', 
-                    dept: ['脾胃消化', '內分泌/代謝'], 
-                    patterns: ['脾胃虛弱', '濕困脾胃', '胃氣上逆'], 
-                    self: ['少冰冷甜膩', '三餐定時少量多餐', '腹式呼吸、飯後步行'] 
-                },
-                '金': { 
-                    zang: '肺', fu: '大腸', 
-                    dept: ['呼吸過敏', '皮膚', '耳鼻喉'], 
-                    patterns: ['肺氣虛', '肺陰虛', '風寒/風熱犯肺'], 
-                    self: ['避免過敏源', '適度蒸氣/保濕', '早睡早起、練呼吸'] 
-                },
-                '水': { 
-                    zang: '腎', fu: '膀胱', 
-                    dept: ['腎泌尿', '內科體質'], 
-                    patterns: ['腎陽虛', '腎陰虛', '腎氣不足'], 
-                    self: ['保暖腰腹與足部', '規律作息、早睡', '溫和伸展與補水'] 
-                }
-            };
-            return MAP[meElem] || MAP['土'];
-        }
-    }
-
-    // 初始化增強版中醫系統
-    let tcmSystem = new EnhancedTCMSystem();
-
-    // 更新中醫建議顯示函數
-    async function updateTCMAdvice(meElem, w5Scores) {
-        const core = document.getElementById('tcmCore');
-        const lists = document.getElementById('tcmLists');
-        
-        if (!core || !lists) return;
-
-        core.innerHTML = '<span class="tag">分析中...</span>';
-        lists.innerHTML = '<p>正在連接中醫數據庫...</p>';
-
-        try {
-            const advice = await tcmSystem.getDetailedTCMAdvice(meElem, w5Scores);
-            displayDetailedTCMAdvice(advice, meElem);
-        } catch (error) {
-            console.error('中醫建議獲取失敗:', error);
-            const localAdvice = tcmSystem.getLocalTCMAdvice(meElem);
-            displayTCMAdvice(localAdvice, meElem);
-        }
-    }
-
-    // 顯示詳細中醫建議
-    function displayDetailedTCMAdvice(advice, meElem) {
-        const core = document.getElementById('tcmCore');
-        const lists = document.getElementById('tcmLists');
-        
-        let tags = `<span class="tag">卦宮五行：${meElem}</span>`;
-        
-        if (advice.zang_fu && advice.zang_fu.zang) {
-            tags += `<span class="tag">臟腑：${advice.zang_fu.zang}／${advice.zang_fu.fu}</span>`;
-        }
-        
-        if (advice.constitution) {
-            tags += `<span class="tag">體質：${advice.constitution}</span>`;
-        }
-        
-        core.innerHTML = tags;
-
-        let html = '';
-        
-        if (advice.diagnosis && advice.diagnosis.length > 0) {
-            html += `<div class="blk"><h4>🧬 辨證診斷</h4><ul>`;
-            html += advice.diagnosis.map(pattern => `<li>${pattern}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.risk_factors && advice.risk_factors.length > 0) {
-            html += `<div class="blk"><h4>⚠️ 潛在風險</h4><ul>`;
-            html += advice.risk_factors.map(risk => `<li>${risk}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.recommended_departments && advice.recommended_departments.length > 0) {
-            html += `<div class="blk"><h4>🏥 建議就診科別</h4><ul>`;
-            html += advice.recommended_departments.map(dept => `<li>${dept}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.herbal_prescriptions && advice.herbal_prescriptions.length > 0) {
-            html += `<div class="blk"><h4>🌿 中藥建議（參考）</h4><ul>`;
-            html += advice.herbal_prescriptions.map(herb => 
-                `<li><span class="herb-name" data-herb="${herb.name}">${herb.name}</span> - ${herb.function || ''}</li>`
-            ).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.acupuncture_points && advice.acupuncture_points.length > 0) {
-            html += `<div class="blk"><h4>📍 針灸穴位建議</h4><ul>`;
-            html += advice.acupuncture_points.map(point => `<li>${point}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.lifestyle_advice && advice.lifestyle_advice.length > 0) {
-            html += `<div class="blk"><h4>💪 生活調養</h4><ul>`;
-            html += advice.lifestyle_advice.map(advice => `<li>${advice}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.diet_recommendations && advice.diet_recommendations.length > 0) {
-            html += `<div class="blk"><h4>🍎 飲食建議</h4><ul>`;
-            html += advice.diet_recommendations.map(food => `<li>${food}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.exercise_suggestions && advice.exercise_suggestions.length > 0) {
-            html += `<div class="blk"><h4>🚶 運動建議</h4><ul>`;
-            html += advice.exercise_suggestions.map(exercise => `<li>${exercise}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        if (advice.urgent_advice && advice.urgent_advice.length > 0) {
-            html += `<div class="blk" style="border-left: 4px solid #ef4444; padding-left: 12px;">
-                    <h4>🚨 重要提醒</h4><ul>`;
-            html += advice.urgent_advice.map(urgent => `<li style="color: #ef4444;">${urgent}</li>`).join('');
-            html += `</ul></div>`;
-        }
-
-        lists.innerHTML = html;
-        bindHerbDetailsEvents();
-    }
-
-    // 綁定藥材詳情事件
-    function bindHerbDetailsEvents() {
-        document.querySelectorAll('.herb-name').forEach(herbElement => {
-            herbElement.addEventListener('click', async function() {
-                const herbName = this.dataset.herb;
-                const details = await tcmSystem.getHerbDetails(herbName);
-                
-                if (details) {
-                    showHerbDetailsModal(herbName, details);
-                } else {
-                    alert(`暫無 ${herbName} 的詳細資料`);
-                }
-            });
         });
+
+        if (yongShenPositions.length > 0) {
+            analysis.用神位置 = yongShenPositions.join('、');
+        }
+
+        return analysis;
     }
 
-    // 顯示藥材詳情彈窗
-    function showHerbDetailsModal(herbName, details) {
-        const modalHTML = `
-            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:10000;">
-                <div style="background:white; padding:20px; border-radius:10px; max-width:500px; max-height:80vh; overflow-y:auto;">
-                    <h3>🌿 ${herbName}</h3>
-                    ${details.properties ? `<p><strong>性味歸經：</strong>${details.properties}</p>` : ''}
-                    ${details.functions ? `<p><strong>功效：</strong>${details.functions}</p>` : ''}
-                    ${details.usage ? `<p><strong>用法用量：</strong>${details.usage}</p>` : ''}
-                    ${details.precautions ? `<p><strong>注意事項：</strong>${details.precautions}</p>` : ''}
-                    <button onclick="this.parentElement.parentElement.remove()" style="margin-top:10px; padding:5px 10px;">關閉</button>
-                </div>
+    function displayYongShenAnalysis(analysis) {
+        let analysisHTML = `
+            <div class="yongShenAnalysis">
+                <h4>用神世應分析</h4>
+                <p><strong>用神：</strong>${analysis.用神}</p>
+                <p><strong>強弱：</strong><span style="color: ${
+                    analysis.用神強弱 === '強' ? '#059669' : 
+                    analysis.用神強弱 === '動態變化' ? '#d97706' : '#64748b'
+                }">${analysis.用神強弱}</span></p>
+        `;
+
+        // 世應信息
+        analysisHTML += `
+            <div class="shiying-info">
+                <p><strong>世應分析：</strong></p>
+                <p>• 世爻：${analysis.世爻位置} ${analysis.用神在世爻 ? '✅ 用神在此' : ''}</p>
+                <p>• 應爻：${analysis.應爻位置} ${analysis.用神在應爻 ? '✅ 用神在此' : ''}</p>
+                <p>• 關係：${analysis.世應關係}</p>
+                ${analysis.用神位置 ? `<p>• 用神位置：${analysis.用神位置}</p>` : ''}
+                ${analysis.用神動爻 ? '<p>• 🎯 用神為動爻</p>' : ''}
+            </div>
+        `;
+
+        // 建議
+        analysisHTML += `
+            <p><strong>分析建議：</strong></p>
+            <ul style="margin: 8px 0; padding-left: 20px;">
+        `;
+        
+        analysis.建議.forEach(item => {
+            analysisHTML += `<li style="margin: 4px 0;">${item}</li>`;
+        });
+        
+        analysisHTML += `
+            </ul>
             </div>
         `;
         
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const analysisDiv = document.getElementById('yongShenAnalysis');
+        analysisDiv.innerHTML = analysisHTML;
     }
 
-    // 分析症狀函數
-    async function analyzeSymptoms() {
-        const symptomsInput = document.getElementById('symptoms');
-        const symptoms = symptomsInput.value.trim();
-        
-        if (!symptoms) {
-            alert('請輸入症狀描述');
-            return;
-        }
-        
-        try {
-            const result = await tcmSystem.submitSymptoms([symptoms]);
-            
-            if (result.success) {
-                alert('症狀已提交分析，建議已更新！');
-                const meElem = window.__lastMeElem;
-                const w5Scores = getCurrentW5Scores();
-                if (meElem) {
-                    updateTCMAdvice(meElem, w5Scores);
-                }
-            } else {
-                alert('症狀分析失敗：' + (result.error || '未知錯誤'));
+    // ==================== 中醫建議系統 ====================
+    function getLocalTCMAdvice(meElem) {
+        const MAP = {
+            '木': { 
+                zang: '肝', fu: '膽', 
+                dept: ['肝膽科', '情志科', '睡眠門診', '骨科/復健科'], 
+                patterns: ['肝氣鬱結', '肝火上炎', '肝血不足', '肝腎陰虛', '肝陽上亢'], 
+                self: ['規律作息、舒展拉筋', '少酒辣與熬夜', '情志舒解（散步、冥想）'] 
+            },
+            '火': { 
+                zang: '心', fu: '小腸', 
+                dept: ['心血管', '身心/睡眠'], 
+                patterns: ['心火亢盛', '心脾兩虛', '心陰不足'], 
+                self: ['少咖啡酒精', '減少熬夜與重鹹', '午間小憩、清心安神'] 
+            },
+            '土': { 
+                zang: '脾', fu: '胃', 
+                dept: ['脾胃消化', '內分泌/代謝'], 
+                patterns: ['脾胃虛弱', '濕困脾胃', '胃氣上逆'], 
+                self: ['少冰冷甜膩', '三餐定時少量多餐', '腹式呼吸、飯後步行'] 
+            },
+            '金': { 
+                zang: '肺', fu: '大腸', 
+                dept: ['呼吸過敏', '皮膚', '耳鼻喉'], 
+                patterns: ['肺氣虛', '肺陰虛', '風寒/風熱犯肺'], 
+                self: ['避免過敏源', '適度蒸氣/保濕', '早睡早起、練呼吸'] 
+            },
+            '水': { 
+                zang: '腎', fu: '膀胱', 
+                dept: ['腎泌尿', '內科體質'], 
+                patterns: ['腎陽虛', '腎陰虛', '腎氣不足'], 
+                self: ['保暖腰腹與足部', '規律作息、早睡', '溫和伸展與補水'] 
             }
-        } catch (error) {
-            alert('症狀分析連接失敗');
-        }
-    }
-
-    // 獲取當前五行分數
-    function getCurrentW5Scores() {
-        return {
-            '木': parseInt(document.getElementById('w5_mu').value),
-            '火': parseInt(document.getElementById('w5_huo').value),
-            '土': parseInt(document.getElementById('w5_tu').value),
-            '金': parseInt(document.getElementById('w5_jin').value),
-            '水': parseInt(document.getElementById('w5_shui').value)
         };
+        return MAP[meElem] || MAP['土'];
     }
 
-    // 顯示本地中醫建議（備用）
     function displayTCMAdvice(advice, meElem) {
         const core = document.getElementById('tcmCore');
         const lists = document.getElementById('tcmLists');
@@ -1092,51 +909,9 @@
         lists.innerHTML = html;
     }
 
-    // ==================== 用神世應分析系統 ====================
-    function analyzeYongShenWithShiYing(yongShen, shiPosition, yingPosition, sixKin, moving) {
-        const analysis = {
-            用神: yongShen,
-            世爻位置: shiPosition,
-            應爻位置: yingPosition,
-            用神強弱: '中等',
-            建議: []
-        };
-
-        const yongShenAtShi = sixKin[6-shiPosition] === yongShen;
-        const yongShenAtYing = sixKin[6-yingPosition] === yongShen;
-        
-        if (yongShenAtShi) {
-            analysis.用神強弱 = '強';
-            analysis.建議.push('用神持世，事易成');
-        } else if (yongShenAtYing) {
-            analysis.用神強弱 = '中等';
-            analysis.建議.push('用神在應爻，需看他人助力');
-        }
-
-        const yongShenMoving = sixKin.some((kin, index) => 
-            kin === yongShen && moving[index]
-        );
-        
-        if (yongShenMoving) {
-            analysis.用神強弱 = '動態變化';
-            analysis.建議.push('用神發動，事有變動');
-        }
-
-        return analysis;
-    }
-
-    function displayYongShenAnalysis(analysis) {
-        const analysisHTML = `
-            <div class="yongShenAnalysis">
-                <h4>用神分析</h4>
-                <p><strong>用神：</strong>${analysis.用神}</p>
-                <p><strong>強弱：</strong>${analysis.用神強弱}</p>
-                <p><strong>建議：</strong>${analysis.建議.join('；')}</p>
-            </div>
-        `;
-        
-        const analysisDiv = document.getElementById('yongShenAnalysis');
-        analysisDiv.innerHTML = analysisHTML;
+    function updateTCMAdvice(meElem, w5Scores) {
+        const advice = getLocalTCMAdvice(meElem);
+        displayTCMAdvice(advice, meElem);
     }
 
     // ==================== 卦盤繪製系統 ====================
@@ -1342,8 +1117,9 @@
         w5s = res.scores; 
         ysTxt = `${yongShen}(${res.targetElem} ${w5s[res.targetElem].toFixed(1)})`; 
         
+        // 用神世應分析
         const yongShenAnalysis = analyzeYongShenWithShiYing(
-            yongShen, 6, 3, kins, window.moving
+            yongShen, kins, window.moving, branches
         );
         displayYongShenAnalysis(yongShenAnalysis);
       } else {
@@ -1531,8 +1307,6 @@
       E('btnResetCoins').addEventListener('click', resetCoins);
       E('btnApplyCoins').addEventListener('click', applyCoinResults);
       E('btnAutoToss').addEventListener('click', autoTossSixTimes);
-      
-      E('btnAnalyzeSymptoms').addEventListener('click', analyzeSymptoms);
       
       const mvCtl = E('mvCtl');
       mvCtl.innerHTML = [6, 5, 4, 3, 2, 1].map(p => 
