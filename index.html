@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>仙人指路六爻排盤 - 完整穩定版（含零錢起卦）</title>
+  <title>仙人指路六爻排盤 - 完整版（含零錢起卦+用神世應分析+中醫API）</title>
   <style>
-    /* 原有樣式保持不變 */
     :root{--card:#fff;--line:#e5e7eb;--muted:#64748b}
     *{box-sizing:border-box}
     body{margin:0;background:#f6f7fb;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui}
@@ -87,10 +86,24 @@
     #tcmLists ul{margin:4px 0 8px 18px;padding:0}
     #tcmLists li{margin:2px 0}
     #tcmBox .tcm-note{margin-top:8px;color:#64748b;font-size:12px}
-    #saveBarTop{position:fixed;top:10px;right:120px;z-index:10002;display:flex;gap:6px;flex-wrap:wrap}
-    #saveBarTop button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
-    #saveBarTop button:hover{box-shadow:0 1px 6px rgba(0,0,0,.08)}
-    @media print{#saveBarTop{display:none!important}}
+    
+    /* 用神分析樣式 */
+    .yongShenAnalysis {
+      margin: 10px 0;
+      padding: 12px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+    .yongShenAnalysis h4 {
+      margin: 0 0 8px 0;
+      color: #1e40af;
+      font-size: 16px;
+    }
+    .yongShenAnalysis p {
+      margin: 4px 0;
+      font-size: 14px;
+    }
     
     /* 零錢起卦樣式 */
     .coin-section {
@@ -214,14 +227,25 @@
       margin-top: 10px;
       justify-content: center;
     }
+
+    /* 中藥名稱樣式 */
+    .herb-name {
+      color: #059669;
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+    }
+    .herb-name:hover {
+      color: #047857;
+      background: #f0fdf4;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
 </head>
 <body>
   <main>
-    <h1>仙人指路六爻排盤</h1>
+    <h1>仙人指路六爻排盤 - 完整版（含零錢起卦+用神世應分析+中醫API）</h1>
     <div id="err"></div>
-    <div id="saveBarTop"></div>
     
     <!-- 零錢起卦區塊 -->
     <div class="coin-section">
@@ -240,6 +264,7 @@
         <button id="btnTossCoins">擲零錢</button>
         <button id="btnResetCoins">重置</button>
         <button id="btnApplyCoins">套用卦象</button>
+        <button id="btnAutoToss">自動擲六次</button>
       </div>
       <div class="coin-results" id="coinResults">
         <!-- 爻位結果將在這裡顯示 -->
@@ -248,28 +273,127 @@
     
     <div class="grid">
       <section class="sec">
-        <div class="row hide-print"><label>上卦</label><select id="upper"><option>乾</option><option>兌</option><option>離</option><option>震</option><option>巽</option><option selected>坎</option><option>艮</option><option>坤</option></select><span>下卦</span><select id="lower"><option selected>坎</option><option>乾</option><option>兌</option><option>離</option><option>震</option><option>巽</option><option>艮</option><option>坤</option></select><span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span></div>
-        <div class="row btns hide-print" style="gap:8px"><button id="btnRandomHex">隨機起卦（零錢動畫）</button></div>
-        <div class="row hide-print" style="gap:14px"><label>問題</label><input id="question" type="text" placeholder="請輸入起卦問題（會印在卦象上方）" value="示例：求財運"></div>
-        <div class="row hide-print" style="gap:14px"><label>用神</label><select id="yongShen"><option value="">（未指定）</option><option value="父母">父母 (學業/文書)</option><option value="兄弟">兄弟 (競爭/劫財)</option><option value="官鬼">官鬼 (事業/疾病)</option><option value="妻財" selected>妻財 (求財/妻子)</option><option value="子孫">子孫 (福德/解憂)</option></select><span id="ysName" class="badge"></span></div>
-        <div class="row hide-print" style="gap:14px"><label>時間</label><input id="dt" type="datetime-local"><button id="btnNow">現在</button><button id="btnPrint">列印（A4）</button><span class="muted">四柱由 Lunar.js 精準換算</span></div>
-        <div class="row pillars"><span id="gzYear">年：—</span><span id="gzMonth">月：—</span><span id="gzDay">日：—</span><span id="gzHour">時：—</span><span id="gzXun">旬首：—</span><span id="gzKW">空亡：—</span></div>
-        <div class="row hide-print"><label>動爻</label><div class="yaoCtl" id="mvCtl"></div></div>
-        <div class="row hide-print" style="gap:10px"><button id="redraw">重繪卦象</button><button id="download">匯出 PNG</button><button id="btnUpdateRadar">更新雷達圖</button></div>
-        <div class="canvasWrap"><canvas id="hexCanvas"></canvas></div>
-        <div id="noteBox" class="noteBox"><label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label><textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea></div>
-        <div class="row hide-print"><label>大小</label><input type="range" id="size" min="140" max="440" value="300"><span class="miniVal" id="sizeVal">300</span><label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span><label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span><label>爻距</label><input type="range" id="gap" min="26" max="38" value="32"><span class="miniVal" id="gapVal">32</span><label>欄頭間距</label><input type="range" id="headgap" min="16" max="48" value="24"><span class="miniVal" id="headgapVal">24</span></div>
+        <div class="row hide-print">
+          <label>上卦</label>
+          <select id="upper">
+            <option>乾</option><option>兌</option><option>離</option><option>震</option>
+            <option>巽</option><option selected>坎</option><option>艮</option><option>坤</option>
+          </select>
+          <span>下卦</span>
+          <select id="lower">
+            <option selected>坎</option><option>乾</option><option>兌</option><option>離</option>
+            <option>震</option><option>巽</option><option>艮</option><option>坤</option>
+          </select>
+          <span class="badge">伏神＝缺則回本宮純卦補位｜世應：1↔4、2↔5、3↔6</span>
+        </div>
+        
+        <div class="row btns hide-print" style="gap:8px">
+          <button id="btnRandomHex">隨機起卦</button>
+        </div>
+        
+        <div class="row hide-print" style="gap:14px">
+          <label>問題</label>
+          <input id="question" type="text" placeholder="請輸入起卦問題" value="示例：求財運">
+        </div>
+        
+        <div class="row hide-print" style="gap:14px">
+          <label>用神</label>
+          <select id="yongShen">
+            <option value="">（未指定）</option>
+            <option value="父母">父母 (學業/文書)</option>
+            <option value="兄弟">兄弟 (競爭/劫財)</option>
+            <option value="官鬼">官鬼 (事業/疾病)</option>
+            <option value="妻財" selected>妻財 (求財/妻子)</option>
+            <option value="子孫">子孫 (福德/解憂)</option>
+          </select>
+          <span id="ysName" class="badge"></span>
+        </div>
+
+        <!-- 症狀輸入區塊 -->
+        <div class="row hide-print" style="gap:14px; margin-top:10px;">
+          <label>症狀描述</label>
+          <input id="symptoms" type="text" placeholder="可選：描述具體不適症狀（如：失眠、頭痛、消化不良等）">
+          <button id="btnAnalyzeSymptoms">分析症狀</button>
+        </div>
+        
+        <div class="row hide-print" style="gap:14px">
+          <label>時間</label>
+          <input id="dt" type="datetime-local">
+          <button id="btnNow">現在</button>
+          <button id="btnPrint">列印（A4）</button>
+          <span class="muted">四柱由 Lunar.js 精準換算</span>
+        </div>
+        
+        <div class="row pillars">
+          <span id="gzYear">年：—</span>
+          <span id="gzMonth">月：—</span>
+          <span id="gzDay">日：—</span>
+          <span id="gzHour">時：—</span>
+          <span id="gzXun">旬首：—</span>
+          <span id="gzKW">空亡：—</span>
+        </div>
+        
+        <div class="row hide-print">
+          <label>動爻</label>
+          <div class="yaoCtl" id="mvCtl"></div>
+        </div>
+        
+        <div class="row hide-print" style="gap:10px">
+          <button id="redraw">重繪卦象</button>
+          <button id="download">匯出 PNG</button>
+          <button id="btnUpdateRadar">更新雷達圖</button>
+        </div>
+        
+        <!-- 用神分析顯示區域 -->
+        <div id="yongShenAnalysis"></div>
+        
+        <div class="canvasWrap">
+          <canvas id="hexCanvas"></canvas>
+        </div>
+        
+        <div id="noteBox" class="noteBox">
+          <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
+          <textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea>
+        </div>
+        
+        <div class="row hide-print">
+          <label>大小</label><input type="range" id="size" min="140" max="440" value="300"><span class="miniVal" id="sizeVal">300</span>
+          <label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span>
+          <label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span>
+          <label>爻距</label><input type="range" id="gap" min="26" max="38" value="32"><span class="miniVal" id="gapVal">32</span>
+          <label>欄頭間距</label><input type="range" id="headgap" min="16" max="48" value="24"><span class="miniVal" id="headgapVal">24</span>
+        </div>
+        
         <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
       </section>
+      
       <section class="sec">
-        <div id="w5_sec" class="w5-sec"><h3>五行雷達圖</h3><div class="canvasWrap" style="overflow-x:visible;"><canvas id="w5_canv" style="min-width:auto; height:300px;"></canvas></div><div id="w5_ctrl"><div class="row"><label>木</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div><div class="row"><label>火</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div><div class="row"><label>土</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div><div class="row"><label>金</label><input id="w5_jin" type="range" min="1" max="10" step="1" value="6"><span id="w5_jinVal" class="miniVal">6</span></div><div class="row"><label>水</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div></div></div>
-        <div id="tcmBox" class="tcm-box"><h3>中醫分科建議</h3><div id="tcmCore"></div><div id="tcmLists"></div><div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div></div>
+        <div id="w5_sec" class="w5-sec">
+          <h3>五行雷達圖</h3>
+          <div class="canvasWrap" style="overflow-x:visible;">
+            <canvas id="w5_canv" style="min-width:auto; height:300px;"></canvas>
+          </div>
+          <div id="w5_ctrl">
+            <div class="row"><label>木</label><input id="w5_mu" type="range" min="1" max="10" step="1" value="6"><span id="w5_muVal" class="miniVal">6</span></div>
+            <div class="row"><label>火</label><input id="w5_huo" type="range" min="1" max="10" step="1" value="6"><span id="w5_huoVal" class="miniVal">6</span></div>
+            <div class="row"><label>土</label><input id="w5_tu" type="range" min="1" max="10" step="1" value="6"><span id="w5_tuVal" class="miniVal">6</span></div>
+            <div class="row"><label>金</label><input id="w5_jin" type="range" min="1" max="10" step="1" value="6"><span id="w5_jinVal" class="miniVal">6</span></div>
+            <div class="row"><label>水</label><input id="w5_shui" type="range" min="1" max="10" step="1" value="6"><span id="w5_shuiVal" class="miniVal">6</span></div>
+          </div>
+        </div>
+        
+        <div id="tcmBox" class="tcm-box">
+          <h3>中醫分科建議</h3>
+          <div id="tcmCore"></div>
+          <div id="tcmLists"></div>
+          <div class="tcm-note">※ 本欄為一般性養生與就診建議，非醫療診斷；若有急性或持續性不適，請儘速就醫。</div>
+        </div>
       </section>
     </div>
   </main>
 
   <script>
-    // 零錢起卦相關代碼
+    // ==================== 零錢起卦系統 ====================
     let coinResults = [null, null, null, null, null, null];
     let coinTossCount = 0;
     let isAnimating = false;
@@ -338,7 +462,7 @@
         coin2.classList.remove('spinning');
         coin3.classList.remove('spinning');
 
-        // 模擬擲幣結果
+        // 模擬擲幣結果（1=陽，0=陰）
         const results = [
           Math.random() > 0.5 ? 1 : 0,
           Math.random() > 0.5 ? 1 : 0,
@@ -355,25 +479,25 @@
         coin3.textContent = results[2] ? '陽' : '陰';
         coin3.className = `coin-result ${results[2] ? 'yang' : 'yin'}`;
 
-        // 計算爻象
+        // 計算爻象（三枚硬幣的陰陽組合）
         const yangCount = results.reduce((sum, val) => sum + val, 0);
         let yaoValue, yaoType;
 
         if (yangCount === 3) {
-          yaoValue = 1; yaoType = '老陽';
+          yaoValue = 1; yaoType = '老陽'; // 三陽為老陽（動爻）
         } else if (yangCount === 2) {
-          yaoValue = 0; yaoType = '少陰';
+          yaoValue = 0; yaoType = '少陰'; // 兩陽一陰為少陰
         } else if (yangCount === 1) {
-          yaoValue = 1; yaoType = '少陽';
+          yaoValue = 1; yaoType = '少陽'; // 一陽兩陰為少陽
         } else {
-          yaoValue = 0; yaoType = '老陰';
+          yaoValue = 0; yaoType = '老陰'; // 三陰為老陰（動爻）
         }
 
         // 記錄結果
         coinResults[coinTossCount] = {
           value: yaoValue,
           type: yaoType,
-          moving: yangCount === 3 || yangCount === 0
+          moving: yangCount === 3 || yangCount === 0 // 老陽或老陰為動爻
         };
 
         coinTossCount++;
@@ -395,7 +519,7 @@
       }, 1000);
     }
 
-    // 自動擲六次零錢（用於隨機起卦）
+    // 自動擲六次零錢
     function autoTossSixTimes() {
       resetCoins(); // 先重置
       
@@ -480,11 +604,11 @@
         return;
       }
 
-      // 構建卦象
+      // 構建卦象（從初爻到上爻）
       const lines = coinResults.map(result => result.value);
       const moving = coinResults.map(result => result.moving);
 
-      // 根據卦象確定上下卦
+      // 根據卦象確定上下卦（下卦=初二三爻，上卦=四五六爻）
       const lowerBits = lines.slice(0, 3);
       const upperBits = lines.slice(3, 6);
 
@@ -496,12 +620,12 @@
         document.getElementById('lower').value = lowerTrig;
         document.getElementById('upper').value = upperTrig;
 
-        // 設置動爻 - 修復：確保動爻正確設置
+        // 設置動爻
         const mvCtlInputs = document.querySelectorAll('#mvCtl input[type="checkbox"][data-mv]');
         mvCtlInputs.forEach((cb, index) => {
-          const movingIndex = 5 - index; // 轉換索引
+          const movingIndex = 5 - index; // 轉換索引（卦盤顯示順序）
           cb.checked = moving[movingIndex];
-          window.moving[movingIndex] = moving[movingIndex]; // 更新全局 moving 數組
+          window.moving[movingIndex] = moving[movingIndex];
         });
 
         // 更新卦盤
@@ -614,6 +738,408 @@
       return lines.map((v, i) => moving[i] ? (v ? 0 : 1) : v); 
     }
 
+    // ==================== 增強版中醫 API 系統 ====================
+    class EnhancedTCMSystem {
+        constructor() {
+            this.baseURL = '/api/analyze'; // 您的後端 API 地址
+        }
+
+        async getDetailedTCMAdvice(meElem, w5Scores, symptoms = [], userInfo = {}) {
+            try {
+                const response = await fetch(this.baseURL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'detailed_tcm_analysis',
+                        constitution: meElem,
+                        element_balance: w5Scores,
+                        symptoms: symptoms,
+                        user_info: userInfo,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`後台服務錯誤: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    return this.formatDetailedResponse(data.data);
+                } else {
+                    return this.getLocalTCMAdvice(meElem);
+                }
+                
+            } catch (error) {
+                console.error('中醫後台連接失敗:', error);
+                return this.getLocalTCMAdvice(meElem);
+            }
+        }
+
+        formatDetailedResponse(data) {
+            return {
+                constitution: data.constitution || '',
+                zang_fu: data.zang_fu || {},
+                diagnosis: data.patterns || [],
+                syndrome_analysis: data.syndrome_analysis || '',
+                risk_factors: data.risk_factors || [],
+                recommended_departments: data.recommended_departments || [],
+                herbal_prescriptions: data.herbal_prescriptions || [],
+                acupuncture_points: data.acupuncture_points || [],
+                lifestyle_advice: data.lifestyle_advice || [],
+                diet_recommendations: data.diet_recommendations || [],
+                exercise_suggestions: data.exercise_suggestions || [],
+                seasonal_advice: data.seasonal_advice || {},
+                urgent_advice: data.urgent_advice || [],
+                professional_recommendations: data.professional_recommendations || []
+            };
+        }
+
+        async submitSymptoms(symptoms, userInfo = {}) {
+            try {
+                const response = await fetch(this.baseURL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'submit_symptoms',
+                        symptoms: symptoms,
+                        user_info: userInfo,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                return await response.json();
+            } catch (error) {
+                console.error('症狀提交失敗:', error);
+                return { success: false, error: '網絡連接失敗' };
+            }
+        }
+
+        async getHerbDetails(herbName) {
+            try {
+                const response = await fetch(this.baseURL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'get_herb_details',
+                        herb_name: herbName
+                    })
+                });
+                
+                const data = await response.json();
+                return data.success ? data.data : null;
+            } catch (error) {
+                console.error('藥材詳情獲取失敗:', error);
+                return null;
+            }
+        }
+
+        getLocalTCMAdvice(meElem) {
+            const MAP = {
+                '木': { 
+                    zang: '肝', fu: '膽', 
+                    dept: ['肝膽科', '情志科', '睡眠門診', '骨科/復健科'], 
+                    patterns: ['肝氣鬱結', '肝火上炎', '肝血不足', '肝腎陰虛', '肝陽上亢'], 
+                    self: ['規律作息、舒展拉筋', '少酒辣與熬夜', '情志舒解（散步、冥想）'],
+                    diet: ['綠色蔬菜', '酸味食物', '枸杞', '菊花茶'],
+                    warning: '注意情緒波動，避免過度勞累'
+                },
+                '火': { 
+                    zang: '心', fu: '小腸', 
+                    dept: ['心血管', '身心/睡眠'], 
+                    patterns: ['心火亢盛', '心脾兩虛', '心陰不足'], 
+                    self: ['少咖啡酒精', '減少熬夜與重鹹', '午間小憩、清心安神'] 
+                },
+                '土': { 
+                    zang: '脾', fu: '胃', 
+                    dept: ['脾胃消化', '內分泌/代謝'], 
+                    patterns: ['脾胃虛弱', '濕困脾胃', '胃氣上逆'], 
+                    self: ['少冰冷甜膩', '三餐定時少量多餐', '腹式呼吸、飯後步行'] 
+                },
+                '金': { 
+                    zang: '肺', fu: '大腸', 
+                    dept: ['呼吸過敏', '皮膚', '耳鼻喉'], 
+                    patterns: ['肺氣虛', '肺陰虛', '風寒/風熱犯肺'], 
+                    self: ['避免過敏源', '適度蒸氣/保濕', '早睡早起、練呼吸'] 
+                },
+                '水': { 
+                    zang: '腎', fu: '膀胱', 
+                    dept: ['腎泌尿', '內科體質'], 
+                    patterns: ['腎陽虛', '腎陰虛', '腎氣不足'], 
+                    self: ['保暖腰腹與足部', '規律作息、早睡', '溫和伸展與補水'] 
+                }
+            };
+            return MAP[meElem] || MAP['土'];
+        }
+    }
+
+    // 初始化增強版中醫系統
+    let tcmSystem = new EnhancedTCMSystem();
+
+    // 更新中醫建議顯示函數
+    async function updateTCMAdvice(meElem, w5Scores) {
+        const core = document.getElementById('tcmCore');
+        const lists = document.getElementById('tcmLists');
+        
+        if (!core || !lists) return;
+
+        core.innerHTML = '<span class="tag">分析中...</span>';
+        lists.innerHTML = '<p>正在連接中醫數據庫...</p>';
+
+        try {
+            const advice = await tcmSystem.getDetailedTCMAdvice(meElem, w5Scores);
+            displayDetailedTCMAdvice(advice, meElem);
+        } catch (error) {
+            console.error('中醫建議獲取失敗:', error);
+            const localAdvice = tcmSystem.getLocalTCMAdvice(meElem);
+            displayTCMAdvice(localAdvice, meElem);
+        }
+    }
+
+    // 顯示詳細中醫建議
+    function displayDetailedTCMAdvice(advice, meElem) {
+        const core = document.getElementById('tcmCore');
+        const lists = document.getElementById('tcmLists');
+        
+        let tags = `<span class="tag">卦宮五行：${meElem}</span>`;
+        
+        if (advice.zang_fu && advice.zang_fu.zang) {
+            tags += `<span class="tag">臟腑：${advice.zang_fu.zang}／${advice.zang_fu.fu}</span>`;
+        }
+        
+        if (advice.constitution) {
+            tags += `<span class="tag">體質：${advice.constitution}</span>`;
+        }
+        
+        core.innerHTML = tags;
+
+        let html = '';
+        
+        if (advice.diagnosis && advice.diagnosis.length > 0) {
+            html += `<div class="blk"><h4>🧬 辨證診斷</h4><ul>`;
+            html += advice.diagnosis.map(pattern => `<li>${pattern}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.risk_factors && advice.risk_factors.length > 0) {
+            html += `<div class="blk"><h4>⚠️ 潛在風險</h4><ul>`;
+            html += advice.risk_factors.map(risk => `<li>${risk}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.recommended_departments && advice.recommended_departments.length > 0) {
+            html += `<div class="blk"><h4>🏥 建議就診科別</h4><ul>`;
+            html += advice.recommended_departments.map(dept => `<li>${dept}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.herbal_prescriptions && advice.herbal_prescriptions.length > 0) {
+            html += `<div class="blk"><h4>🌿 中藥建議（參考）</h4><ul>`;
+            html += advice.herbal_prescriptions.map(herb => 
+                `<li><span class="herb-name" data-herb="${herb.name}">${herb.name}</span> - ${herb.function || ''}</li>`
+            ).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.acupuncture_points && advice.acupuncture_points.length > 0) {
+            html += `<div class="blk"><h4>📍 針灸穴位建議</h4><ul>`;
+            html += advice.acupuncture_points.map(point => `<li>${point}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.lifestyle_advice && advice.lifestyle_advice.length > 0) {
+            html += `<div class="blk"><h4>💪 生活調養</h4><ul>`;
+            html += advice.lifestyle_advice.map(advice => `<li>${advice}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.diet_recommendations && advice.diet_recommendations.length > 0) {
+            html += `<div class="blk"><h4>🍎 飲食建議</h4><ul>`;
+            html += advice.diet_recommendations.map(food => `<li>${food}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.exercise_suggestions && advice.exercise_suggestions.length > 0) {
+            html += `<div class="blk"><h4>🚶 運動建議</h4><ul>`;
+            html += advice.exercise_suggestions.map(exercise => `<li>${exercise}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.urgent_advice && advice.urgent_advice.length > 0) {
+            html += `<div class="blk" style="border-left: 4px solid #ef4444; padding-left: 12px;">
+                    <h4>🚨 重要提醒</h4><ul>`;
+            html += advice.urgent_advice.map(urgent => `<li style="color: #ef4444;">${urgent}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        lists.innerHTML = html;
+        bindHerbDetailsEvents();
+    }
+
+    // 綁定藥材詳情事件
+    function bindHerbDetailsEvents() {
+        document.querySelectorAll('.herb-name').forEach(herbElement => {
+            herbElement.addEventListener('click', async function() {
+                const herbName = this.dataset.herb;
+                const details = await tcmSystem.getHerbDetails(herbName);
+                
+                if (details) {
+                    showHerbDetailsModal(herbName, details);
+                } else {
+                    alert(`暫無 ${herbName} 的詳細資料`);
+                }
+            });
+        });
+    }
+
+    // 顯示藥材詳情彈窗
+    function showHerbDetailsModal(herbName, details) {
+        const modalHTML = `
+            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:10000;">
+                <div style="background:white; padding:20px; border-radius:10px; max-width:500px; max-height:80vh; overflow-y:auto;">
+                    <h3>🌿 ${herbName}</h3>
+                    ${details.properties ? `<p><strong>性味歸經：</strong>${details.properties}</p>` : ''}
+                    ${details.functions ? `<p><strong>功效：</strong>${details.functions}</p>` : ''}
+                    ${details.usage ? `<p><strong>用法用量：</strong>${details.usage}</p>` : ''}
+                    ${details.precautions ? `<p><strong>注意事項：</strong>${details.precautions}</p>` : ''}
+                    <button onclick="this.parentElement.parentElement.remove()" style="margin-top:10px; padding:5px 10px;">關閉</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    // 分析症狀函數
+    async function analyzeSymptoms() {
+        const symptomsInput = document.getElementById('symptoms');
+        const symptoms = symptomsInput.value.trim();
+        
+        if (!symptoms) {
+            alert('請輸入症狀描述');
+            return;
+        }
+        
+        try {
+            const result = await tcmSystem.submitSymptoms([symptoms]);
+            
+            if (result.success) {
+                alert('症狀已提交分析，建議已更新！');
+                const meElem = window.__lastMeElem;
+                const w5Scores = getCurrentW5Scores();
+                if (meElem) {
+                    updateTCMAdvice(meElem, w5Scores);
+                }
+            } else {
+                alert('症狀分析失敗：' + (result.error || '未知錯誤'));
+            }
+        } catch (error) {
+            alert('症狀分析連接失敗');
+        }
+    }
+
+    // 獲取當前五行分數
+    function getCurrentW5Scores() {
+        return {
+            '木': parseInt(document.getElementById('w5_mu').value),
+            '火': parseInt(document.getElementById('w5_huo').value),
+            '土': parseInt(document.getElementById('w5_tu').value),
+            '金': parseInt(document.getElementById('w5_jin').value),
+            '水': parseInt(document.getElementById('w5_shui').value)
+        };
+    }
+
+    // 顯示本地中醫建議（備用）
+    function displayTCMAdvice(advice, meElem) {
+        const core = document.getElementById('tcmCore');
+        const lists = document.getElementById('tcmLists');
+        
+        let tags = `<span class="tag">卦宮五行：${meElem}</span>`;
+        
+        if (advice.zang && advice.fu) {
+            tags += `<span class="tag">臟腑：${advice.zang}／${advice.fu}</span>`;
+        }
+        
+        core.innerHTML = tags;
+
+        let html = '';
+        
+        if (advice.dept && advice.dept.length > 0) {
+            html += `<div class="blk"><h4>建議就診科別</h4><ul>`;
+            html += advice.dept.map(dept => `<li>${dept}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.patterns && advice.patterns.length > 0) {
+            html += `<div class="blk"><h4>常見體質／症候（參考）</h4><ul>`;
+            html += advice.patterns.map(pattern => `<li>${pattern}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        if (advice.self && advice.self.length > 0) {
+            html += `<div class="blk"><h4>日常調養建議</h4><ul>`;
+            html += advice.self.map(self => `<li>${self}</li>`).join('');
+            html += `</ul></div>`;
+        }
+
+        lists.innerHTML = html;
+    }
+
+    // ==================== 用神世應分析系統 ====================
+    function analyzeYongShenWithShiYing(yongShen, shiPosition, yingPosition, sixKin, moving) {
+        const analysis = {
+            用神: yongShen,
+            世爻位置: shiPosition,
+            應爻位置: yingPosition,
+            用神強弱: '中等',
+            建議: []
+        };
+
+        const yongShenAtShi = sixKin[6-shiPosition] === yongShen;
+        const yongShenAtYing = sixKin[6-yingPosition] === yongShen;
+        
+        if (yongShenAtShi) {
+            analysis.用神強弱 = '強';
+            analysis.建議.push('用神持世，事易成');
+        } else if (yongShenAtYing) {
+            analysis.用神強弱 = '中等';
+            analysis.建議.push('用神在應爻，需看他人助力');
+        }
+
+        const yongShenMoving = sixKin.some((kin, index) => 
+            kin === yongShen && moving[index]
+        );
+        
+        if (yongShenMoving) {
+            analysis.用神強弱 = '動態變化';
+            analysis.建議.push('用神發動，事有變動');
+        }
+
+        return analysis;
+    }
+
+    function displayYongShenAnalysis(analysis) {
+        const analysisHTML = `
+            <div class="yongShenAnalysis">
+                <h4>用神分析</h4>
+                <p><strong>用神：</strong>${analysis.用神}</p>
+                <p><strong>強弱：</strong>${analysis.用神強弱}</p>
+                <p><strong>建議：</strong>${analysis.建議.join('；')}</p>
+            </div>
+        `;
+        
+        const analysisDiv = document.getElementById('yongShenAnalysis');
+        analysisDiv.innerHTML = analysisHTML;
+    }
+
+    // ==================== 卦盤繪製系統 ====================
     let pillars = null;
     function calcPillarsAndSix() {
       const s = E('dt').value; 
@@ -697,7 +1223,6 @@
         ctx.fillText(r.fu ? '' : '—', col.fu, y + 5); 
         ctx.textAlign = 'left';
         
-        // 繪製爻象
         if (r.yy === 1) { 
           ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao + size, y); ctx.stroke(); 
         } else { 
@@ -705,20 +1230,17 @@
           ctx.beginPath(); ctx.moveTo(col.yao, y); ctx.lineTo(col.yao + seg, y); ctx.moveTo(col.yao + seg + g, y); ctx.lineTo(col.yao + size, y); ctx.stroke(); 
         }
         
-        // 繪製動爻標記 - 修復：確保動爻標記顯示
         if (r.mv) {
-          console.log('繪製動爻標記:', r.yy, '位置:', col.yao + size + 12, y + 6);
-          ctx.fillStyle = '#ef4444'; // 紅色標記
+          ctx.fillStyle = '#ef4444';
           ctx.font = 'bold 16px "Noto Sans TC","Microsoft JhengHei"';
           ctx.fillText(r.yy === 1 ? '○' : '×', col.yao + size + 12, y + 6);
-          ctx.fillStyle = '#0f172a'; // 恢復黑色
+          ctx.fillStyle = '#0f172a';
           ctx.font = '14px "Noto Sans TC","Microsoft JhengHei"';
         }
         
         ctx.fillText(r.kin || '—', col.kin, y + 5); 
         ctx.fillText(r.zhi || '—', col.zhi, y + 5);
         
-        // 繪製變爻信息
         if (r.fu) drawWhiteTag(col.fu, y, r.fu); 
         if (r.mark) drawWhiteTag(col.mark, y, r.mark); 
         if (r.kinc) drawWhiteTag(col.kinc, y, r.kinc); 
@@ -779,7 +1301,6 @@
       E('upper').value = TRIS[Math.floor(Math.random() * TRIS.length)]; 
       E('lower').value = TRIS[Math.floor(Math.random() * TRIS.length)];
       
-      // 重置動爻
       window.moving = [false, false, false, false, false, false];
       
       let hasMovingYao = false; 
@@ -787,7 +1308,7 @@
       mvCtlInputs.forEach((cb, index) => { 
         const isMoving = Math.random() < 0.35; 
         cb.checked = isMoving; 
-        window.moving[index] = isMoving; // 直接更新全局 moving 數組
+        window.moving[index] = isMoving;
         if (isMoving) hasMovingYao = true; 
       });
       
@@ -802,8 +1323,6 @@
     }
 
     function render() {
-      console.log('開始渲染卦盤，動爻狀態:', window.moving);
-      
       const upTri = E('upper').value, loTri = E('lower').value, yongShen = E('yongShen').value; 
       const baseLines = [...TRIG[loTri], ...TRIG[upTri]]; 
       const gzSix = calcPillarsAndSix(); 
@@ -822,6 +1341,13 @@
         const res = calculateYongShenWuxingScores(yongShen, pillars.month, pillars.day, meElem, branches, window.moving); 
         w5s = res.scores; 
         ysTxt = `${yongShen}(${res.targetElem} ${w5s[res.targetElem].toFixed(1)})`; 
+        
+        const yongShenAnalysis = analyzeYongShenWithShiYing(
+            yongShen, 6, 3, kins, window.moving
+        );
+        displayYongShenAnalysis(yongShenAnalysis);
+      } else {
+        document.getElementById('yongShenAnalysis').innerHTML = '';
       }
       
       updateW5RadarScores(w5s); 
@@ -836,7 +1362,7 @@
           six: gzSix[i], 
           fu: '', 
           yy: baseLines[i], 
-          mv: window.moving[i], // 使用全局 moving 數組
+          mv: window.moving[i],
           kin: kins[i], 
           zhi: branches[i], 
           kinc: window.moving[i] ? kinsC[i] : '', 
@@ -913,7 +1439,6 @@
         
         ctx.clearRect(0, 0, W, H);
         
-        // 繪製網格
         ctx.lineWidth = 1;
         ctx.strokeStyle = '#e5e7eb';
         
@@ -929,7 +1454,6 @@
           ctx.stroke();
         }
         
-        // 繪製標籤
         ctx.font = '14px "Noto Sans TC","Microsoft JhengHei",sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -942,7 +1466,6 @@
           ctx.fillText(k, x, y);
         });
         
-        // 繪製數據
         const v = values();
         const pts = [];
         
@@ -972,7 +1495,6 @@
         });
       }
       
-      // 綁定滑桿事件
       ['w5_mu', 'w5_huo', 'w5_tu', 'w5_jin', 'w5_shui'].forEach(i => {
         const el = id(i);
         if (el) {
@@ -994,80 +1516,24 @@
       window.addEventListener('resize', drawRadar);
     }
 
-    // ==================== 中醫建議系統 ====================
-    (function() {
-      if (window.__TCM_BOX__) return; 
-      window.__TCM_BOX__ = true;
-      
-      const MAP = {
-        '木': { 
-          zang: '肝', fu: '膽', 
-          dept: ['肝膽科', '情志/睡眠', '骨傷/筋膜'], 
-          patterns: ['肝氣鬱結', '肝火上炎', '肝血不足', '肝腎陰虛'], 
-          self: ['規律作息、舒展拉筋', '少酒辣與熬夜', '情志舒解（散步、冥想）'] 
-        },
-        '火': { 
-          zang: '心', fu: '小腸', 
-          dept: ['心血管', '身心/睡眠'], 
-          patterns: ['心火亢盛', '心脾兩虛', '心陰不足'], 
-          self: ['少咖啡酒精', '減少熬夜與重鹹', '午間小憩、清心安神'] 
-        },
-        '土': { 
-          zang: '脾', fu: '胃', 
-          dept: ['脾胃消化', '內分泌/代謝'], 
-          patterns: ['脾胃虛弱', '濕困脾胃', '胃氣上逆'], 
-          self: ['少冰冷甜膩', '三餐定時少量多餐', '腹式呼吸、飯後步行'] 
-        },
-        '金': { 
-          zang: '肺', fu: '大腸', 
-          dept: ['呼吸過敏', '皮膚', '耳鼻喉'], 
-          patterns: ['肺氣虛', '肺陰虛', '風寒/風熱犯肺'], 
-          self: ['避免過敏源', '適度蒸氣/保濕', '早睡早起、練呼吸'] 
-        },
-        '水': { 
-          zang: '腎', fu: '膀胱', 
-          dept: ['腎泌尿', '內科體質'], 
-          patterns: ['腎陽虛', '腎陰虛', '腎氣不足'], 
-          self: ['保暖腰腹與足部', '規律作息、早睡', '溫和伸展與補水'] 
-        }
-      };
-      
-      function htmlList(items) { 
-        return '<ul>' + items.map(s => '<li>' + s + '</li>').join('') + '</ul>'; 
-      }
-      
-      window.updateTCMAdvice = function build(meElem, w5Scores) {
-        const core = document.getElementById('tcmCore');
-        const lists = document.getElementById('tcmLists'); 
-        if (!core || !lists) return;
-        
-        const base = MAP[meElem] || MAP['土']; 
-        let tags = `<span class="tag">卦宮五行：${meElem}</span><span class="tag">臟腑：${base.zang}／${base.fu}</span>`;
-        
-        core.innerHTML = tags;
-        
-        let html = ''; 
-        html += `<div class="blk"><h4>建議就診科別</h4>${htmlList(base.dept)}</div>`; 
-        html += `<div class="blk"><h4>常見體質／症候（參考）</h4>${htmlList(base.patterns)}</div>`;
-        html += `<div class="blk"><h4>日常調養建議</h4>${htmlList(base.self)}</div>`;
-        
-        lists.innerHTML = html;
-      }
-    })();
-
     // ==================== 初始化所有功能 ====================
     window.addEventListener('DOMContentLoaded', () => {
-      // 設置默認時間
       E('dt').value = toYMDhm(new Date());
       
-      // 綁定按鈕事件
       E('btnNow')?.addEventListener('click', () => { E('dt').value = toYMDhm(new Date()); render(); });
       E('btnPrint')?.addEventListener('click', () => window.print());
       E('redraw')?.addEventListener('click', render);
       E('download')?.addEventListener('click', downloadPNG);
       E('btnUpdateRadar')?.addEventListener('click', render);
+      E('btnRandomHex')?.addEventListener('click', applyRandomHexagram);
       
-      // 初始化動爻控制 - 修復：確保正確綁定事件
+      E('btnTossCoins').addEventListener('click', tossCoins);
+      E('btnResetCoins').addEventListener('click', resetCoins);
+      E('btnApplyCoins').addEventListener('click', applyCoinResults);
+      E('btnAutoToss').addEventListener('click', autoTossSixTimes);
+      
+      E('btnAnalyzeSymptoms').addEventListener('click', analyzeSymptoms);
+      
       const mvCtl = E('mvCtl');
       mvCtl.innerHTML = [6, 5, 4, 3, 2, 1].map(p => 
         `<label><input type="checkbox" data-mv="${p-1}"> ${p === 6 ? '上' : p === 1 ? '初' : p}爻動</label>`
@@ -1077,12 +1543,10 @@
         const i = e.target.dataset.mv; 
         if (i != null) { 
           window.moving[i] = e.target.checked; 
-          console.log('動爻變化:', i, window.moving[i]);
           render(); 
         } 
       });
       
-      // 綁定表單變化事件
       const bind = (id, fn) => { 
         const el = E(id); 
         if (el) { 
@@ -1092,19 +1556,13 @@
       
       ['upper', 'lower', 'question', 'dt', 'size', 'offx', 'offy', 'gap', 'headgap', 'yongShen'].forEach(id => bind(id, render));
       
-      // 綁定零錢起卦按鈕
-      E('btnTossCoins').addEventListener('click', tossCoins);
-      E('btnResetCoins').addEventListener('click', resetCoins);
-      E('btnApplyCoins').addEventListener('click', applyCoinResults);
-      E('btnRandomHex').addEventListener('click', autoTossSixTimes);
-      
-      // 初始化顯示
       updateCoinResultsDisplay();
       setTimeout(initRadarChart, 200);
       setTimeout(render, 300);
+      
+      window.updateTCMAdvice = updateTCMAdvice;
     });
 
-    // 下載功能
     function downloadPNG() {
       const canvas = E('hexCanvas'); 
       const filename = 'hexagram.png';
