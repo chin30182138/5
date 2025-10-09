@@ -34,6 +34,7 @@
       border-radius:10px;
       background:#fff;
       padding:8px;
+      overflow: auto;
     }
     canvas{display:block;min-width:600px;width:100%;height:560px}
     .yaoCtl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
@@ -242,6 +243,26 @@
       border-radius: 6px;
       border: 1px solid #cbd5e1;
     }
+    
+    /* 卦圖大小控制樣式 */
+    .canvas-controls {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .canvas-controls .row {
+      margin: 6px 0;
+    }
+    .canvas-controls label {
+      min-width: 80px;
+      font-size: 14px;
+    }
+    .canvas-controls input[type="range"] {
+      flex: 1;
+      max-width: 200px;
+    }
   </style>
 </head>
 <body>
@@ -354,17 +375,38 @@
           <canvas id="hexCanvas"></canvas>
         </div>
         
+        <!-- 卦圖大小控制 -->
+        <div class="canvas-controls hide-print">
+          <div class="row">
+            <label>卦圖大小</label>
+            <input type="range" id="size" min="140" max="440" value="300">
+            <span class="miniVal" id="sizeVal">300</span>
+          </div>
+          <div class="row">
+            <label>水平偏移</label>
+            <input type="range" id="offx" min="-320" max="320" value="0">
+            <span class="miniVal" id="offxVal">0</span>
+          </div>
+          <div class="row">
+            <label>垂直偏移</label>
+            <input type="range" id="offy" min="-220" max="220" value="0">
+            <span class="miniVal" id="offyVal">0</span>
+          </div>
+          <div class="row">
+            <label>爻距</label>
+            <input type="range" id="gap" min="26" max="38" value="32">
+            <span class="miniVal" id="gapVal">32</span>
+          </div>
+          <div class="row">
+            <label>欄頭間距</label>
+            <input type="range" id="headgap" min="16" max="48" value="24">
+            <span class="miniVal" id="headgapVal">24</span>
+          </div>
+        </div>
+        
         <div id="noteBox" class="noteBox">
           <label for="userNote" style="display:block;margin:6px 0 4px;color:#0f172a;font-size:14px">備註（會列印）</label>
           <textarea id="userNote" rows="5" placeholder="在此輸入要印在卦象旁的說明、重點、問卦背景等"></textarea>
-        </div>
-        
-        <div class="row hide-print">
-          <label>大小</label><input type="range" id="size" min="140" max="440" value="300"><span class="miniVal" id="sizeVal">300</span>
-          <label>水平</label><input type="range" id="offx" min="-320" max="320" value="0"><span class="miniVal" id="offxVal">0</span>
-          <label>垂直</label><input type="range" id="offy" min="-220" max="220" value="0"><span class="miniVal" id="offyVal">0</span>
-          <label>爻距</label><input type="range" id="gap" min="26" max="38" value="32"><span class="miniVal" id="gapVal">32</span>
-          <label>欄頭間距</label><input type="range" id="headgap" min="16" max="48" value="24"><span class="miniVal" id="headgapVal">24</span>
         </div>
         
         <div class="muted">欄序：<b>六獸</b>｜<b>伏神</b>｜<b>爻象</b>｜<b>六親</b>｜<b>地支</b>｜<b>世應</b>｜<b>變六親</b>｜<b>變支</b>（初爻在下；動爻：陽○、陰×）。</div>
@@ -385,6 +427,7 @@
           </div>
         </div>
         
+        <!-- 中醫分析顯示區域 -->
         <div id="tcmBox" class="tcm-box">
           <h3>中醫分科建議</h3>
           <div id="tcmCore"></div>
@@ -1214,6 +1257,7 @@
         ysTxt 
       }, rows);
       
+      // 更新中醫建議
       if (window.updateTCMAdvice) {
         try { 
           window.updateTCMAdvice(meElem, w5s); 
@@ -1388,7 +1432,7 @@
         } 
       });
       
-      // 绑定其他输入事件
+      // 绑定卦图大小控制事件
       const bind = (id, fn) => { 
         const el = E(id); 
         if (el) { 
