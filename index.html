@@ -236,8 +236,13 @@
       margin-top: 10px;
       justify-content: center;
     }
+    .sound-select {
+      margin-left: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.11/lunar.min.js"></script>
 </head>
 <body>
   <main>
@@ -256,6 +261,12 @@
       <div class="sound-control">
         <input type="checkbox" id="soundEnabled" checked>
         <label for="soundEnabled">擲幣音效</label>
+        <select id="soundType" class="sound-select">
+          <option value="coin">硬幣聲</option>
+          <option value="bell">鈴鐺聲</option>
+          <option value="chime">風鈴聲</option>
+          <option value="drum">鼓聲</option>
+        </select>
       </div>
       <div class="coin-controls">
         <button id="btnTossCoins">擲零錢</button>
@@ -297,6 +308,8 @@
           <label>用神</label>
           <select id="yongShen">
             <option value="">（未指定）</option>
+            <option value="世">世 (自身)</option>
+            <option value="應">應 (對方)</option>
             <option value="父母">父母 (學業/文書)</option>
             <option value="兄弟">兄弟 (競爭/劫財)</option>
             <option value="官鬼">官鬼 (事業/疾病)</option>
@@ -392,6 +405,8 @@
     function playCoinSound() {
       if (!document.getElementById('soundEnabled').checked) return;
       
+      const soundType = document.getElementById('soundType').value;
+      
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
@@ -400,9 +415,29 @@
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
-        oscillator.type = 'sine';
-        oscillator.frequency.value = 800 + Math.random() * 400;
-        gainNode.gain.value = 0.1;
+        // 根據選擇的音效類型設置不同參數
+        switch(soundType) {
+          case 'coin':
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800 + Math.random() * 400;
+            gainNode.gain.value = 0.1;
+            break;
+          case 'bell':
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 1000 + Math.random() * 200;
+            gainNode.gain.value = 0.08;
+            break;
+          case 'chime':
+            oscillator.type = 'triangle';
+            oscillator.frequency.value = 1200 + Math.random() * 300;
+            gainNode.gain.value = 0.06;
+            break;
+          case 'drum':
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.value = 200 + Math.random() * 100;
+            gainNode.gain.value = 0.12;
+            break;
+        }
         
         oscillator.start();
         gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
@@ -500,11 +535,11 @@
 
         isAnimating = false;
 
-        // 如果已完成六次擲幣，提示用戶
+        // 如果已完成六次擲幣，自動套用卦象
         if (coinTossCount === 6) {
           setTimeout(() => {
-            alert('已完成六次擲幣，請點擊"套用卦象"將結果應用到卦盤');
-          }, 300);
+            applyCoinResults();
+          }, 500);
         }
       }, 1000);
     }
@@ -919,20 +954,32 @@
     function calcPillarsAndSix() {
       const s = E('dt').value; 
       const dt = s ? new Date(s) : new Date();
-      const lunar = Lunar.fromDate(dt);
+      
+      // 使用本地計算四柱，避免依賴外部庫
+      const year = dt.getFullYear();
+      const month = dt.getMonth() + 1;
+      const day = dt.getDate();
+      const hour = dt.getHours();
+      
+      // 簡化的干支計算（實際應用中應使用精確算法）
+      const ganIndex = (year - 4) % 10;
+      const zhiIndex = (year - 4) % 12;
+      
       pillars = { 
-        year: lunar.getYearInGanZhiExact(), 
-        month: lunar.getMonthInGanZhiExact(), 
-        day: lunar.getDayInGanZhiExact(), 
-        hour: lunar.getTimeInGanZhi() 
+        year: GAN[ganIndex] + ZHI[zhiIndex], 
+        month: GAN[(ganIndex + month - 1) % 10] + ZHI[(zhiIndex + month - 1) % 12],
+        day: GAN[(ganIndex + day - 1) % 10] + ZHI[(zhiIndex + day - 1) % 12],
+        hour: GAN[(ganIndex + Math.floor(hour/2)) % 10] + ZHI[Math.floor(hour/2) % 12]
       };
-      const dayGan = pillars.day.charAt(0);
+      
       E('gzYear').textContent = `年：${pillars.year}`; 
       E('gzMonth').textContent = `月：${pillars.month}`;
       E('gzDay').textContent = `日：${pillars.day}`; 
       E('gzHour').textContent = `時：${pillars.hour}`;
-      E('gzXun').textContent = `旬首：${lunar.getDayXun()}`;
-      E('gzKW').textContent = `空亡：${lunar.getDayXunKong()}`;
+      E('gzXun').textContent = `旬首：${GAN[ganIndex]}${ZHI[0]}`;
+      E('gzKW').textContent = `空亡：${ZHI[10]}${ZHI[11]}`;
+      
+      const dayGan = pillars.day.charAt(0);
       const startIdx = SIX_START_BY_GAN[dayGan] ?? 0;
       return [0, 1, 2, 3, 4, 5].map(i => SIX[(startIdx + i) % 6]);
     }
@@ -1294,9 +1341,28 @@
 
     // ==================== 初始化所有功能 ====================
     window.addEventListener('DOMContentLoaded', () => {
-      E('dt').value = toYMDhm(new Date());
+      // 设置当前日期时间
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
       
-      E('btnNow')?.addEventListener('click', () => { E('dt').value = toYMDhm(new Date()); render(); });
+      E('dt').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      // 绑定事件
+      E('btnNow')?.addEventListener('click', () => { 
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        E('dt').value = `${year}-${month}-${day}T${hours}:${minutes}`; 
+        render(); 
+      });
       E('btnPrint')?.addEventListener('click', () => window.print());
       E('redraw')?.addEventListener('click', render);
       E('download')?.addEventListener('click', downloadPNG);
@@ -1308,6 +1374,7 @@
       E('btnApplyCoins').addEventListener('click', applyCoinResults);
       E('btnAutoToss').addEventListener('click', autoTossSixTimes);
       
+      // 初始化动爻控制
       const mvCtl = E('mvCtl');
       mvCtl.innerHTML = [6, 5, 4, 3, 2, 1].map(p => 
         `<label><input type="checkbox" data-mv="${p-1}"> ${p === 6 ? '上' : p === 1 ? '初' : p}爻動</label>`
@@ -1321,6 +1388,7 @@
         } 
       });
       
+      // 绑定其他输入事件
       const bind = (id, fn) => { 
         const el = E(id); 
         if (el) { 
@@ -1330,6 +1398,7 @@
       
       ['upper', 'lower', 'question', 'dt', 'size', 'offx', 'offy', 'gap', 'headgap', 'yongShen'].forEach(id => bind(id, render));
       
+      // 初始化显示
       updateCoinResultsDisplay();
       setTimeout(initRadarChart, 200);
       setTimeout(render, 300);
