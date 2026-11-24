@@ -127,6 +127,13 @@
   .aiOut ul{margin:4px 0 8px;padding-left:20px}
   .aiOut p{margin:6px 0}
   .aiOut .src{margin-top:12px;font-size:12px;color:var(--muted);border-top:1px dashed #cfdcd4;padding-top:8px}
+  .hx{border:1px solid #d7e4dc;background:#fff;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .hx-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .hx-h small{color:var(--muted);font-size:12px}
+  .hx dl{display:grid;grid-template-columns:110px 1fr;gap:3px 10px;margin:0;font-size:13.5px}
+  .hx dt{color:var(--pine);font-weight:700}
+  .hx dd{margin:0}
+  .aiOut .ai2{margin-top:16px;padding-top:12px;border-top:2px solid #cfdcd4}
   .disclaimer{font-size:12px;color:var(--wine);margin-top:8px}
   details.cfg{margin-top:10px;font-size:13px}
   details.cfg summary{cursor:pointer;color:var(--muted)}
@@ -291,10 +298,28 @@
     </section>
 
     <section class="card">
-      <h2>中醫五行分析</h2>
+      <h2>健康預測分析 <small>依阿青師《六爻健康預測講義》判斷規則</small></h2>
+      <div class="row no-print">
+        <label class="f">問誰</label>
+        <select id="patient" style="flex:1">
+          <option value="世">自己（世爻）</option>
+          <option value="父母">父母、長輩（父母爻）</option>
+          <option value="妻財">妻子、女友（妻財爻）</option>
+          <option value="官鬼">丈夫、男友（官鬼爻）</option>
+          <option value="子孫">子女、晚輩（子孫爻）</option>
+          <option value="兄弟">兄弟姊妹、朋友（兄弟爻）</option>
+          <option value="應">其他人（應爻）</option>
+        </select>
+        <label class="f">病程</label>
+        <select id="course">
+          <option value="">不確定</option>
+          <option value="near">近病（三個月內）</option>
+          <option value="long">久病（三個月以上）</option>
+        </select>
+      </div>
       <div class="row"><textarea id="symptoms" rows="2" placeholder="（選填）身體狀況或想問的部位，例如：最近睡不好、胃脹"></textarea></div>
       <div class="row no-print" style="margin-top:10px">
-        <button class="btn wine" id="btnAI" style="flex:1"><span id="aiTxt">產生中醫五行分析</span></button>
+        <button class="btn wine" id="btnAI" style="flex:1"><span id="aiTxt">產生健康預測分析</span></button>
       </div>
       <details class="cfg no-print">
         <summary>AI 服務設定</summary>
@@ -310,6 +335,7 @@
 </main>
 <div id="toast"></div>
 
+<script src="health.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -942,47 +968,6 @@ function playSound(){
 /* =====================================================================
    中醫五行分析
    ===================================================================== */
-const BODY_BY_YAO = ['足部','小腿・膝','腰・腹','胸腹・脾胃','胸・肩頸','頭面'];
-const WX_TIPS = {
-  木:{over:['情緒易急躁，留意肝氣鬱結、眼睛乾澀、筋緊','少熬夜，23 點前入睡養肝','可按太衝穴疏肝理氣'],
-      weak:['易疲倦、決斷力下降，留意肝血不足','多吃深綠色蔬菜，適量酸味','晨間散步、伸展筋骨']},
-  火:{over:['心火偏旺，留意失眠、口破、心悸','少辛辣燥熱，午間小憩','可按內關、勞宮穴寧心'],
-      weak:['手腳冰冷、精神不振，留意心陽不足','適量溫熱飲食，避免過度冰飲','午後適度活動促進循環']},
-  土:{over:['脾胃負擔大，留意脹氣、濕重、體重','少甜膩、少暴飲暴食','飯後散步，按足三里健脾'],
-      weak:['消化吸收弱，易軟便、四肢無力','三餐定時、細嚼慢嚥，少生冷','可用山藥、茯苓等食材健脾（請洽中醫師）']},
-  金:{over:['肺氣偏實，留意咳嗽、便秘、皮膚乾','多喝溫水，秋冬注意保濕','擴胸、深呼吸練習'],
-      weak:['易感冒、氣短、皮膚敏感','注意保暖、避免受寒','可按合谷、肺俞，練習腹式呼吸']},
-  水:{over:['水濕偏重，留意水腫、怕冷、腰重','少鹹、少冰，注意下半身保暖','睡前泡腳'],
-      weak:['腎氣不足，留意腰膝痠軟、耳鳴、頻尿','早睡養腎，避免過度勞累','可按湧泉、太溪穴']}
-};
-function localAnalysis(ch, wx){
-  const sorted = [...WX].sort((a,b)=>wx[b]-wx[a]);
-  const hi = sorted[0], lo = sorted[4];
-  const gui = ch.rows.filter(r => r.kin === '官鬼');
-  const zi = ch.rows.filter(r => r.kin === '子孫');
-  const shi = ch.rows[ch.base.shi-1];
-  let md = `### 五行概況\n`;
-  md += `卦中**${hi}**最強（${wx[hi]}/10，對應${ORGAN[hi]}），**${lo}**最弱（${wx[lo]}/10，對應${ORGAN[lo]}）。`;
-  md += `月建${ch.P.monthZhi}${ZHI_WX[ch.P.monthZhi]}當令，${WX.filter(e=>['囚','死'].includes(seasonState(e,ch.P.monthZhi))).join('、')}受制。\n\n`;
-  md += `### 世爻（自身）\n${YAO_NAME[shi.pos-1]}${shi.kin}${shi.br}${shi.wx}，月令${shi.season}${shi.kong?'，旬空':''}${shi.yuePo?'，月破':''}${shi.moving?'，發動':''}。`;
-  md += (['旺','相'].includes(shi.season) && !shi.yuePo) ? '世爻有氣，體質底子尚可。\n\n' : '世爻偏弱，宜重休養、勿過勞。\n\n';
-  md += `### 官鬼（病象）\n`;
-  if (gui.length){
-    gui.forEach(r => { md += `- ${YAO_NAME[r.pos-1]}官鬼${r.br}${r.wx}：部位參考**${BODY_BY_YAO[r.pos-1]}**，五行屬${r.wx}（${ORGAN[r.wx]}），月令${r.season}${r.moving?'、發動':''}${r.kong?'、旬空':''}\n`; });
-  } else {
-    const f = ch.rows.find(r => r.fu && r.fu.kin === '官鬼');
-    md += f ? `- 官鬼不上卦，伏於${YAO_NAME[f.pos-1]}（${f.fu.br}${f.fu.wx}），病象較隱\n` : '- 卦中無明顯官鬼\n';
-  }
-  md += `\n### 子孫（醫藥・解神）\n`;
-  md += zi.length ? zi.map(r => `- ${YAO_NAME[r.pos-1]}子孫${r.br}${r.wx}，月令${r.season}${r.moving?'、發動':''}${r.kong?'、旬空':''}`).join('\n') + '\n' : '- 子孫不現，調養需時間\n';
-  md += `\n### 調養建議\n`;
-  if (wx[hi] >= 8) WX_TIPS[hi].over.forEach(t => md += `- ${t}\n`);
-  if (wx[lo] <= 4) WX_TIPS[lo].weak.forEach(t => md += `- ${t}\n`);
-  if (wx[hi] < 8 && wx[lo] > 4) md += `- 五行大致平和，維持規律作息即可\n`;
-  const sym = $('symptoms').value.trim();
-  if (sym) md += `\n### 您提到的狀況\n「${sym}」——可對照上方官鬼部位與偏弱五行，請帶著實際症狀諮詢醫師。\n`;
-  return md;
-}
 function mdToHtml(md){
   const esc = s => s.replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
@@ -1011,16 +996,29 @@ async function runAnalysis(){
   const ch = state.chart, wx = currentWx();
   const btn = $('btnAI'); btn.disabled = true;
   $('aiTxt').innerHTML = '<span class="spinner"></span>分析中…';
-  let md = null, source = '';
+  const opt = {yong: $('patient').value, course: $('course').value, symptoms: $('symptoms').value.trim()};
+  const res = HealthEngine.analyze(ch, opt);
+  const out = $('aiOut');
+  const foot = `<div class="src">${ch.base.name}${ch.bian?'之'+ch.bian.name:''}｜${ch.P.year}年${ch.P.month}月${ch.P.day}日｜${new Date().toLocaleString('zh-TW')}</div>
+     <div class="disclaimer">本分析為卦象參考，不能取代醫療診斷；身體不適仍以醫囑為主。</div>`;
+  out.innerHTML = '<h3>講義規則判斷</h3>' + HealthEngine.toHtml(res, ch, opt) + foot;
+  out.style.display = 'block';
+
   const base = getApiBase();
   if (base !== null){
+    const box = document.createElement('div'); box.className = 'ai2';
+    box.innerHTML = '<h3>AI 綜合解讀</h3><p class="hint"><span class="spinner" style="border-color:#cfdcd4;border-top-color:var(--pine)"></span>DeepSeek 解讀中…</p>';
+    out.insertBefore(box, out.querySelector('.src'));
     try{
       const payload = {
         action:'ai_tcm_analysis',
         constitution: ch.base.palaceWx,
         element_balance: wx,
-        yong_shen: $('yongShen').value || '未指定',
-        symptoms: $('symptoms').value.trim(),
+        yong_shen: res.ys.label,
+        patient: $('patient').selectedOptions[0].textContent,
+        course: $('course').selectedOptions[0].textContent,
+        symptoms: opt.symptoms,
+        rule_findings: HealthEngine.toText(res, ch),
         hexagram_info:{
           question: $('question').value.trim(),
           name: ch.base.name, palace: ch.base.palace + '宮' + ch.base.gen,
@@ -1032,21 +1030,17 @@ async function runAnalysis(){
           lines: ch.rows.map(r => lineDesc(r, ch.P) + (r.fu ? `，伏${r.fu.kin}${r.fu.br}${r.fu.wx}` : ''))
         }
       };
-      const ctl = new AbortController(); const tm = setTimeout(()=>ctl.abort(), 45000);
-      const res = await fetch(`${base}/api/analyze`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:ctl.signal});
+      const ctl = new AbortController(); const tm = setTimeout(()=>ctl.abort(), 60000);
+      const r = await fetch(`${base}/api/analyze`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:ctl.signal});
       clearTimeout(tm);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const j = await res.json();
-      if (j.success && j.data && j.data.raw_analysis){ md = j.data.raw_analysis; source = 'AI 分析（DeepSeek）'; }
-      else throw new Error('回傳格式不符');
-    }catch(e){ console.warn('AI 失敗，改用規則分析', e); source = `AI 服務未回應（${e.message}），以下為內建規則分析`; }
-  } else source = '內建規則分析（尚未設定 AI 服務網址）';
-  if (!md){ md = localAnalysis(ch, wx); if (!source) source = '內建規則分析'; }
-  const out = $('aiOut');
-  out.innerHTML = mdToHtml(md) +
-    `<div class="src">${source}｜${ch.base.name}${ch.bian?'之'+ch.bian.name:''}｜${ch.P.year}年${ch.P.month}月${ch.P.day}日｜${new Date().toLocaleString('zh-TW')}</div>
-     <div class="disclaimer">本分析為卦象五行參考，不能取代醫療診斷；身體不適仍以醫囑為主。</div>`;
-  out.style.display = 'block';
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      if (!(j.success && j.data && j.data.raw_analysis)) throw new Error('回傳格式不符');
+      box.innerHTML = '<h3>AI 綜合解讀</h3>' + mdToHtml(j.data.raw_analysis);
+    }catch(e){
+      box.innerHTML = `<h3>AI 綜合解讀</h3><p class="hint">AI 服務未回應（${e.message}），以上為講義規則判斷。</p>`;
+    }
+  }
   btn.disabled = false; $('aiTxt').textContent = '重新分析';
 }
 
@@ -1118,6 +1112,7 @@ window.addEventListener('DOMContentLoaded', () => {
     a.href = $('board').toDataURL('image/png'); a.click();
   };
   $('btnAI').onclick = runAnalysis;
+  $('patient').addEventListener('change', () => { $('yongShen').value = $('patient').value; update(); });
   $('btnSaveApi').onclick = () => {
     try{ localStorage.setItem('xrzl_api', $('apiBase').value.trim()); toast('已儲存 AI 服務網址'); }catch(e){ toast('此瀏覽器無法儲存設定'); }
   };
