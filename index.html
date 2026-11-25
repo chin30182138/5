@@ -332,6 +332,11 @@
       <div class="row no-print" style="margin-top:10px">
         <button class="btn wine" id="btnAI" style="flex:1"><span id="aiTxt">產生健康預測分析</span></button>
       </div>
+      <div class="row no-print" style="margin-top:10px"><textarea id="myJudge" rows="3" placeholder="我的斷語：用神、病處、病因、應期……（可按 Windows 鍵 + H 用說的）"></textarea></div>
+      <div class="row no-print" style="margin-top:8px">
+        <button class="btn primary" id="btnToLib" style="flex:1">存入疾病卦例庫</button>
+      </div>
+      <p class="hint no-print" id="libHint" style="margin:6px 0 0">按下後會複製這一卦並開啟卦例庫，在卦例庫按 Ctrl+V 即自動帶入。</p>
       <details class="cfg no-print">
         <summary>AI 服務設定</summary>
         <div class="row" style="margin-top:8px">
@@ -1124,6 +1129,20 @@ window.addEventListener('DOMContentLoaded', () => {
     const a = document.createElement('a');
     a.download = `六爻排盤_${state.chart.base.name}_${$('dt').value.replace(/[:T]/g,'')}.png`;
     a.href = $('board').toDataURL('image/png'); a.click();
+  };
+  $('btnToLib').onclick = async () => {
+    const payload = {v:1, dt:$('dt').value, ziSplit:$('ziSplit').checked, lines:state.lines.slice(), moving:state.moving.map(Boolean),
+      question:$('question').value.trim(), patient:$('patient').value, sex:$('sex').value, age:$('age').value, course:$('course').value,
+      symptoms:$('symptoms').value.trim(), judgment:$('myJudge').value.trim()};
+    const text = 'XRZL-CASE:' + JSON.stringify(payload);
+    let ok = false;
+    try{ await navigator.clipboard.writeText(text); ok = true; }catch(e){
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      try{ ok = document.execCommand('copy'); }catch(_){} ta.remove();
+    }
+    window.open('https://claude.ai/artifact/WcF11u7FUfRtXKZnhKAZob', 'xrzl-caselib');
+    $('libHint').textContent = ok ? '已複製！到卦例庫按 Ctrl+V，資料會自動帶入，確認後按「儲存卦例」。' : '複製失敗，請再按一次。';
+    toast(ok ? '已複製，請到卦例庫按 Ctrl+V' : '複製失敗');
   };
   $('btnAI').onclick = runAnalysis;
   $('patient').addEventListener('change', () => { $('yongShen').value = $('patient').value; update(); });
