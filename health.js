@@ -509,5 +509,93 @@ function toText(res, ch){
   return L.join('\n');
 }
 
-global.HealthEngine = {analyze, toHtml, toText, tables:{T_TRIG,T_WX,T_KIN,T_YAO,T_BEAST,T_ZHI}};
+/* ---------------- 疾病比對用特徵 ---------------- */
+const KIND_W = {ys:1, yuan:0.8, cause:0.8, side:0.5};
+function chartFeatures(res, ch){
+  const f = {};
+  const add = (k, w) => { f[k] = Math.max(f[k] || 0, w); };
+  res.detail.forEach(d => {
+    const w = KIND_W[d.kind] || 0.5;
+    const key = [...res.focus.entries()].find(([k, v]) => v.label === d.label);
+    if (!key) return;
+    const k = key[0];
+    let r = null, br, wx, kin, beast, pos, tri;
+    if (k[0] === 'r'){ r = ch.rows[+k.slice(1)-1]; br = r.br; wx = r.wx; kin = r.kin; beast = r.beast; pos = r.pos; tri = pos<=3 ? ch.base.lo : ch.base.up; }
+    else if (k[0] === 'b'){ const rr = ch.rows[+k.slice(1)-1]; br = rr.bBr; wx = ZHI_WX[br]; kin = rr.bKin; beast = rr.beast; pos = rr.pos; tri = pos<=3 ? ch.bian.lo : ch.bian.up; }
+    else { br = k === 'm' ? ch.P.monthZhi : ch.P.dayZhi; wx = ZHI_WX[br]; }
+    add('wx:'+wx, w); add('br:'+br, w*0.6);
+    if (pos){ add('pos:'+pos, w); add('tri:'+tri, w*0.7); add(pos<=3 ? 'side:內' : 'side:外', w*0.5); }
+    if (kin) add('kin:'+kin, w);
+    if (beast) add('beast:'+beast, w);
+    if (r){
+      if (r.kong) add('st:空', w); if (r.yuePo) add('st:破', w);
+      if (r.riHe) add('st:合', w*0.6); if (r.riChong) add('st:沖', w*0.6);
+      if (r.moving && r.hua){ if (r.hua.includes('化進')) add('st:進', w); if (r.hua.includes('化退')) add('st:退', w); }
+    }
+  });
+  add('palace:'+ch.base.palace, 0.6);
+  (res.gua.tags || []).forEach(t => add('gua:'+t.replace('變',''), 0.6));
+  (res.gua.fanFu || []).forEach(t => add('gua:'+t.slice(2), 0.6));
+  return f;
+}
+
+/* ---------------- 疾病分科比對（王虎應《六爻測病分科詳解》） ---------------- */
+const FEAT_NAME = k => {
+  const [a, b] = k.split(':');
+  return {palace:`${b}宮`, pos:YAO[+b-1], wx:`五行${b}`, kin:b, beast:b, st:{空:'旬空',破:'月破',合:'日合',沖:'日沖',進:'化進',退:'化退'}[b] || b, gua:b}[a] || b;
+};
+function matchDiseases(res, ch, opt){
+  const DB = global.DISEASE_DB; if (!DB) return null;
+  opt = opt || {};
+  const f0 = chartFeatures(res, ch), f = {};
+  Object.keys(f0).forEach(k => { if (!/^(br|side|tri):/.test(k)) f[k] = f0[k]; });
+  const sym = (opt.symptoms || '').trim();
+  const out = [];
+  DB.diseases.forEach(d => {
+    if (opt.sex === '男' && d.cat === '婦科常見疾病') return;
+    if (opt.sex === '女' && d.cat === '男科常見疾病') return;
+    if (opt.age === 'adult' && d.cat === '兒科常見疾病') return;
+    const tot = d.n + DB.A + 1;
+    let score = 0; const why = [];
+    Object.entries(f).forEach(([k, w]) => {
+      const pr = d.prior.includes(k) ? 1 : 0;
+      const v = Math.log(((d.num[k] || 0) + DB.A * pr + DB.sm) / tot / (((DB.g[k] || 0) + 1) / (DB.N + 2)));
+      score += w * v;
+      if (v > 0.35) why.push({k, v: w * v, book: !!pr});
+    });
+    let symHit = [];
+    if (sym){
+      if (d.core && sym.includes(d.core)) { score += 6; symHit.push(d.core); }
+      else if (d.core && d.core.length >= 2 && [...d.core].some(c => '心肝脾肺腎胃腸膽膀眼耳鼻喉牙舌頭腰腿肩頸乳皮骨'.includes(c) && sym.includes(c))) { score += 2.5; symHit.push([...d.core].filter(c => sym.includes(c)).join('')); }
+      d.kw.forEach(w => { if (w.length >= 2 && sym.includes(w)) { score += 1.2; symHit.push(w); } });
+    }
+    if (opt.age === 'child' && d.cat === '兒科常見疾病') score += 2;
+    out.push({d, score, why: why.sort((a,b) => b.v - a.v).slice(0, 5), sym: [...new Set(symHit)]});
+  });
+  out.sort((a, b) => b.score - a.score);
+  const cats = {};
+  out.slice(0, 15).forEach((x, i) => { cats[x.d.cat] = (cats[x.d.cat] || 0) + 1/(i+1); });
+  const catRank = Object.entries(cats).sort((a,b) => b[1]-a[1]).slice(0, 3).map(([c]) => c);
+  return {top: out.slice(0, 8), catRank};
+}
+function matchHtml(m){
+  if (!m) return '';
+  const max = m.top[0].score, min = m.top[m.top.length-1].score;
+  const h = ['<h4>疾病分科比對 <small style="font-weight:400;color:var(--muted);font-size:12px">依王虎應《六爻測病分科詳解》870 則卦例與各病歸納特徵</small></h4>'];
+  h.push(`<p>最接近的科別：${m.catRank.map((c,i) => `<span class="tag ${i?'':'g'}">${esc(c.replace('常見疾病','').replace('疾病',''))}</span>`).join('')}</p>`);
+  h.push('<div class="dz">');
+  m.top.slice(0, 6).forEach((x, i) => {
+    const pct = max === min ? 100 : Math.round(30 + 70 * (x.score - min) / (max - min));
+    const why = x.why.map(w => `<span class="tag ${w.book?'w':''}">${esc(FEAT_NAME(w.k))}</span>`).join('');
+    const tg = Object.entries(x.d.tags).map(([k,v]) => `${k}：${v.join('、')}`).join('；');
+    h.push(`<div class="dz-r"><div class="dz-h"><b>${i+1}. ${esc(x.d.name)}</b><small>${esc(x.d.cat)}・書中卦例 ${x.d.n} 則</small></div>
+      <div class="dz-bar"><i style="width:${pct}%"></i></div>
+      <div class="dz-w">相符特徵：${why || '—'}${x.sym.length ? `　症狀吻合：${x.sym.map(s=>`<span class="tag g">${esc(s)}</span>`).join('')}` : ''}</div>
+      ${tg ? `<div class="dz-t">書中歸納：${esc(tg)}</div>` : ''}</div>`);
+  });
+  h.push('</div><p class="hint">紅色標籤為書中歸納的特徵。比對結果是依卦象統計出的「接近程度」，用來提示判斷方向，不是診斷；同一卦常同時反映多種病，請配合問診與上方部位推斷取捨。</p>');
+  return h.join('');
+}
+
+global.HealthEngine = {analyze, toHtml, toText, chartFeatures, matchDiseases, matchHtml, tables:{T_TRIG,T_WX,T_KIN,T_YAO,T_BEAST,T_ZHI}};
 })(typeof window !== 'undefined' ? window : globalThis);

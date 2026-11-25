@@ -133,6 +133,10 @@
   .hx dl{display:grid;grid-template-columns:110px 1fr;gap:3px 10px;margin:0;font-size:13.5px}
   .hx dt{color:var(--pine);font-weight:700}
   .hx dd{margin:0}
+  .dz-r{background:#fff;border:1px solid #e4dccb;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .dz-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.dz-h b{font-family:var(--serif);font-size:16px;color:var(--wine)}.dz-h small{color:var(--muted);font-size:12px}
+  .dz-bar{height:6px;background:#f1ebdd;border-radius:3px;margin:6px 0}.dz-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--wine))}
+  .dz-w,.dz-t{font-size:13px}.dz-t{color:var(--muted);margin-top:3px}
   .aiOut .ai2{margin-top:16px;padding-top:12px;border-top:2px solid #cfdcd4}
   .disclaimer{font-size:12px;color:var(--wine);margin-top:8px}
   details.cfg{margin-top:10px;font-size:13px}
@@ -310,6 +314,12 @@
           <option value="兄弟">兄弟姊妹、朋友（兄弟爻）</option>
           <option value="應">其他人（應爻）</option>
         </select>
+        <label class="f">性別</label>
+        <select id="sex"><option value="">不指定</option><option value="男">男</option><option value="女">女</option></select>
+      </div>
+      <div class="row no-print">
+        <label class="f">年齡</label>
+        <select id="age"><option value="">不指定</option><option value="child">兒童</option><option value="adult">成人</option></select>
         <label class="f">病程</label>
         <select id="course">
           <option value="">不確定</option>
@@ -335,6 +345,7 @@
 </main>
 <div id="toast"></div>
 
+<script src="disease-db.js"></script>
 <script src="health.js"></script>
 <script>
 'use strict';
@@ -1001,7 +1012,9 @@ async function runAnalysis(){
   const out = $('aiOut');
   const foot = `<div class="src">${ch.base.name}${ch.bian?'之'+ch.bian.name:''}｜${ch.P.year}年${ch.P.month}月${ch.P.day}日｜${new Date().toLocaleString('zh-TW')}</div>
      <div class="disclaimer">本分析為卦象參考，不能取代醫療診斷；身體不適仍以醫囑為主。</div>`;
-  out.innerHTML = '<h3>講義規則判斷</h3>' + HealthEngine.toHtml(res, ch, opt) + foot;
+  const mopt = {symptoms: opt.symptoms, sex: $('sex').value, age: $('age').value};
+  const match = HealthEngine.matchDiseases(res, ch, mopt);
+  out.innerHTML = '<h3>講義規則判斷</h3>' + HealthEngine.toHtml(res, ch, opt) + HealthEngine.matchHtml(match) + foot;
   out.style.display = 'block';
 
   const base = getApiBase();
@@ -1018,7 +1031,7 @@ async function runAnalysis(){
         patient: $('patient').selectedOptions[0].textContent,
         course: $('course').selectedOptions[0].textContent,
         symptoms: opt.symptoms,
-        rule_findings: HealthEngine.toText(res, ch),
+        rule_findings: HealthEngine.toText(res, ch) + (match ? '\n疾病分科比對（王虎應卦例統計，依接近程度）：' + match.top.slice(0,6).map(x => x.d.name + '（' + x.d.cat + '）').join('、') + '；最接近科別：' + match.catRank.join('、') : ''),
         hexagram_info:{
           question: $('question').value.trim(),
           name: ch.base.name, palace: ch.base.palace + '宮' + ch.base.gen,
